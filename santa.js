@@ -1,9 +1,9 @@
 // Día 25: tu cara en Papá Noel + felicitación con letras, confeti y luces
-import { t, getLang } from './i18n.js';
-import { el, sleep, confetti } from './fx.js';
-import { chime, jingle, speak } from './sound.js';
-import { S } from './app.js';
-import { store } from './store.js';
+import { t, getLang } from './i18n.js?v=3';
+import { el, sleep, confetti } from './fx.js?v=3';
+import { chime, jingle, speak } from './sound.js?v=3';
+import { S } from './app.js?v=3';
+import { store } from './store.js?v=3';
 
 const W = 882, H = 1192, FACE = { x: 458, y: 500, rx: 215, ry: 185 };
 const BULBS = ['#ff3b3b', '#ffd23b', '#3bff6a', '#3bb6ff', '#ff7af0'];
@@ -26,8 +26,11 @@ function drawSanta(c, st) {
   c.fillStyle = '#ffffffcc'; for (let i = 0; i < 110; i++) { c.beginPath(); c.arc((i * 211) % W, (i * 137) % H, (i % 3) + 1.2, 0, 7); c.fill(); }
   // la cara (foto) va DETRÁS de la plantilla, que tiene el hueco
   if (st.photo) {
+    // solo se ve la zona de la cara: el resto de la foto (paisaje, etc.) queda escondido
     const iw = st.photo.width * st.sc, ih = st.photo.height * st.sc;
+    c.save(); c.beginPath(); c.ellipse(FACE.x, FACE.y + 5, 228, 200, 0, 0, 7); c.clip();
     c.drawImage(st.photo, FACE.x - iw / 2 + st.ox, FACE.y - ih / 2 + st.oy, iw, ih);
+    c.restore();
   } else {
     c.save(); c.beginPath(); c.ellipse(FACE.x, FACE.y, FACE.rx, FACE.ry, 0, 0, 7); c.fillStyle = '#f2c9a5'; c.fill();
     c.fillStyle = '#7a4a2a'; c.font = 'bold 150px Montserrat, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('?', FACE.x, FACE.y - 20); c.restore();
@@ -81,11 +84,28 @@ export function render(body, ctx) {
     };
     img.src = URL.createObjectURL(f);
   };
-  size.oninput = () => { st.sc = st.base * size.value / 100; redraw(); };
-  let drag = null;
-  cv.addEventListener('pointerdown', e => { if (!st.photo || st.locked) return; cv.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, ox: st.ox, oy: st.oy }; });
-  cv.addEventListener('pointermove', e => { if (!drag) return; const k = W / cv.getBoundingClientRect().width; st.ox = drag.ox + (e.clientX - drag.x) * k; st.oy = drag.oy + (e.clientY - drag.y) * k; redraw(); });
-  ['pointerup', 'pointercancel'].forEach(ev => cv.addEventListener(ev, () => drag = null));
+  size.max = 400; size.oninput = () => { st.sc = st.base * size.value / 100; redraw(); };
+  // un dedo: mover · dos dedos: pellizcar para hacer grande o pequeña
+  const pts = new Map(); let g0 = null;
+  const k = () => W / cv.getBoundingClientRect().width;
+  const gesture = () => {
+    const p = [...pts.values()];
+    if (p.length >= 2) return { mx: (p[0].x + p[1].x) / 2, my: (p[0].y + p[1].y) / 2, d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) };
+    return { mx: p[0].x, my: p[0].y, d: 0 };
+  };
+  const start = () => { g0 = { ...gesture(), ox: st.ox, oy: st.oy, sc: st.sc }; };
+  cv.addEventListener('pointerdown', e => { if (!st.photo || st.locked) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch {} pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); start(); });
+  cv.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId) || !g0) return; e.preventDefault();
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const g = gesture();
+    if (g.d && g0.d) {
+      st.sc = Math.max(st.base * .1, Math.min(st.base * 4, g0.sc * g.d / g0.d));
+      size.value = Math.round(st.sc / st.base * 100);
+    }
+    st.ox = g0.ox + (g.mx - g0.mx) * k(); st.oy = g0.oy + (g.my - g0.my) * k(); redraw();
+  });
+  ['pointerup', 'pointercancel'].forEach(ev => cv.addEventListener(ev, e => { pts.delete(e.pointerId); if (pts.size) start(); else g0 = null; }));
   cv.addEventListener('wheel', e => { if (!st.photo) return; e.preventDefault(); size.value = Math.max(10, Math.min(300, +size.value - Math.sign(e.deltaY) * 5)); size.oninput(); }, { passive: false });
 
   magic.onclick = async () => {

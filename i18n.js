@@ -56,6 +56,7 @@ const T = {
     // admin
     adminPw: 'Contraseña de configuración', adminFirst: 'Es la primera vez: elige la contraseña de configuración (guárdala bien).', adminWrong: 'Contraseña incorrecta.',
     adminEnter: 'Entrar a configuración',
+    wipe: 'Empezar de cero en este navegador', wipeAsk: 'Se borrarán todas las cuentas, respuestas y la contraseña de configuración guardadas en ESTE navegador (es solo el modo de prueba). ¿Seguro?', wipeYes: 'Sí, borrar todo',
     portada: 'Diferentes temas', emailFirst: 'Escribe primero tu correo.', noUser: 'No hay ninguna cuenta con ese correo.',
     resetSent: 'Te hemos enviado un correo para cambiar la contraseña. Si no lo ves en unos minutos, mira en «Spam» o «Promociones».',
     demoResetInfo: 'Estás en modo demo: no se pueden enviar correos. Escribe aquí tu contraseña nueva dos veces para esta cuenta:',
@@ -110,6 +111,7 @@ const T = {
     d25save: 'Desar', d25print: 'Imprimir', merry: 'Bon Nadal', newYear: 'Bon Nadal i feliç Any Nou!',
     adminPw: 'Contrasenya de configuració', adminFirst: 'És la primera vegada: tria la contrasenya de configuració (guarda-la bé).', adminWrong: 'Contrasenya incorrecta.',
     adminEnter: 'Entrar a configuració',
+    wipe: 'Començar de zero en aquest navegador', wipeAsk: 'Es borraran tots els comptes, respostes i la contrasenya de configuració desats en AQUEST navegador (és només el mode de prova). Segur?', wipeYes: 'Sí, esborrar-ho tot',
     portada: 'Diferents temes', emailFirst: 'Escriu primer el teu correu.', noUser: 'No hi ha cap compte amb aquest correu.',
     resetSent: "T'hem enviat un correu per canviar la contrasenya. Si no el veus en uns minuts, mira a «Correu brossa» o «Promocions».",
     demoResetInfo: 'Estàs en mode demo: no es poden enviar correus. Escriu aquí la contrasenya nova dues vegades per a aquest compte:',
@@ -164,6 +166,7 @@ const T = {
     d25save: 'Save', d25print: 'Print', merry: 'Merry Christmas', newYear: 'Merry Christmas and a Happy New Year!',
     adminPw: 'Settings password', adminFirst: 'First time: choose the settings password (keep it safe).', adminWrong: 'Wrong password.',
     adminEnter: 'Enter settings',
+    wipe: 'Start from scratch in this browser', wipeAsk: 'All accounts, answers and the settings password saved in THIS browser will be deleted (demo mode only). Are you sure?', wipeYes: 'Yes, delete everything',
     portada: 'Themes', emailFirst: 'Type your email first.', noUser: 'There is no account with that email.',
     resetSent: 'We have sent you an email to change your password. If you do not see it in a few minutes, check Spam or Promotions.',
     demoResetInfo: 'You are in demo mode: emails cannot be sent. Type your new password twice for this account:',

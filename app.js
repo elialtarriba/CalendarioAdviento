@@ -1,10 +1,10 @@
-import { initStore, store, DEMO } from './store.js';
-import { t, tx, setLang, getLang } from './i18n.js';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT } from './defaults.js';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho } from './sound.js';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js';
+import { initStore, store, DEMO } from './store.js?v=3';
+import { t, tx, setLang, getLang } from './i18n.js?v=3';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT } from './defaults.js?v=3';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho } from './sound.js?v=3';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=3';
 
-export const APP_VERSION = 'V2';
+export const APP_VERSION = 'V3';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -81,6 +81,7 @@ function renderLogin(mode = 'login') {
     } catch (er) {
       const c = er.code || '';
       errBox.textContent = c.includes('email-already') ? t('emailUsed') : c.includes('weak-password') ? t('weakPw') : t('loginError');
+      if (DEMO && mode === 'login' && email.value.trim()) errBox.append(el('br'), el('a', { href: '#', onclick: ev => { ev.preventDefault(); demoReset(email.value.trim()); } }, '🔑 ' + t('forgot')));
     }
   };
   const form = el('form', { class: 'login-card paper paper-pergamino', onsubmit: submit },
@@ -97,6 +98,10 @@ function renderLogin(mode = 'login') {
     } }, t('forgot')) : null,
     langSel,
     DEMO ? el('p', { class: 'demo-note' }, t('demo')) : null,
+    DEMO ? el('a', { href: '#', class: 'small', onclick: async e => {
+      e.preventDefault();
+      if (await popup(`<h2>🧹</h2><p>${t('wipeAsk')}</p>`, { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: t('wipeYes'), value: true }] })) { store.demoWipe(); sessionStorage.clear(); location.reload(); }
+    } }, '🧹 ' + t('wipe')) : null,
     el('p', { class: 'demo-note' }, APP_VERSION),
   );
   app.replaceChildren(el('div', { class: 'login-wrap' }, form));
@@ -126,7 +131,7 @@ export function renderHome() {
         el('div', { class: 'title-block' }, el('h1', { class: 'title-text' }, t('appTitle')), el('div', { class: 'greeting' }, greeting())),
         el('div', { class: 'top-actions' },
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js')).openAdmin() }, '🔒'),
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=3')).openAdmin() }, '🔒'),
           el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪')))));
 
   let strip = null;
@@ -258,7 +263,7 @@ async function openDoor(n, door) {
   finishBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=3`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -410,8 +415,11 @@ async function demoReset(email) {
     { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: t('savePw'), value: true }] });
   if (!ok) return;
   if (n1.input.value !== n2.input.value) return toast(t('pwMismatch'));
-  try { await store.demoSetPassword(email, n1.input.value); toast('🔐 ' + t('pwChanged')); }
-  catch (er) { toast(String(er.code).includes('weak') ? t('weakPw') : t('noUser'), 5000); }
+  try {
+    await store.demoSetPassword(email, n1.input.value);
+    await store.signIn(email, n1.input.value); // entra directamente
+    toast('🔐 ' + t('pwChanged'));
+  } catch (er) { toast(String(er.code).includes('weak') ? t('weakPw') : '⚠️ ' + (er.code || er.message), 6000); }
 }
 
 // sin zoom con doble toque ni pellizco en ninguna pantalla (salvo la foto del día 25, que lo gestiona ella misma)

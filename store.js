@@ -1,5 +1,5 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js';
+import { firebaseConfig } from './firebase-config.js?v=3';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {
@@ -116,12 +116,18 @@ function demoApi() {
     },
     signOut: async () => { localStorage.removeItem(K + 'session'); emit(); },
     resetPassword: async () => {},
+    demoWipe: () => Object.keys(localStorage).filter(k => k.startsWith(K)).forEach(k => localStorage.removeItem(k)),
     // solo en modo demo: poner una contraseña nueva directamente (los datos están en este navegador)
     demoSetPassword: async (e, next) => {
       const accts = ld('accounts', {}); e = e.toLowerCase();
-      if (!accts[e]) throw err('auth/user-not-found');
       if (next.length < 6) throw err('auth/weak-password');
+      if (!accts[e]) { // la cuenta no existe en este navegador: se crea
+        const uid = 'u' + Math.random().toString(36).slice(2, 10);
+        accts[e] = { uid }; const users = ld('users', {});
+        users[uid] = { email: e, name: e.split('@')[0], lang: 'es', paper: 'pergamino', portada: 'regalos', createdAt: Date.now() }; sv('users', users);
+      }
       accts[e].pw = await hashPw(next); sv('accounts', accts);
+      return true;
     },
     changePassword: async (current, next) => {
       const s = cur(); const accts = ld('accounts', {}); const a = accts[s.email];
