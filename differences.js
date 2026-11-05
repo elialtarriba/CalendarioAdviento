@@ -1,7 +1,7 @@
 // Día 6: las 5 diferencias + susto divertido en el 5º intento
-import { t } from './i18n.js?v=3';
-import { el, sleep, confetti, toast, svgEl } from './fx.js?v=3';
-import { chime, wrong, pop, scare } from './sound.js?v=3';
+import { t } from './i18n.js?v=4';
+import { el, sleep, confetti, toast, svgEl } from './fx.js?v=4';
+import { chime, wrong, pop, scare } from './sound.js?v=4';
 
 // Cada diferencia: zona (cx,cy,r) y cómo se dibuja en A y en B
 const DIFFS = [
