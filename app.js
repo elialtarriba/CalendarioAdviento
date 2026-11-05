@@ -1,7 +1,7 @@
 import { initStore, store, DEMO } from './store.js';
 import { t, tx, setLang, getLang } from './i18n.js';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS } from './defaults.js';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime } from './sound.js';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA } from './defaults.js';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho } from './sound.js';
 import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js';
 
 export const S = {
@@ -49,7 +49,7 @@ async function boot() {
       store.getProfile(u.uid), store.getSettings(u.uid).catch(() => null), store.getAnswers(u.uid).catch(() => ({})),
       store.getConfig().catch(() => null), store.getCard(u.uid).catch(() => null),
     ]);
-    S.profile = profile || { email: u.email, name: u.email.split('@')[0], lang: getLang(), paper: 'pergamino', portada: 'toyshop' };
+    S.profile = profile || { email: u.email, name: u.email.split('@')[0], lang: getLang(), paper: 'pergamino', portada: DEFAULT_PORTADA };
     if (!profile) await store.saveProfile(u.uid, S.profile).catch(() => {});
     S.settings = settings || { figure: 'galleta', showProgress: true };
     S.answers = answers || {};
@@ -99,74 +99,101 @@ function renderLogin(mode = 'login') {
 }
 
 // ------------------------------------------------------------------ portada
+let fullView = false, boardObserver = null;
+function currentTheme() {
+  return PORTADAS.find(p => p.id === S.profile.portada) || PORTADAS.find(p => p.id === DEFAULT_PORTADA) || PORTADAS[0];
+}
+function showPrizes() {
+  const n = correctCount();
+  const goals = [10, 15, 20, 25];
+  const nextG = goals.find(g => g > n);
+  popup(`<h2>🏆 ${t('prizes')}</h2><p>${t('correctCount', n)} · ${nextG ? t('nextPrize', nextG - n) : t('allPrizes')}</p>` +
+    goals.map((g, i) => `<p class="prize-row ${n >= g ? 'won' : ''}">${n >= g ? '🏆' : '🎁'} <b>${g}</b> · ${n >= g ? esc(S.config.prizes['p' + g]) : '?'}</p>`).join(''));
+}
 export function renderHome() {
   document.title = t('appTitle');
-  const portada = PORTADAS.find(p => p.id === S.profile.portada) || PORTADAS[0];
+  const theme = currentTheme();
   const fig = figure();
   const n = correctCount();
 
-  const header = el('header', { class: 'topbar' },
-    el('div', { class: 'brand' }, '🎄 ', t('appTitle')),
-    el('div', { class: 'who' }, S.profile.name || ''),
+  const header = el('header', { class: 'top' },
+    el('div', { class: 'title-frame' }, el('h1', { class: 'title-text' }, t('appTitle'))),
     el('div', { class: 'top-actions' },
       el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
       el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js')).openAdmin() }, '🔒'),
-      el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪'),
-    ));
+      el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪')));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
-    const figs = el('div', { class: 'strip-figs' });
+    const row = el('div', { class: 'strip-row' },
+      el('button', { class: 'strip-score', title: t('prizes'), onclick: showPrizes }, el('b', {}, n), el('small', {}, '/25'), el('span', {}, '🏆')));
     for (let d = 1; d <= 25; d++) {
       const a = S.answers[d];
       const st = a?.status === 'correct' ? 'on' : a?.status === 'pending' ? 'pend' : a ? 'off' : 'none';
-      figs.append(el('div', { class: 'strip-fig ' + st, title: t('dayN', d) },
+      row.append(el('div', { class: 'strip-fig ' + st + (d === 25 ? ' big' : ''), title: t('dayN', d) },
         el('img', { src: FIG_IMG[fig], alt: '' }), el('span', {}, d)));
     }
-    const goals = [10, 15, 20, 25];
-    const nextG = goals.find(g => g > n);
-    const prizes = el('div', { class: 'prizes' }, ...goals.map((g, i) => el('button', {
-      class: 'prize ' + (n >= g ? 'won' : ''), onclick: () => popup(`<h3>${t('prize')} ${i + 1} · ${g}</h3><p>${n >= g ? esc(S.config.prizes['p' + g]) : '🎁 ?'}</p>`),
-    }, n >= g ? '🏆' : '🎁', el('small', {}, g))));
-    strip = el('section', { class: 'strip' }, figs,
-      el('div', { class: 'progress-line' },
-        el('span', {}, t('correctCount', n)), el('span', { class: 'sep' }, '·'),
-        el('span', {}, nextG ? t('nextPrize', nextG - n) : t('allPrizes')), prizes));
+    strip = el('section', { class: 'strip' }, row);
   }
 
-  // Cartel de Navidad (después del día 25)
-  let banner = null;
-  if (S.card) {
-    banner = el('section', { class: 'xmas-banner' },
+  const board = el('section', { class: 'board' });
+  const bars = [];
+  if (DEMO) bars.push(el('div', { class: 'demo-bar' }, t('demo')));
+  if (testMode()) bars.push(el('div', { class: 'demo-bar test' }, '🧪 Modo prueba: todas las casillas abiertas'));
+  const exitBtn = fullView ? el('button', { class: 'exit-full', onclick: () => { fullView = false; renderHome(); } }, '✕ ' + t('exitFull')) : null;
+  document.body.classList.toggle('full-view', fullView);
+  app.replaceChildren(header, ...bars, ...(strip ? [strip] : []), board, ...(exitBtn ? [exitBtn] : []));
+
+  boardObserver?.disconnect();
+  boardObserver = new ResizeObserver(() => layoutBoard(board, theme));
+  boardObserver.observe(board);
+  layoutBoard(board, theme);
+
+  // Cartel de Navidad (después del día 25), una vez por sesión
+  if (S.card && !sessionStorage.getItem('adv_banner')) {
+    sessionStorage.setItem('adv_banner', '1');
+    const b = el('div', { class: 'xmas-banner', onclick: () => b.remove() },
       el('div', { class: 'xmas-bg', style: `background-image:url(${S.card})` }),
-      el('div', { class: 'xmas-text' }, t('newYear')),
-      el('button', { class: 'xmas-close', onclick: () => banner.classList.toggle('mini') }, '✕'));
+      el('div', { class: 'xmas-text' }, t('newYear')), el('button', { class: 'xmas-close' }, '✕'));
+    document.body.append(b);
   }
+}
 
-  const board = el('div', { class: 'board' });
-  const imgWrap = el('div', { class: 'board-img', style: `aspect-ratio:${portada.w}/${portada.h};width:min(100%, calc((100vh - 150px) * ${(portada.w / portada.h).toFixed(3)}), ${portada.w > portada.h ? 1300 : 900}px)` },
-    el('img', { src: portada.img, alt: t('appTitle'), draggable: 'false' }));
-  const rad = portada.door?.radius || '8%';
+// elige la versión de la imagen (móvil, cuadrada o ancha) que mejor llena el espacio
+function layoutBoard(board, theme) {
+  const W = board.clientWidth, H = board.clientHeight;
+  if (!W || !H) return;
+  const ar = W / H;
+  const diff = v => Math.abs(Math.log(v.w / v.h) - Math.log(ar));
+  const v = theme.variants.reduce((best, x) => (diff(x) < diff(best) ? x : best));
+  if (board._v !== v) { board._v = v; board.replaceChildren(buildImage(theme, v)); board.style.background = v.bg; }
+  const wrap = board.firstChild;
+  let w, h;
+  if (ar > v.w / v.h) { h = H; w = H * v.w / v.h; } else { w = W; h = W * v.h / v.w; }
+  wrap.style.width = Math.floor(w) + 'px'; wrap.style.height = Math.floor(h) + 'px';
+}
+
+function buildImage(theme, v) {
+  const rad = theme.radius || '10%';
+  const wrap = el('div', { class: 'board-img' + (theme.light === 'claro' ? ' light-theme' : ''), onclick: () => { if (!fullView) { fullView = true; renderHome(); } } },
+    el('img', { src: v.img, alt: t('appTitle'), draggable: 'false' }));
+  if (!fullView) wrap.append(el('div', { class: 'zoom-hint' }, '⤢ ' + t('tapToZoom')));
   for (let d = 1; d <= 25; d++) {
-    const [cx, cy, w, h] = portada.spots[d];
+    const [cx, cy, w, h] = v.spots[d];
     const L = cx - w / 2, T = cy - h / 2;
     const done = !!S.answers[d];
     const st = done ? S.answers[d].status : '';
-    // la puertecita es un trozo de la propia imagen: al abrirse gira y deja ver la luz de dentro
-    const panel = el('span', { class: 'door-panel', style: `border-radius:${rad};background-image:url(${portada.img});background-size:${portada.w / w * 100}% ${portada.h / h * 100}%;background-position:${L / (portada.w - w) * 100}% ${T / (portada.h - h) * 100}%` });
+    // la puertecita es un trozo de la propia imagen: se ilumina por dentro y luego se abre
+    const panel = el('span', { class: 'door-panel', style: `border-radius:${rad};background-image:url(${v.img});background-size:${v.w / w * 100}% ${v.h / h * 100}%;background-position:${L / (v.w - w) * 100}% ${T / (v.h - h) * 100}%` });
     const door = el('button', {
-      class: 'door' + (done ? ' opened' : '') + (canOpen(d) ? '' : ' closed-day'), 'aria-label': t('dayN', d),
-      style: `left:${L / portada.w * 100}%;top:${T / portada.h * 100}%;width:${w / portada.w * 100}%;height:${h / portada.h * 100}%`,
-      onclick: () => openDoor(d, door),
+      class: 'door' + (done ? ' opened' : '') + (canOpen(d) ? '' : ' closed-day') + (d === 25 ? ' d25' : ''), 'aria-label': t('dayN', d),
+      style: `left:${L / v.w * 100}%;top:${T / v.h * 100}%;width:${w / v.w * 100}%;height:${h / v.h * 100}%`,
+      onclick: e => { e.stopPropagation(); openDoor(d, door); },
     }, el('span', { class: 'door-glow', style: `border-radius:${rad}` }, el('b', {}, d), done ? (st === 'correct' ? '★' : st === 'pending' ? '⏳' : '❄') : ''),
-       panel);
-    imgWrap.append(door);
+       panel, el('span', { class: 'door-light' }), el('span', { class: 'door-rays' }));
+    wrap.append(door);
   }
-  board.append(imgWrap);
-  const banners = [];
-  if (DEMO) banners.push(el('div', { class: 'demo-bar' }, t('demo')));
-  if (testMode()) banners.push(el('div', { class: 'demo-bar test' }, '🧪 Modo prueba: todas las casillas abiertas'));
-  app.replaceChildren(header, ...banners, ...(banner ? [banner] : []), ...(strip ? [strip] : []), board);
+  return wrap;
 }
 
 // ------------------------------------------------------------------ abrir puerta
@@ -178,9 +205,12 @@ async function openDoor(n, door) {
   busy = true;
   const content = await loadDay(n);
   if (!content) { busy = false; toast(t('locked', n)); return; }
-  creak(true);
+  // la luz se enciende dentro de la ventana y después se abre
+  door.classList.add('lighting');
+  if (n === 25) hohoho(); else doorSound(n);
+  await sleep(800);
   door.classList.add('opening');
-  await sleep(900);
+  await sleep(950);
 
   const r = door.getBoundingClientRect();
   const layer = el('div', { class: 'note-layer' });
@@ -199,7 +229,7 @@ async function openDoor(n, door) {
     { opacity: 1, offset: .25 },
     { transform: 'translate(0,0) scale(1) rotate(0)', opacity: 1 },
   ], { duration: 1500, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' });
-  speak(t('welcome', n), getLang());
+  setTimeout(() => speak(t('welcome', n), getLang()), n === 25 ? 2600 : 0);
 
   let closed = false;
   const ctx = {
@@ -307,7 +337,7 @@ function openUserSettings() {
   const name = el('input', { type: 'text', value: S.profile.name || '' });
   const lang = el('select', {}, ...[['es', 'Español'], ['ca', 'Català'], ['en', 'English']].map(([v, l]) => el('option', { value: v, selected: v === getLang() }, l)));
   const paper = el('select', {}, ...PAPERS.map(p => el('option', { value: p.id, selected: p.id === (S.profile.paper || 'pergamino') }, p.name)));
-  const port = el('select', {}, ...PORTADAS.map(p => el('option', { value: p.id, selected: p.id === S.profile.portada }, p.name)));
+  const port = el('select', {}, ...PORTADAS.map(p => el('option', { value: p.id, selected: p.id === currentTheme().id }, p.name)));
   const preview = el('div', { class: 'paper-preview' }, el('p', {}, '¡Ho, ho, ho! Así se verán tus notas.'));
   const upd = () => { PAPERS.forEach(p => preview.classList.remove('paper-' + p.id)); preview.classList.add('paper', 'paper-' + paper.value); };
   paper.onchange = upd; upd();

@@ -144,3 +144,65 @@ export function speak(text, lang = 'es', { hoho = false } = {}) {
   });
 }
 if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
+
+// ---------------- Un sonido distinto para cada casilla
+function bellTone(f, at, dur = 1.2, vol = .12) {
+  // campana: parciales inarmónicos
+  [[1, 1], [2.76, .45], [5.4, .25], [8.9, .12]].forEach(([m, g]) => tone(f * m, at, dur / Math.sqrt(m), 'sine', vol * g));
+}
+function sleighBells(at, n = 10, vol = .05) {
+  const c = ac();
+  for (let i = 0; i < n; i++) {
+    const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .12);
+    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 6000 + Math.random() * 3000; f.Q.value = 8;
+    const g = c.createGain(); const st = at + i * .07 + Math.random() * .03;
+    g.gain.setValueAtTime(vol * (1.5 + Math.random()), st); g.gain.exponentialRampToValueAtTime(.001, st + .11);
+    s.connect(f); f.connect(g); g.connect(c.destination); s.start(st);
+    tone(2400 + Math.random() * 900, st, .15, 'triangle', vol * .4);
+  }
+}
+const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
+const PHRASES = [
+  [64, 64, 64, 64, 64, 64, 64, 67, 60, 62, 64],          // Jingle Bells
+  [67, 69, 67, 64, 67, 69, 67, 64],                      // Noche de paz
+  [67, 65, 64, 62, 60, 62, 64, 60],                      // Deck the halls
+  [62, 67, 67, 69, 67, 66, 64, 64],                      // We wish you
+  [60, 64, 67, 72, 67, 64, 60],                          // arpegio
+  [72, 71, 69, 67, 65, 64, 62, 60],                      // Joy to the world
+  [64, 65, 67, 72, 71, 69, 67],                          // campanitas
+  [67, 64, 60, 64, 67, 72],                              // fanfarria
+];
+export function doorSound(n) {
+  try {
+    const c = ac(), t = c.currentTime;
+    const kind = n % 6, shift = Math.floor(n / 6) * 2 - 3; // 6 tipos x 4 variaciones = 24 sonidos distintos
+    if (kind === 0) { // caja de música
+      const ph = PHRASES[n % PHRASES.length];
+      ph.forEach((m, i) => { tone(NOTE(m + 12 + shift), t + i * .16, .5, 'sine', .12); tone(NOTE(m + 24 + shift), t + i * .16, .25, 'sine', .03); });
+    } else if (kind === 1) { // cascabeles de trineo + campanita
+      sleighBells(t, 12); bellTone(NOTE(84 + shift), t + .3, 1.2, .08);
+    } else if (kind === 2) { // destello mágico (glissando)
+      for (let i = 0; i < 14; i++) tone(NOTE(72 + shift + i * (n % 2 ? 2 : 3)), t + i * .045, .35, 'triangle', .06);
+      sleighBells(t + .5, 4, .03);
+    } else if (kind === 3) { // toc-toc y crujido de madera
+      [0, .18].forEach(d => { tone(180 + shift * 8, t + d, .08, 'square', .12); tone(90, t + d, .1, 'sine', .25); });
+      setTimeout(() => creak(true), 420);
+    } else if (kind === 4) { // campanas de iglesia
+      const base = NOTE(67 + shift);
+      [0, .35, .7].forEach((d, i) => bellTone(base * [1, 1.25, 1.5][(i + n) % 3], t + d, 1.8, .1));
+    } else { // arpa
+      const sc = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
+      sc.forEach((s, i) => tone(NOTE(60 + shift + s), t + i * .05, .9, 'triangle', .07));
+      tone(NOTE(84 + shift), t + .6, 1.2, 'sine', .06);
+    }
+  } catch {}
+}
+// Día 25: ¡Ho, ho, ho! grabado + cascabeles
+let hohoAudio;
+export function hohoho() {
+  try {
+    hohoAudio = hohoAudio || new Audio('hohoho.mp3');
+    hohoAudio.currentTime = 0; hohoAudio.volume = 1; hohoAudio.play().catch(() => speak('', 'es', { hoho: true }));
+    sleighBells(ac().currentTime + .1, 30, .04);
+  } catch {}
+}

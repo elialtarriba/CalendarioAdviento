@@ -1,0 +1,69 @@
+rules_version = '2';
+// Reglas de seguridad del Calendario de Adviento.
+// Copia TODO este texto en Firebase → Firestore Database → Reglas → Publicar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me(uid) { return signedIn() && request.auth.uid == uid; }
+    function secret() { return get(/databases/$(database)/documents/adminSecret/main).data.hash; }
+    // Es administrador quien ha entrado con la contraseña de configuración vigente
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.key == secret();
+    }
+
+    // Perfil de cada persona (nombre, idioma, estilo de nota)
+    match /users/{uid} {
+      allow read: if me(uid) || isAdmin();
+      allow create, update: if me(uid);
+      allow list: if isAdmin();
+    }
+
+    // Lo que decide la administradora (figura, progreso visible, actividades personales)
+    match /settings/{uid} {
+      allow read: if me(uid) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Respuestas: cada persona puede enviar UNA vez cada día; solo la administradora corrige
+    match /answers/{uid}/items/{day} {
+      allow read: if me(uid) || isAdmin();
+      allow create: if me(uid) && request.resource.data.status in ['pending', 'correct', 'incorrect'];
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Contenido de cada día: solo visible a partir de su fecha (la administradora lo ve siempre)
+    match /content/{day} {
+      allow read: if signedIn() && (resource == null || request.time >= resource.data.openAt || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Ajustes generales (año, premios)
+    match /config/{doc} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // Contraseña de configuración cifrada (hash). Nadie puede leerla.
+    match /adminSecret/{doc} {
+      allow read: if false;
+      allow create: if signedIn() && doc == 'main';
+      allow update: if isAdmin();
+    }
+
+    // Quien escribe aquí la contraseña correcta pasa a ser administrador
+    match /admins/{uid} {
+      allow read: if me(uid);
+      allow create, update: if me(uid)
+        && request.resource.data.key == getAfter(/databases/$(database)/documents/adminSecret/main).data.hash;
+    }
+
+    // Tarjeta de Navidad del día 25
+    match /cards/{uid} {
+      allow read: if me(uid) || isAdmin();
+      allow write: if me(uid);
+    }
+  }
+}

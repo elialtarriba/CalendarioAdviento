@@ -51,11 +51,11 @@ const T = {
     d24share: 'Abrir WhatsApp', d24again: 'Ver el baile otra vez', d24tomorrow: '¡Mañana ya es NAVIDAD!',
     // día 25
     d25title: '¡Hoy es Navidad!', d25intro: 'Papá Noel ha tenido un día agotador y necesita un sustituto… ¡y te ha elegido a ti! Sube una foto de tu cara y verás la magia.',
-    d25upload: 'Subir mi foto', d25adjust: 'Mueve la foto con el dedo o el ratón y usa el tamaño hasta que tu cara encaje en el hueco.', d25size: 'Tamaño', d25magic: '¡Haz la magia!',
+    d25upload: 'Subir mi foto', d25adjust: 'Mueve la foto con el dedo o el ratón y usa el tamaño hasta que tu cara encaje en el hueco.', d25size: 'Tamaño', d25magic: '¡Haz la magia!', d25other: 'Cambiar foto',
     d25save: 'Guardar', d25print: 'Imprimir', merry: 'Feliz Navidad', newYear: '¡Feliz Navidad y próspero Año Nuevo!',
     // admin
     adminPw: 'Contraseña de configuración', adminFirst: 'Es la primera vez: elige la contraseña de configuración (guárdala bien).', adminWrong: 'Contraseña incorrecta.',
-    adminEnter: 'Entrar a configuración',
+    adminEnter: 'Entrar a configuración', exitFull: 'Salir', tapToZoom: 'Pulsa para verlo en grande',
   },
   ca: {
     appTitle: "Calendari d'Advent",
@@ -99,10 +99,10 @@ const T = {
     d24steps: ['Mira el ball (dura 25 segons).', 'Busca algú que també tingui el calendari.', "Demana-li que et gravi amb el mòbil mentre imites el ball durant 15 segons.", 'Puja el vídeo al grup del calendari. 😄'],
     d24share: 'Obrir WhatsApp', d24again: 'Tornar a veure el ball', d24tomorrow: 'Demà ja és NADAL!',
     d25title: 'Avui és Nadal!', d25intro: "El Pare Noel ha tingut un dia esgotador i necessita un substitut… i t'ha triat a tu! Puja una foto de la teva cara i veuràs la màgia.",
-    d25upload: 'Pujar la meva foto', d25adjust: 'Mou la foto amb el dit o el ratolí i ajusta la mida fins que la cara encaixi al forat.', d25size: 'Mida', d25magic: 'Fes la màgia!',
+    d25upload: 'Pujar la meva foto', d25adjust: 'Mou la foto amb el dit o el ratolí i ajusta la mida fins que la cara encaixi al forat.', d25size: 'Mida', d25magic: 'Fes la màgia!', d25other: 'Canviar foto',
     d25save: 'Desar', d25print: 'Imprimir', merry: 'Bon Nadal', newYear: 'Bon Nadal i feliç Any Nou!',
     adminPw: 'Contrasenya de configuració', adminFirst: 'És la primera vegada: tria la contrasenya de configuració (guarda-la bé).', adminWrong: 'Contrasenya incorrecta.',
-    adminEnter: 'Entrar a configuració',
+    adminEnter: 'Entrar a configuració', exitFull: 'Sortir', tapToZoom: 'Prem per veure-ho en gran',
   },
   en: {
     appTitle: 'Advent Calendar',
@@ -146,10 +146,10 @@ const T = {
     d24steps: ['Watch the dance (it lasts 25 seconds).', 'Find someone else who has the calendar.', 'Ask them to film you on their phone while you copy the dance for 15 seconds.', 'Post the video in the calendar group. 😄'],
     d24share: 'Open WhatsApp', d24again: 'Watch the dance again', d24tomorrow: 'Tomorrow is CHRISTMAS!',
     d25title: "It's Christmas!", d25intro: 'Santa has had an exhausting day and needs a stand-in… and he has chosen you! Upload a photo of your face and watch the magic.',
-    d25upload: 'Upload my photo', d25adjust: 'Drag the photo with your finger or mouse and use the size slider until your face fits the gap.', d25size: 'Size', d25magic: 'Make the magic!',
+    d25upload: 'Upload my photo', d25adjust: 'Drag the photo with your finger or mouse and use the size slider until your face fits the gap.', d25size: 'Size', d25magic: 'Make the magic!', d25other: 'Change photo',
     d25save: 'Save', d25print: 'Print', merry: 'Merry Christmas', newYear: 'Merry Christmas and a Happy New Year!',
     adminPw: 'Settings password', adminFirst: 'First time: choose the settings password (keep it safe).', adminWrong: 'Wrong password.',
-    adminEnter: 'Enter settings',
+    adminEnter: 'Enter settings', exitFull: 'Exit', tapToZoom: 'Tap to see it full screen',
   }
 };
 let lang = 'es';
