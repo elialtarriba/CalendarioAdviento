@@ -3,7 +3,7 @@ import { store } from './store.js';
 import { t, tx } from './i18n.js';
 import { el, popup, toast, esc } from './fx.js';
 import { S, renderHome, loadDay } from './app.js';
-import { defaultDay } from './defaults.js';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS } from './defaults.js';
 
 const FIGS = [['galleta', '🍪 Galleta de jengibre (solo la puerta)'], ['arbol', '🎄 Árbol de Navidad (+ actividad 1)'], ['gnomo', '🧙 Gnomo (+ actividad 2)']];
 const ST = { correct: '✓', incorrect: '✗', pending: '⏳' };
@@ -167,6 +167,7 @@ const VIEWS = {
           const prizes = Object.fromEntries(Object.entries(fields).map(([k, f]) => [k, f.value.trim()]));
           await store.saveConfig({ prizes }); S.config.prizes = prizes; toast('💾 Premios guardados');
         } }, '💾 Guardar premios')),
+      marqueeCard(),
       el('div', { class: 'card' }, el('h3', {}, '📅 Año del calendario'),
         el('p', { class: 'muted' }, 'Las casillas se abren del 1 al 25 de diciembre de este año (hora de España).'),
         el('div', { class: 'row' }, year, el('button', { class: 'btn small-btn', onclick: async e => {
@@ -232,4 +233,35 @@ function userPanel(root, u, answers, set) {
       try { await store.setSettings(u.uid, { figure: fig.value, showProgress: show.checked, actOverrides: ov }); toast('💾 Guardado'); }
       catch (e) { toast('Error: ' + e.message, 5000); }
     } }, '💾 Guardar configuración'));
+}
+
+function marqueeCard() {
+  const m = { ...MARQUEE_DEFAULT, ...(S.config.marquee || {}) };
+  const show = el('input', { type: 'checkbox', checked: m.show !== false });
+  const texts = Object.fromEntries(['es', 'ca', 'en'].map(l => [l, el('input', { type: 'text', value: (m.text && m.text[l]) || '' })]));
+  const speed = el('input', { type: 'range', min: 4, max: 40, value: 44 - m.speed }); // derecha = más rápida
+  const speedLbl = el('span', {}, '');
+  const color = el('select', {}, ...MARQUEE_COLORS.map(([id, name]) => el('option', { value: id, selected: id === m.colorName }, name)));
+  const weight = el('select', {}, ...[[300, 'Fina'], [400, 'Normal'], [600, 'Semigruesa'], [700, 'Gruesa'], [800, 'Muy gruesa']].map(([v, l]) => el('option', { value: v, selected: +m.weight === v }, l)));
+  const prevTrack = el('div', { class: 'marquee-track' });
+  const prev = el('div', { class: 'marquee', style: 'border-radius:8px;border:1px solid #e3cfa5' }, prevTrack);
+  const cur = () => {
+    const c = MARQUEE_COLORS.find(x => x[0] === color.value) || MARQUEE_COLORS[0];
+    return { show: show.checked, speed: 44 - speed.value, weight: +weight.value, colorName: c[0], color: c[2], text: { es: texts.es.value.trim(), ca: texts.ca.value.trim(), en: texts.en.value.trim() } };
+  };
+  const upd = () => {
+    const v = cur(); speedLbl.textContent = ` (← lenta · rápida →) ahora: ${v.speed <= 8 ? 'muy rápida' : v.speed <= 14 ? 'rápida' : v.speed <= 24 ? 'normal' : 'lenta'}`;
+    prevTrack.style.cssText = `animation-duration:${v.speed}s;color:${v.color};font-weight:${v.weight};${v.colorName.startsWith('neon') ? `text-shadow:0 0 6px ${v.color},0 0 14px ${v.color};` : ''}`;
+    prevTrack.replaceChildren(...Array.from({ length: 8 }, () => el('span', {}, (v.text.es || '…') + '\u2003✦\u2003')));
+  };
+  [show, speed, color, weight, ...Object.values(texts)].forEach(x => x.addEventListener('input', upd)); upd();
+  return el('div', { class: 'card' }, el('h3', {}, '📣 Marquesina (el texto que se mueve)'),
+    el('label', { class: 'inline' }, show, ' Mostrar la marquesina'),
+    el('label', {}, 'Texto en español', texts.es), el('label', {}, 'Texto en catalán', texts.ca), el('label', {}, 'Texto en inglés', texts.en),
+    el('label', {}, el('span', {}, 'Rapidez', speedLbl), speed),
+    el('div', { class: 'row' }, el('label', {}, 'Color de las letras', color), el('label', {}, 'Grosor de las letras', weight)),
+    el('p', { class: 'muted' }, 'Así se verá:'), prev,
+    el('button', { class: 'btn', style: 'margin-top:10px', onclick: async () => {
+      const v = cur(); try { await store.saveConfig({ marquee: v }); S.config.marquee = v; toast('💾 Marquesina guardada'); } catch (e) { toast('Error: ' + e.message, 5000); }
+    } }, '💾 Guardar marquesina'));
 }

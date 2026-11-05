@@ -1,9 +1,10 @@
 import { initStore, store, DEMO } from './store.js';
 import { t, tx, setLang, getLang } from './i18n.js';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA } from './defaults.js';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT } from './defaults.js';
 import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho } from './sound.js';
 import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js';
 
+export const APP_VERSION = 'V2';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -89,11 +90,14 @@ function renderLogin(mode = 'login') {
     el('button', { class: 'btn btn-big', type: 'submit' }, mode === 'login' ? t('login') : t('register')),
     el('a', { href: '#', onclick: e => { e.preventDefault(); renderLogin(mode === 'login' ? 'register' : 'login'); } }, mode === 'login' ? t('noAccount') : t('haveAccount')),
     mode === 'login' ? el('a', { href: '#', class: 'small', onclick: async e => {
-      e.preventDefault(); if (!email.value) { email.focus(); return; }
-      try { await store.resetPassword(email.value.trim()); toast(t('resetSent')); } catch { toast(t('loginError')); }
+      e.preventDefault(); if (!email.value) { email.focus(); toast(t('emailFirst')); return; }
+      if (DEMO) return demoReset(email.value.trim());
+      try { await store.resetPassword(email.value.trim()); toast(t('resetSent'), 6000); }
+      catch (er) { toast(String(er.code || '').includes('user-not-found') ? t('noUser') : t('loginError') + ' (' + (er.code || er.message) + ')', 6000); }
     } }, t('forgot')) : null,
     langSel,
     DEMO ? el('p', { class: 'demo-note' }, t('demo')) : null,
+    el('p', { class: 'demo-note' }, APP_VERSION),
   );
   app.replaceChildren(el('div', { class: 'login-wrap' }, form));
 }
@@ -117,11 +121,13 @@ export function renderHome() {
   const n = correctCount();
 
   const header = el('header', { class: 'top' },
-    el('div', { class: 'title-frame' }, el('h1', { class: 'title-text' }, t('appTitle'))),
-    el('div', { class: 'top-actions' },
-      el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-      el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js')).openAdmin() }, '🔒'),
-      el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪')));
+    el('div', { class: 'title-frame' },
+      el('div', { class: 'title-inner' },
+        el('div', { class: 'title-block' }, el('h1', { class: 'title-text' }, t('appTitle')), el('div', { class: 'greeting' }, greeting())),
+        el('div', { class: 'top-actions' },
+          el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js')).openAdmin() }, '🔒'),
+          el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -136,14 +142,19 @@ export function renderHome() {
     strip = el('section', { class: 'strip' }, row);
   }
 
-  const board = el('section', { class: 'board' });
+  const board = el('section', { class: 'board', onclick: e => { if (e.target === board && !fullView) { fullView = true; renderHome(); } } });
+  const mq = { ...MARQUEE_DEFAULT, ...(S.config.marquee || {}) };
+  const marquee = mq.show === false ? null : el('div', { class: 'marquee', onclick: () => { fullView = true; renderHome(); } },
+    el('div', { class: 'marquee-track', style: `animation-duration:${Math.max(4, +mq.speed || 14)}s;color:${mq.color};font-weight:${mq.weight};${/neon/.test(mq.colorName || '') ? `text-shadow:0 0 6px ${mq.color},0 0 14px ${mq.color};` : ''}` },
+      ...Array.from({ length: 8 }, () => el('span', {}, (tx(mq.text) || t('tapToZoom')) + '\u2003✦\u2003'))));
   const bars = [];
   if (DEMO) bars.push(el('div', { class: 'demo-bar' }, t('demo')));
   if (testMode()) bars.push(el('div', { class: 'demo-bar test' }, '🧪 Modo prueba: todas las casillas abiertas'));
   const exitBtn = fullView ? el('button', { class: 'exit-full', onclick: () => { fullView = false; renderHome(); } }, '✕ ' + t('exitFull')) : null;
   document.body.classList.toggle('full-view', fullView);
-  app.replaceChildren(header, ...bars, ...(strip ? [strip] : []), board, ...(exitBtn ? [exitBtn] : []));
+  app.replaceChildren(header, ...bars, ...(strip ? [strip] : []), ...(marquee ? [marquee] : []), board, el('div', { class: 'app-version' }, APP_VERSION), ...(exitBtn ? [exitBtn] : []));
 
+  fitTitle(); document.fonts?.ready?.then(fitTitle);
   boardObserver?.disconnect();
   boardObserver = new ResizeObserver(() => layoutBoard(board, theme));
   boardObserver.observe(board);
@@ -166,7 +177,7 @@ function layoutBoard(board, theme) {
   const ar = W / H;
   const diff = v => Math.abs(Math.log(v.w / v.h) - Math.log(ar));
   const v = theme.variants.reduce((best, x) => (diff(x) < diff(best) ? x : best));
-  if (board._v !== v) { board._v = v; board.replaceChildren(buildImage(theme, v)); board.style.background = v.bg; }
+  if (board._v !== v) { board._v = v; board.replaceChildren(buildImage(theme, v)); board.style.background = '#ffffff'; }
   const wrap = board.firstChild;
   let w, h;
   if (ar > v.w / v.h) { h = H; w = H * v.w / v.h; } else { w = W; h = W * v.h / v.w; }
@@ -343,6 +354,7 @@ function openUserSettings() {
   paper.onchange = upd; upd();
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
+    accountSection(),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('label', {}, t('paper'), paper), preview, el('label', {}, t('portada'), port));
   popup(box, { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: t('save'), value: true }] }).then(async ok => {
@@ -353,5 +365,64 @@ function openUserSettings() {
     renderHome();
   });
 }
+
+// el título se hace tan grande como quepa en su línea
+function fitTitle() {
+  const h = document.querySelector('.title-block .title-text'); if (!h) return;
+  h.style.fontSize = ''; let fs = parseFloat(getComputedStyle(h).fontSize);
+  while (h.scrollWidth > h.clientWidth + 1 && fs > 14) { fs -= 1; h.style.fontSize = fs + 'px'; }
+}
+addEventListener('resize', fitTitle);
+
+function greeting() {
+  const h = +new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: 'numeric', hour12: false }).format(new Date());
+  const k = h < 6 ? 'helloNight' : h < 14 ? 'helloMorning' : h < 21 ? 'helloAfternoon' : 'helloNight';
+  return t(k, (S.profile?.name || '').split(' ')[0]);
+}
+
+// campo de contraseña con ojo para verla
+function pwField(ph) {
+  const i = el('input', { type: 'password', placeholder: ph, autocomplete: 'new-password' });
+  const eye = el('button', { type: 'button', class: 'eye-btn', title: t('showPw'), onclick: () => { i.type = i.type === 'password' ? 'text' : 'password'; eye.textContent = i.type === 'password' ? '👁️' : '🙈'; } }, '👁️');
+  return { input: i, wrap: el('div', { class: 'pw-wrap' }, i, eye) };
+}
+
+function accountSection() {
+  const cur = pwField(t('currentPw')), n1 = pwField(t('newPw')), n2 = pwField(t('repeatPw'));
+  const form = el('div', { class: 'pw-change', style: 'display:none' }, cur.wrap, n1.wrap, n2.wrap,
+    el('button', { type: 'button', class: 'btn small-btn', onclick: async () => {
+      if (n1.input.value.length < 6) return toast(t('weakPw'));
+      if (n1.input.value !== n2.input.value) return toast(t('pwMismatch'));
+      try { await store.changePassword(cur.input.value, n1.input.value); toast('🔐 ' + t('pwChanged')); form.style.display = 'none'; [cur, n1, n2].forEach(f => f.input.value = ''); }
+      catch (er) { const c = String(er.code || ''); toast(c.includes('wrong-password') || c.includes('invalid-credential') ? t('wrongCurrent') : c.includes('weak') ? t('weakPw') : '⚠️ ' + (er.code || er.message), 5000); }
+    } }, '💾 ' + t('savePw')));
+  return el('div', { class: 'account-box' },
+    el('div', { class: 'acc-row' }, el('span', {}, '👤 ' + t('user')), el('b', {}, S.user.email)),
+    el('div', { class: 'acc-row' }, el('span', {}, '🔑 ' + t('password')), el('b', { class: 'dots', title: t('pwHidden'), onclick: () => toast(t('pwHidden'), 6000) }, '•••••••• 👁️'),
+      el('button', { type: 'button', class: 'btn btn-ghost small-btn', onclick: () => { form.style.display = form.style.display === 'none' ? '' : 'none'; } }, t('changePw'))),
+    form);
+}
+
+// modo demo: no se pueden mandar correos, así que se pone una contraseña nueva aquí mismo
+async function demoReset(email) {
+  const n1 = pwField(t('newPw')), n2 = pwField(t('repeatPw'));
+  const ok = await popup(el('div', { class: 'settings-form' }, el('h2', {}, '🔑 ' + t('forgot')), el('p', {}, t('demoResetInfo')), el('p', {}, el('b', {}, email)), n1.wrap, n2.wrap),
+    { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: t('savePw'), value: true }] });
+  if (!ok) return;
+  if (n1.input.value !== n2.input.value) return toast(t('pwMismatch'));
+  try { await store.demoSetPassword(email, n1.input.value); toast('🔐 ' + t('pwChanged')); }
+  catch (er) { toast(String(er.code).includes('weak') ? t('weakPw') : t('noUser'), 5000); }
+}
+
+// sin zoom con doble toque ni pellizco en ninguna pantalla (salvo la foto del día 25, que lo gestiona ella misma)
+['gesturestart', 'gesturechange'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+let lastTouch = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTouch < 350 && !e.target.closest('input, textarea, select')) e.preventDefault();
+  lastTouch = now;
+}, { passive: false });
+document.addEventListener('touchmove', e => { if (e.touches.length > 1 && !e.target.closest('.santa-stage')) e.preventDefault(); }, { passive: false });
 
 boot();

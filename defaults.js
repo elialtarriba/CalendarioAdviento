@@ -152,6 +152,15 @@ export function defaultDay(n) {
   return { ...base, type: 'quiz', q, options, correct };
 }
 
+export const MARQUEE_DEFAULT = {
+  show: true, speed: 14, weight: 700, colorName: 'rojo', color: '#b3122e',
+  text: { es: 'Pulsa la imagen para verla en grande', ca: 'Prem la imatge per veure-la en gran', en: 'Tap the picture to see it full screen' },
+};
+export const MARQUEE_COLORS = [
+  ['rojo', 'Rojo Navidad', '#b3122e'], ['neon-amarillo', 'Neón amarillo', '#f5e400'], ['neon-rosa', 'Neón rosa', '#ff2fd6'], ['neon-verde', 'Neón verde', '#28ff6a'], ['neon-azul', 'Neón azul', '#1fe4ff'],
+  ['rosa-pastel', 'Rosa pastel', '#f4a6c6'], ['menta-pastel', 'Menta pastel', '#8fd9b6'], ['azul-pastel', 'Azul pastel', '#9cc7f0'], ['lila-pastel', 'Lila pastel', '#c3a6ec'], ['melocoton', 'Melocotón pastel', '#f7b98c'],
+  ['dorado', 'Dorado', '#c99a2e'], ['verde', 'Verde abeto', '#1f6b45'], ['negro', 'Negro', '#1b1b1b'], ['marron', 'Marrón chocolate', '#5a3218'], ['marron-claro', 'Marrón canela', '#9a6334'],
+];
 export const DEFAULT_CONFIG = {
   year: new Date().getMonth() >= 1 ? new Date().getFullYear() : new Date().getFullYear() - 1,
   prizes: {

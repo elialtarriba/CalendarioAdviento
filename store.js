@@ -32,7 +32,12 @@ async function firebaseApi() {
       await F.setDoc(d('users', c.user.uid), { email: e, name, lang, paper: 'pergamino', portada: 'regalos', createdAt: Date.now() });
     },
     signOut: () => A.signOut(auth),
-    resetPassword: e => A.sendPasswordResetEmail(auth, e),
+    resetPassword: e => { auth.languageCode = document.documentElement.lang || 'es'; return A.sendPasswordResetEmail(auth, e); },
+    changePassword: async (current, next) => {
+      const u = auth.currentUser;
+      await A.reauthenticateWithCredential(u, A.EmailAuthProvider.credential(u.email, current));
+      await A.updatePassword(u, next);
+    },
 
     getProfile: uid => get('users', uid),
     saveProfile: (uid, data) => F.setDoc(d('users', uid), data, { merge: true }),
@@ -111,6 +116,19 @@ function demoApi() {
     },
     signOut: async () => { localStorage.removeItem(K + 'session'); emit(); },
     resetPassword: async () => {},
+    // solo en modo demo: poner una contraseña nueva directamente (los datos están en este navegador)
+    demoSetPassword: async (e, next) => {
+      const accts = ld('accounts', {}); e = e.toLowerCase();
+      if (!accts[e]) throw err('auth/user-not-found');
+      if (next.length < 6) throw err('auth/weak-password');
+      accts[e].pw = await hashPw(next); sv('accounts', accts);
+    },
+    changePassword: async (current, next) => {
+      const s = cur(); const accts = ld('accounts', {}); const a = accts[s.email];
+      if (!a || a.pw !== await hashPw(current)) throw err('auth/wrong-password');
+      if (next.length < 6) throw err('auth/weak-password');
+      a.pw = await hashPw(next); sv('accounts', accts);
+    },
     getProfile: async uid => ld('users', {})[uid] || null,
     saveProfile: async (uid, data) => { const u = ld('users', {}); u[uid] = { ...(u[uid] || {}), ...data }; sv('users', u); },
     getSettings: async uid => ld('settings', {})[uid] || null,
