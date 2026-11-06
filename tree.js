@@ -1,7 +1,7 @@
 // Día 8: decorar el árbol arrastrando 25 objetos hasta su sitio
-import { t } from './i18n.js?v=4';
-import { el, svgEl, confetti, borderLights } from './fx.js?v=4';
-import { chime, pop } from './sound.js?v=4';
+import { t } from './i18n.js?v=7';
+import { el, svgEl, confetti, borderLights } from './fx.js?v=7';
+import { chime, pop } from './sound.js?v=7';
 
 const SLOTS = [
   { type: 'star', x: 300, y: 96 },

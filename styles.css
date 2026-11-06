@@ -522,3 +522,7 @@ body.full-view .board { cursor: default; }
 
 .account-box .small-btn { padding: 6px 14px; font-size: 14px; }
 .title-block .title-text { text-overflow: clip !important; }
+
+.settings-form .after-preview { margin-top: 18px; }
+.settings-form .account-box { margin-top: 14px; }
+.paper-preview { margin-bottom: 4px; }

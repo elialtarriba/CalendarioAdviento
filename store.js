@@ -1,5 +1,5 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js?v=4';
+import { firebaseConfig } from './firebase-config.js?v=7';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {
@@ -29,7 +29,7 @@ async function firebaseApi() {
     signIn: (e, p) => A.signInWithEmailAndPassword(auth, e, p),
     signUp: async (e, p, name, lang) => {
       const c = await A.createUserWithEmailAndPassword(auth, e, p);
-      await F.setDoc(d('users', c.user.uid), { email: e, name, lang, paper: 'pergamino', portada: 'regalos', createdAt: Date.now() });
+      await F.setDoc(d('users', c.user.uid), { email: e, name, lang, paper: 'nordico', portada: 'regalos', createdAt: Date.now() });
     },
     signOut: () => A.signOut(auth),
     resetPassword: e => { auth.languageCode = document.documentElement.lang || 'es'; return A.sendPasswordResetEmail(auth, e); },
@@ -111,7 +111,7 @@ function demoApi() {
       if (accts[e]) throw err('auth/email-already-in-use');
       const uid = 'u' + Math.random().toString(36).slice(2, 10);
       accts[e] = { uid, pw: await hashPw(p) }; sv('accounts', accts);
-      const users = ld('users', {}); users[uid] = { email: e, name, lang, paper: 'pergamino', portada: 'regalos', createdAt: Date.now() }; sv('users', users);
+      const users = ld('users', {}); users[uid] = { email: e, name, lang, paper: 'nordico', portada: 'regalos', createdAt: Date.now() }; sv('users', users);
       sv('session', { uid, email: e }); emit();
     },
     signOut: async () => { localStorage.removeItem(K + 'session'); emit(); },
@@ -124,7 +124,7 @@ function demoApi() {
       if (!accts[e]) { // la cuenta no existe en este navegador: se crea
         const uid = 'u' + Math.random().toString(36).slice(2, 10);
         accts[e] = { uid }; const users = ld('users', {});
-        users[uid] = { email: e, name: e.split('@')[0], lang: 'es', paper: 'pergamino', portada: 'regalos', createdAt: Date.now() }; sv('users', users);
+        users[uid] = { email: e, name: e.split('@')[0], lang: 'es', paper: 'nordico', portada: 'regalos', createdAt: Date.now() }; sv('users', users);
       }
       accts[e].pw = await hashPw(next); sv('accounts', accts);
       return true;

@@ -1,10 +1,10 @@
-import { initStore, store, DEMO } from './store.js?v=4';
-import { t, tx, setLang, getLang } from './i18n.js?v=4';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT } from './defaults.js?v=4';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho } from './sound.js?v=4';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=4';
+import { initStore, store, DEMO } from './store.js?v=7';
+import { t, tx, setLang, getLang } from './i18n.js?v=7';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT } from './defaults.js?v=7';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho } from './sound.js?v=7';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=7';
 
-export const APP_VERSION = 'V4';
+export const APP_VERSION = 'V7';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -33,7 +33,7 @@ export async function loadDay(n) {
 }
 export function applyPaper(node) {
   PAPERS.forEach(p => node.classList.remove('paper-' + p.id));
-  node.classList.add('paper', 'paper-' + (S.profile?.paper || 'pergamino'));
+  node.classList.add('paper', 'paper-' + (S.profile?.paper || 'nordico'));
 }
 
 // ------------------------------------------------------------------ arranque
@@ -50,7 +50,7 @@ async function boot() {
       store.getProfile(u.uid), store.getSettings(u.uid).catch(() => null), store.getAnswers(u.uid).catch(() => ({})),
       store.getConfig().catch(() => null), store.getCard(u.uid).catch(() => null),
     ]);
-    S.profile = profile || { email: u.email, name: u.email.split('@')[0], lang: getLang(), paper: 'pergamino', portada: DEFAULT_PORTADA };
+    S.profile = profile || { email: u.email, name: u.email.split('@')[0], lang: getLang(), paper: 'nordico', portada: DEFAULT_PORTADA };
     if (!profile) await store.saveProfile(u.uid, S.profile).catch(() => {});
     S.settings = settings || { figure: 'galleta', showProgress: true };
     S.answers = answers || {};
@@ -131,7 +131,7 @@ export function renderHome() {
         el('div', { class: 'title-block' }, el('h1', { class: 'title-text' }, t('appTitle')), el('div', { class: 'greeting' }, greeting())),
         el('div', { class: 'top-actions' },
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=4')).openAdmin() }, '🔒'),
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=7')).openAdmin() }, '🔒'),
           el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪')))));
 
   let strip = null;
@@ -263,7 +263,7 @@ async function openDoor(n, door) {
   finishBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=4`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=7`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -352,16 +352,16 @@ async function showActivity(n, layer) {
 function openUserSettings() {
   const name = el('input', { type: 'text', value: S.profile.name || '' });
   const lang = el('select', {}, ...[['es', 'Español'], ['ca', 'Català'], ['en', 'English']].map(([v, l]) => el('option', { value: v, selected: v === getLang() }, l)));
-  const paper = el('select', {}, ...PAPERS.map(p => el('option', { value: p.id, selected: p.id === (S.profile.paper || 'pergamino') }, p.name)));
+  const paper = el('select', {}, ...PAPERS.map(p => el('option', { value: p.id, selected: p.id === (S.profile.paper || 'nordico') }, p.name)));
   const port = el('select', {}, ...PORTADAS.map(p => el('option', { value: p.id, selected: p.id === currentTheme().id }, p.name)));
   const preview = el('div', { class: 'paper-preview' }, el('p', {}, '¡Ho, ho, ho! Así se verán tus notas.'));
   const upd = () => { PAPERS.forEach(p => preview.classList.remove('paper-' + p.id)); preview.classList.add('paper', 'paper-' + paper.value); };
   paper.onchange = upd; upd();
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    accountSection(),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
-    el('label', {}, t('paper'), paper), preview, el('label', {}, t('portada'), port));
+    el('label', {}, t('paper'), paper), preview, el('label', { class: 'after-preview' }, t('portada'), port),
+    accountSection());
   popup(box, { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: t('save'), value: true }] }).then(async ok => {
     if (!ok) return;
     Object.assign(S.profile, { name: name.value.trim() || S.profile.name, lang: lang.value, paper: paper.value, portada: port.value });

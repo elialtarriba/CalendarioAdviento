@@ -1,9 +1,9 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store } from './store.js?v=4';
-import { t, tx } from './i18n.js?v=4';
-import { el, popup, toast, esc } from './fx.js?v=4';
-import { S, renderHome, loadDay } from './app.js?v=4';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS } from './defaults.js?v=4';
+import { store } from './store.js?v=7';
+import { t, tx } from './i18n.js?v=7';
+import { el, popup, toast, esc } from './fx.js?v=7';
+import { S, renderHome, loadDay } from './app.js?v=7';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS } from './defaults.js?v=7';
 
 const FIGS = [['galleta', '🍪 Galleta de jengibre (solo la puerta)'], ['arbol', '🎄 Árbol de Navidad (+ actividad 1)'], ['gnomo', '🧙 Gnomo (+ actividad 2)']];
 const ST = { correct: '✓', incorrect: '✗', pending: '⏳' };

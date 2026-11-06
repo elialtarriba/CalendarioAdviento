@@ -1,7 +1,7 @@
 // Día 12: mira la imagen; en la siguiente falta un objeto. ¿Cuál?
-import { t } from './i18n.js?v=4';
-import { el, sleep, toast } from './fx.js?v=4';
-import { chime } from './sound.js?v=4';
+import { t } from './i18n.js?v=7';
+import { el, sleep, toast } from './fx.js?v=7';
+import { chime } from './sound.js?v=7';
 
 const OBJ = [
   ['🎄', 'árbol de Navidad', 'arbre de Nadal', 'Christmas tree'], ['🎅', 'Papá Noel', 'Pare Noel', 'Santa'], ['⛄', 'muñeco de nieve', 'ninot de neu', 'snowman'],
