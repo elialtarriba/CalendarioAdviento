@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=16.0';
-import { t, tx, setLang, getLang } from './i18n.js?v=16.0';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=16.0';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong } from './sound.js?v=16.0';
-import { typeRich, gallery } from './richact.js?v=16.0';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=16.0';
+import { initStore, store, DEMO } from './store.js?v=16.2';
+import { t, tx, setLang, getLang } from './i18n.js?v=16.2';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=16.2';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong } from './sound.js?v=16.2';
+import { typeRich, gallery } from './richact.js?v=16.2';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=16.2';
 
-export const APP_VERSION = 'V16.0';
+export const APP_VERSION = 'V16.2';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -131,8 +131,8 @@ async function boot() {
     S.card = card;
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=16.0').catch(() => {});
-    import('./surprise.js?v=16.0').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./admin.js?v=16.2').catch(() => {});
+    import('./surprise.js?v=16.2').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -285,7 +285,7 @@ export function renderHome() {
         el('div', { class: 'title-block' }, el('h1', { class: 'title-text' }, t('appTitle')), el('div', { class: 'greeting' }, greeting())),
         el('div', { class: 'top-actions' },
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=16.0')).openAdmin() }, '🔒'),
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=16.2')).openAdmin() }, '🔒'),
           el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪')))));
 
   let strip = null;
@@ -436,7 +436,7 @@ async function openDoor(n, door) {
   finishBtn.onclick = ctx.finish; cancelBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=16.0`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=16.2`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
