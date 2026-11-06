@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=15.7';
-import { t, tx, setLang, getLang } from './i18n.js?v=15.7';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=15.7';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound } from './sound.js?v=15.7';
-import { typeRich, gallery } from './richact.js?v=15.7';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=15.7';
+import { initStore, store, DEMO } from './store.js?v=15.8';
+import { t, tx, setLang, getLang } from './i18n.js?v=15.8';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=15.8';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong } from './sound.js?v=15.8';
+import { typeRich, gallery } from './richact.js?v=15.8';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=15.8';
 
-export const APP_VERSION = 'V15.7';
+export const APP_VERSION = 'V15.8';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -54,8 +54,14 @@ function splash() {
     const pic = el('div', { class: 'splash-pic' }, el('img', { src: 'arbol.png', alt: '' }));
     const msg = el('div', { class: 'splash-msg' }, pic, title);
     const skip = el('button', { class: 'splash-skip' }, '›');
-    const box = el('div', { class: 'splash' }, cv, msg, skip);
+    const hint = el('div', { class: 'splash-hint' }, '🔔 Toca la pantalla para oír la música');
+    const box = el('div', { class: 'splash' }, cv, msg, skip, hint);
     document.body.append(box);
+    // música desde el primer copo; el iPhone no deja sonar nada hasta que se toca la pantalla
+    let music = null; try { music = christmasSong(); } catch {}
+    const checkSound = () => { if (music?.playing) hint.classList.add('hide'); else hint.classList.add('show'); };
+    setTimeout(checkSound, 600);
+    box.addEventListener('pointerdown', e => { if (e.target !== skip) { unlockAudio(); setTimeout(checkSound, 200); hint.classList.add('hide'); } });
     const c = cv.getContext('2d'); let W, H, dpr = Math.min(2, devicePixelRatio || 1);
     const size = () => { W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0); };
     size(); addEventListener('resize', size);
@@ -91,6 +97,7 @@ function splash() {
     function finish() {
       if (done) return; done = true; removeEventListener('resize', size);
       box.classList.add('out'); setTimeout(() => { box.remove(); resolve(); }, 700);
+      setTimeout(() => music?.stop(3), 6000); // sigue sonando unos segundos con la portada abierta
     }
     skip.onclick = finish;
   });
@@ -119,8 +126,8 @@ async function boot() {
     S.card = card;
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=15.7').catch(() => {});
-    import('./surprise.js?v=15.7').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./admin.js?v=15.8').catch(() => {});
+    import('./surprise.js?v=15.8').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -263,7 +270,7 @@ export function renderHome() {
         el('div', { class: 'title-block' }, el('h1', { class: 'title-text' }, t('appTitle')), el('div', { class: 'greeting' }, greeting())),
         el('div', { class: 'top-actions' },
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=15.7')).openAdmin() }, '🔒'),
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=15.8')).openAdmin() }, '🔒'),
           el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪')))));
 
   let strip = null;
@@ -303,12 +310,16 @@ export function renderHome() {
   layoutBoard(board, theme);
 
   // Cartel de Navidad (después del día 25), una vez por sesión
-  if (S.card && !sessionStorage.getItem('adv_banner')) {
+  const now = new Date(), xmasTime = (now.getMonth() === 11 && now.getDate() >= 25) || (now.getMonth() === 0 && now.getDate() <= 6);
+  if (S.card && xmasTime && !sessionStorage.getItem('adv_banner')) {
     sessionStorage.setItem('adv_banner', '1');
-    const b = el('div', { class: 'xmas-banner', onclick: () => b.remove() },
+    const close = e => { e?.stopPropagation(); b.classList.add('out'); setTimeout(() => b.remove(), 400); };
+    const b = el('div', { class: 'xmas-banner no-delay' },
       el('div', { class: 'xmas-bg', style: `background-image:url(${S.card})` }),
-      el('div', { class: 'xmas-text' }, t('newYear')), el('button', { class: 'xmas-close' }, '✕'));
+      el('div', { class: 'xmas-text' }, t('newYear')), el('button', { class: 'xmas-close no-delay', onclick: close }, '✕'));
+    b.addEventListener('pointerup', close);
     document.body.append(b);
+    setTimeout(close, 8000);
   }
 }
 
@@ -405,7 +416,7 @@ async function openDoor(n, door) {
   finishBtn.onclick = ctx.finish; cancelBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=15.7`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=15.8`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }

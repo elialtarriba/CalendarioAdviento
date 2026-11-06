@@ -59,12 +59,12 @@ function thud(at) {
   o.connect(g); g.connect(c.destination); o.start(at); o.stop(at + .32);
 }
 
-function tone(freq, start, dur, type = 'sine', vol = .15) {
+function tone(freq, start, dur, type = 'sine', vol = .15, dest) {
   const c = ac(); const o = c.createOscillator(); const g = c.createGain();
   o.type = type; o.frequency.value = freq;
   g.gain.setValueAtTime(0, start); g.gain.linearRampToValueAtTime(vol, start + .02);
   g.gain.exponentialRampToValueAtTime(.001, start + dur);
-  o.connect(g); g.connect(c.destination); o.start(start); o.stop(start + dur + .05);
+  o.connect(g); g.connect(dest || c.destination); o.start(start); o.stop(start + dur + .05);
 }
 export function chime() {
   try { const t = ac().currentTime; [784, 988, 1175, 1568].forEach((f, i) => tone(f, t + i * .09, .7, 'triangle', .12)); } catch {}
@@ -283,4 +283,60 @@ export function clickSound() {
     o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + .09);
     const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .02); const sg = c.createGain(); sg.gain.value = .08; s.connect(sg); sg.connect(c.destination); s.start(t);
   } catch {}
+}
+
+
+// ---------------- Música de bienvenida: «Navidad, Navidad, dulce Navidad» (Jingle Bells, solo melodía)
+// con cascabeles, bajo y acordes. Devuelve { stop(segundos) } para apagarla poco a poco.
+export function christmasSong() {
+  const c = ac();
+  const master = c.createGain(); master.gain.value = .9; master.connect(c.destination);
+  const B = .25; // segundos por pulso
+  const M = (n, d) => [n, d];
+  const A = [M(64,1),M(64,1),M(64,2), M(64,1),M(64,1),M(64,2), M(64,1),M(67,1),M(60,1.5),M(62,.5), M(64,4)];
+  const P1 = [M(65,1),M(65,1),M(65,1.5),M(65,.5), M(65,1),M(64,1),M(64,1),M(64,.5),M(64,.5), M(64,1),M(62,1),M(62,1),M(64,1), M(62,2),M(67,2)];
+  const P2 = [M(65,1),M(65,1),M(65,1),M(65,1), M(65,1),M(64,1),M(64,1),M(64,.5),M(64,.5), M(67,1),M(67,1),M(65,1),M(62,1), M(60,4)];
+  const melody = [...A, ...P1, ...A, ...P2];
+  // un acorde por compás (4 pulsos): Do Do Do Do | Fa Do Re7 Sol | Do Do Do Do | Fa Do Sol Do
+  const CH = { C: [48, 60, 64, 67], F: [41, 60, 65, 69], D: [50, 60, 62, 66], G: [43, 59, 62, 67] };
+  const bars = ['C','C','C','C','F','C','D','G','C','C','C','C','F','C','G','C'];
+  const LOOP = 64 * B;
+  let stopped = false, next = c.currentTime + .15, timer;
+  const bell = (f, at, dur, v) => [[1, 1], [2.76, .35], [5.4, .15]].forEach(([m, g]) => tone(f * m, at, dur / Math.sqrt(m), 'sine', v * g, master));
+  const jingleHit = (at, v) => { // cascabel
+    const sN = c.createBufferSource(); sN.buffer = noiseBuffer(c, .1);
+    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 7000 + Math.random() * 2500; f.Q.value = 6;
+    const g = c.createGain(); g.gain.setValueAtTime(v, at); g.gain.exponentialRampToValueAtTime(.001, at + .09);
+    sN.connect(f); f.connect(g); g.connect(master); sN.start(at);
+  };
+  const scheduleLoop = t0 => {
+    let t = t0;
+    for (const [n, d] of melody) { // melodía: campanita + caja de música
+      bell(NOTE(n + 12), t, Math.max(.5, d * B * 2), .075);
+      tone(NOTE(n), t, d * B * .95, 'triangle', .07, master);
+      t += d * B;
+    }
+    bars.forEach((ch, i) => {
+      const at = t0 + i * 4 * B, [bass, ...rest] = CH[ch];
+      tone(NOTE(bass), at, B * 1.8, 'sine', .14, master); tone(NOTE(bass + 7), at + 2 * B, B * 1.8, 'sine', .11, master); // bajo «um-pa»
+      [1, 3].forEach(k => rest.forEach(n => tone(NOTE(n), at + k * B, B * .7, 'triangle', .025, master)));          // acordes
+      for (let k = 0; k < 8; k++) jingleHit(at + k * B / 2, k % 2 ? .05 : .09);                                    // cascabeles en corcheas
+    });
+  };
+  const pump = () => {
+    if (stopped) return;
+    while (next < c.currentTime + 2) { scheduleLoop(next); next += LOOP; }
+    timer = setTimeout(pump, 500);
+  };
+  pump();
+  return {
+    get playing() { return c.state === 'running'; },
+    stop(fade = 2.5) {
+      if (stopped) return; stopped = true; clearTimeout(timer);
+      const now = c.currentTime;
+      master.gain.cancelScheduledValues(now); master.gain.setValueAtTime(master.gain.value, now);
+      master.gain.linearRampToValueAtTime(0, now + fade);
+      setTimeout(() => master.disconnect(), (fade + .2) * 1000);
+    },
+  };
 }
