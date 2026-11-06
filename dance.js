@@ -1,7 +1,7 @@
 // Día 24: el baile secreto
-import { t } from './i18n.js?v=9';
-import { el, sleep, confetti } from './fx.js?v=9';
-import { jingle } from './sound.js?v=9';
+import { t } from './i18n.js?v=15.4';
+import { el, sleep, confetti } from './fx.js?v=15.4';
+import { jingle } from './sound.js?v=15.4';
 
 export function render(body, ctx) {
   const dancer = el('div', { class: 'dancer' }, el('img', { src: 'galleta.png', alt: '' }));

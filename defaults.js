@@ -152,6 +152,11 @@ export function defaultDay(n) {
   return { ...base, type: 'quiz', q, options, correct };
 }
 
+export const MISSED_DEFAULT = '¿Cómo que no has participado en el día {dia}? ¡No te despistes, o Papá Noel no te va a traer regalos!';
+export const SPLASH_DEFAULT = {
+  show: true, seconds: 5,
+  text: { es: 'Bienvenidos a la aplicación de la Navidad', ca: "Benvinguts a l'aplicació del Nadal", en: 'Welcome to the Christmas app' },
+};
 export const MARQUEE_DEFAULT = {
   show: true, speed: 14, weight: 700, colorName: 'rojo', color: '#b3122e',
   text: { es: 'Pulsa la imagen para verla en grande', ca: 'Prem la imatge per veure-la en gran', en: 'Tap the picture to see it full screen' },

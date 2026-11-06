@@ -1,5 +1,5 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js?v=9';
+import { firebaseConfig } from './firebase-config.js?v=15.4';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {
@@ -48,7 +48,8 @@ async function firebaseApi() {
       const qs = await F.getDocs(F.collection(db, 'answers', uid, 'items'));
       const out = {}; qs.forEach(s => out[s.id] = s.data()); return out;
     },
-    submitAnswer: (uid, day, data) => F.setDoc(d('answers', uid, 'items', String(day)), { ...data, at: Date.now() }),
+    submitAnswer: (uid, day, data) => F.setDoc(d('answers', uid, 'items', String(day)), { ...data, at: data.at || Date.now() }),
+    deleteAnswer: (uid, day) => F.deleteDoc(d('answers', uid, 'items', String(day))),
     setAnswerStatus: (uid, day, status) => F.setDoc(d('answers', uid, 'items', String(day)), { status, reviewedAt: Date.now() }, { merge: true }),
 
     // devuelve {locked:true} si aún no es el día, null si no hay contenido guardado
@@ -57,6 +58,13 @@ async function firebaseApi() {
       catch (e) { if (e.code === 'permission-denied') return { locked: true }; throw e; }
     },
     saveDay: (n, data, year) => F.setDoc(d('content', String(n)), { ...data, openAt: F.Timestamp.fromMillis(openAtMs(year, n)) }),
+    // fotos y vídeos de las actividades: content/{día}/media/{id}
+    getMedia: async n => {
+      try { const qs = await F.getDocs(F.collection(db, 'content', String(n), 'media')); const out = []; qs.forEach(x => out.push({ id: x.id, ...x.data() })); return out.sort((a, b) => (a.order || 0) - (b.order || 0)); }
+      catch (e) { return []; }
+    },
+    addMedia: async (n, item) => { const r = F.doc(F.collection(db, 'content', String(n), 'media')); await F.setDoc(r, item); return r.id; },
+    deleteMedia: (n, id) => F.deleteDoc(d('content', String(n), 'media', id)),
     getConfig: () => get('config', 'public'),
     saveConfig: data => F.setDoc(d('config', 'public'), data, { merge: true }),
 
@@ -72,6 +80,14 @@ async function firebaseApi() {
       const h = await hashPw(pw);
       try { await F.setDoc(d('admins', uid), { key: h, at: Date.now() }); return true; }
       catch (e) { return false; }
+    },
+    // la dueña (su correo) puede poner una contraseña nueva si la olvida
+    adminOwnerReset: async (uid, pw) => {
+      const h = await hashPw(pw);
+      const b = F.writeBatch(db);
+      b.set(d('adminSecret', 'main'), { hash: h });
+      b.set(d('admins', uid), { key: h, at: Date.now() });
+      await b.commit();
     },
     adminChangePw: async (uid, pw) => {
       const h = await hashPw(pw);
@@ -140,15 +156,20 @@ function demoApi() {
     getSettings: async uid => ld('settings', {})[uid] || null,
     setSettings: async (uid, data) => { const s = ld('settings', {}); s[uid] = { ...(s[uid] || {}), ...data }; sv('settings', s); },
     getAnswers: async uid => ld('answers', {})[uid] || {},
-    submitAnswer: async (uid, day, data) => { const a = ld('answers', {}); a[uid] = a[uid] || {}; a[uid][day] = { ...data, at: Date.now() }; sv('answers', a); },
+    submitAnswer: async (uid, day, data) => { const a = ld('answers', {}); a[uid] = a[uid] || {}; a[uid][day] = { ...data, at: data.at || Date.now() }; sv('answers', a); },
+    deleteAnswer: async (uid, day) => { const a = ld('answers', {}); if (a[uid]) delete a[uid][day]; sv('answers', a); },
     setAnswerStatus: async (uid, day, status) => { const a = ld('answers', {}); a[uid] = a[uid] || {}; a[uid][day] = { ...(a[uid][day] || {}), status, reviewedAt: Date.now() }; sv('answers', a); },
     getDay: async n => ld('content', {})[n] || null,
     saveDay: async (n, data) => { const c = ld('content', {}); c[n] = data; sv('content', c); },
+    getMedia: async n => (ld('media', {})[n] || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0)),
+    addMedia: async (n, item) => { const m = ld('media', {}); const id = 'm' + Date.now() + Math.random().toString(36).slice(2, 6); (m[n] = m[n] || []).push({ id, ...item }); sv('media', m); return id; },
+    deleteMedia: async (n, id) => { const m = ld('media', {}); m[n] = (m[n] || []).filter(x => x.id !== id); sv('media', m); },
     getConfig: async () => ld('config', null),
     saveConfig: async data => sv('config', { ...ld('config', {}), ...data }),
     adminSetup: async (uid, pw) => { sv('adminHash', await hashPw(pw)); sv('config', { ...ld('config', {}), adminConfigured: true }); },
     adminLogin: async (uid, pw) => ld('adminHash', null) === await hashPw(pw),
     adminChangePw: async (uid, pw) => sv('adminHash', await hashPw(pw)),
+    adminOwnerReset: async (uid, pw) => sv('adminHash', await hashPw(pw)),
     listUsers: async () => Object.entries(ld('users', {})).map(([uid, u]) => ({ uid, ...u })),
     saveCard: async (uid, img) => { const c = ld('cards', {}); c[uid] = img; sv('cards', c); },
     getCard: async uid => ld('cards', {})[uid] || null,

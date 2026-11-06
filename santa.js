@@ -1,9 +1,9 @@
 // Día 25: tu cara en Papá Noel + felicitación con letras, confeti y luces
-import { t, getLang } from './i18n.js?v=9';
-import { el, sleep, confetti } from './fx.js?v=9';
-import { chime, jingle, speak } from './sound.js?v=9';
-import { S } from './app.js?v=9';
-import { store } from './store.js?v=9';
+import { t, getLang } from './i18n.js?v=15.4';
+import { el, sleep, confetti, popup } from './fx.js?v=15.4';
+import { chime, jingle, speak, hohoho } from './sound.js?v=15.4';
+import { S } from './app.js?v=15.4';
+import { store } from './store.js?v=15.4';
 
 const W = 882, H = 1192, FACE = { x: 458, y: 500, rx: 215, ry: 185 };
 const BULBS = ['#ff3b3b', '#ffd23b', '#3bff6a', '#3bb6ff', '#ff7af0'];
@@ -73,7 +73,8 @@ export function render(body, ctx) {
   const controls = el('div', { class: 'santa-controls' }, upBtn, sizeLbl, magic);
   body.append(el('div', { class: 'santa' }, el('h2', { class: 'q-title' }, '🎄 ' + t('d25title') + ' 🎄'), intro, controls, adjust, out, stage));
 
-  if (ctx.prev && S.card) { stage.replaceChildren(el('img', { src: S.card, style: 'width:100%;display:block' })); controls.remove(); showOutputs(S.card); return; }
+  // día 25 ya hecho: solo tu foto de Papá Noel, lista para enviar, guardar o imprimir
+  if (ctx.prev && S.card) { intro.remove(); adjust.remove(); stage.replaceChildren(el('img', { src: S.card, style: 'width:100%;display:block' })); stage.style.aspectRatio = 'auto'; controls.remove(); showOutputs(S.card); return; }
 
   fileIn.onchange = () => {
     const f = fileIn.files[0]; if (!f) return;
@@ -137,7 +138,7 @@ export function render(body, ctx) {
     await sleep(spans.length * 90 + 1700);
     st.text = text; redraw(); letters.replaceChildren();
     chime(); confetti(350, { frames: 360 }); setTimeout(() => confetti(250), 1200);
-    speak(text, getLang(), { hoho: true });
+    hohoho(getLang()); setTimeout(() => speak(text, getLang()), 2200);
     // se van encendiendo las luces
     for (let i = 1; i <= 40; i++) { st.bulbs = i / 40; st.glow = i / 40; redraw(); await sleep(60); }
     let ph = 0; const blink = setInterval(() => { st.phase = ++ph; redraw(); }, 700);
@@ -145,8 +146,8 @@ export function render(body, ctx) {
     await sleep(800);
     const full = cv.toDataURL('image/png');
     // copia pequeña para el cartel de la portada
-    const sm = document.createElement('canvas'); sm.width = 441; sm.height = 596; sm.getContext('2d').drawImage(cv, 0, 0, 441, 596);
-    const small = sm.toDataURL('image/jpeg', .8);
+    const sm = document.createElement('canvas'); sm.width = 662; sm.height = 894; sm.getContext('2d').drawImage(cv, 0, 0, 662, 894);
+    const small = sm.toDataURL('image/jpeg', .85);
     S.card = small;
     store.saveCard(ctx.user.uid, small).catch(e => console.warn(e));
     ctx.submit({ answer: '🎅', status: 'correct' });
@@ -154,11 +155,43 @@ export function render(body, ctx) {
   };
 
   function showOutputs(url) {
-    out.replaceChildren(
-      el('a', { class: 'btn', href: url, download: 'feliz-navidad.png', style: 'text-decoration:none' }, '💾 ' + t('d25save')),
-      el('button', { class: 'btn btn-green', onclick: () => {
-        const pa = el('div', { class: 'print-area' }, el('img', { src: url })); document.body.append(pa);
-        setTimeout(() => { window.print(); setTimeout(() => pa.remove(), 500); }, 300);
-      } }, '🖨️ ' + t('d25print')));
+    // la imagen se prepara como archivo para que el móvil pueda guardarla o compartirla
+    let blob = null;
+    fetch(url).then(r => r.blob()).then(b => { blob = b; }).catch(() => {});
+    const name = 'feliz-navidad.png';
+    const save = el('button', { class: 'btn', onclick: async () => {
+      try {
+        const b = blob || await (await fetch(url)).blob();
+        const file = new File([b], name, { type: b.type || 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: t('merry') }); return; }
+        const u = URL.createObjectURL(b);
+        const a = el('a', { href: u, download: name, style: 'display:none' }); document.body.append(a); a.click();
+        setTimeout(() => { a.remove(); URL.revokeObjectURL(u); }, 4000);
+      } catch (e) { if (e.name !== 'AbortError') showBig(url); }
+    } }, '💾 ' + t('d25save'));
+    const print = el('button', { class: 'btn btn-green', onclick: () => {
+      // se imprime desde un marco aparte que solo contiene la imagen
+      const fr = el('iframe', { style: 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0' });
+      document.body.append(fr);
+      const d = fr.contentWindow.document;
+      d.open(); d.write(`<!doctype html><html><head><meta charset="utf-8"><style>@page{margin:10mm}html,body{margin:0;height:100%}body{display:flex;align-items:center;justify-content:center}img{max-width:100%;max-height:100%}</style></head><body><img src="${url}"></body></html>`); d.close();
+      const go = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch { window.print(); } setTimeout(() => fr.remove(), 60000); };
+      const img = d.querySelector('img'); if (img.complete) setTimeout(go, 200); else img.onload = () => setTimeout(go, 200);
+    } }, '🖨️ ' + t('d25print'));
+    const share = el('button', { class: 'btn', style: 'background:linear-gradient(#25d366,#128c4a);box-shadow:0 4px 0 #0b5e31', onclick: async () => {
+      try {
+        const b = blob || await (await fetch(url)).blob();
+        const file = new File([b], name, { type: b.type || 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], text: t('d25shareText') });
+        else { save.click(); setTimeout(() => window.open('https://wa.me/?text=' + encodeURIComponent(t('d25shareText')), '_blank'), 800); }
+      } catch (e) { if (e.name !== 'AbortError') showBig(url); }
+    }, html: '<svg viewBox="0 0 32 32" width="20" height="20" style="vertical-align:-4px;margin-right:6px"><path fill="#fff" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.6c-2 0-4-.6-5.7-1.6l-.4-.2-3.9 1 1-3.8-.3-.4A10.6 10.6 0 1 1 16 26.6zm5.8-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7 0a8.7 8.7 0 0 1-4.3-3.8c-.3-.6.3-.5.9-1.7.1-.2 0-.4 0-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.6 3.6 0 0 0-1.1 2.7 6.3 6.3 0 0 0 1.3 3.3 14.4 14.4 0 0 0 5.5 4.9c2 .9 2.8 1 3.9.8a3.3 3.3 0 0 0 2.1-1.5 2.7 2.7 0 0 0 .2-1.5c-.1-.2-.3-.3-.6-.4z"/></svg>' + t('d25shareBtn') });
+    out.replaceChildren(el('p', { class: 'd25-family' }, '👨‍👩‍👧‍👦 ' + t('d25family')), share, save, print,
+      el('p', { class: 'muted', style: 'width:100%;margin:4px 0 0;font-size:13px' }, t('d25saveHelp')));
   }
+  // si el móvil no deja guardar: se abre la imagen en grande para mantenerla pulsada y guardarla
+  function showBig(url) {
+    popup(el('div', {}, el('img', { src: url, style: 'width:100%;border-radius:12px' }), el('p', {}, t('d25saveHelp'))), { outside: true, buttons: [{ label: t('close'), value: true }] });
+  }
+
 }

@@ -78,7 +78,7 @@ export function toast(msg, ms = 2600) {
 }
 
 // Ventanita emergente; devuelve promesa que se resuelve al cerrar
-export function popup(content, { buttons = [{ label: 'OK', value: true }], cls = '' } = {}) {
+export function popup(content, { buttons = [{ label: 'OK', value: true }], cls = '', outside = false } = {}) {
   return new Promise(res => {
     const box = el('div', { class: 'popup ' + cls });
     if (typeof content === 'string') box.innerHTML = content; else box.append(content);
@@ -86,6 +86,7 @@ export function popup(content, { buttons = [{ label: 'OK', value: true }], cls =
     const back = el('div', { class: 'popup-back' }, box);
     buttons.forEach(b => bar.append(el('button', { class: 'btn ' + (b.cls || ''), onclick: () => { back.remove(); res(b.value); } }, b.label)));
     if (buttons.length) box.append(bar);
+    if (outside) back.addEventListener('click', e => { if (e.target === back) { back.remove(); res(false); } });
     document.body.append(back);
   });
 }

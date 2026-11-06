@@ -135,7 +135,7 @@ export function speak(text, lang = 'es', { hoho = false } = {}) {
         return u;
       };
       const parts = [];
-      if (hoho) parts.push(say('Ho, ho, ho!', .3, .7));
+      if (hoho) parts.push(say(lang === 'en' ? 'Ho! Ho! Ho!' : '¡Jo! ¡Jo! ¡Jo!', .1, .65));
       if (text) parts.push(say(text, .55, .85));
       parts[parts.length - 1].onend = res; parts[parts.length - 1].onerror = res;
       parts.forEach(p => speechSynthesis.speak(p));
@@ -197,12 +197,63 @@ export function doorSound(n) {
     }
   } catch {}
 }
-// Día 25: ¡Ho, ho, ho! grabado + cascabeles
+// Campanillas a lo lejos: cascabeles suaves y apagados que van y vienen
+function distantBells(at, secs = 5) {
+  const c = ac();
+  const far = c.createBiquadFilter(); far.type = 'lowpass'; far.frequency.value = 3800;
+  const gain = c.createGain(); gain.gain.value = .55; far.connect(gain); gain.connect(c.destination);
+  for (let i = 0; i < secs * 9; i++) {
+    const st = at + i / 9 + Math.random() * .05, k = Math.sin(Math.PI * i / (secs * 9)); // se acercan y se alejan
+    const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .1);
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 5000 + Math.random() * 2500; bp.Q.value = 10;
+    const g = c.createGain(); g.gain.setValueAtTime(.05 * k + .01, st); g.gain.exponentialRampToValueAtTime(.001, st + .09);
+    s.connect(bp); bp.connect(g); g.connect(far); s.start(st);
+    const o = c.createOscillator(); o.type = 'sine'; o.frequency.value = 2600 + Math.random() * 800;
+    const og = c.createGain(); og.gain.setValueAtTime(.025 * k, st); og.gain.exponentialRampToValueAtTime(.0005, st + .25);
+    o.connect(og); og.connect(far); o.start(st); o.stop(st + .3);
+  }
+  // campanita de iglesia muy lejana
+  [0, 1.2, 2.4].forEach(d => [[1, .03], [2.76, .012], [5.4, .006]].forEach(([m, v]) => {
+    const o = c.createOscillator(); o.frequency.value = 523 * m; const g = c.createGain();
+    g.gain.setValueAtTime(v, at + .4 + d); g.gain.exponentialRampToValueAtTime(.0001, at + .4 + d + 2.5);
+    o.connect(g); g.connect(far); o.start(at + .4 + d); o.stop(at + 3.2 + d);
+  }));
+}
+// Día 25: ¡Ho, ho, ho! de Papá Noel + campanillas a lo lejos
 let hohoAudio;
 export function hohoho() {
   try {
-    hohoAudio = hohoAudio || new Audio('hohoho.mp3');
-    hohoAudio.currentTime = 0; hohoAudio.volume = 1; hohoAudio.play().catch(() => speak('', 'es', { hoho: true }));
-    sleighBells(ac().currentTime + .1, 30, .04);
+    distantBells(ac().currentTime + .05, 5);
+    hohoAudio = hohoAudio || new Audio('hohoho.mp3?v=2');
+    hohoAudio.currentTime = 0; hohoAudio.volume = 1;
+    hohoAudio.play().catch(() => speak('', 'es', { hoho: true }));
+  } catch {}
+}
+// ¡Enhorabuena!: fanfarria de trompetas + aplausos
+export function fanfare() {
+  try {
+    const c = ac(), t = c.currentTime;
+    [[523, 0, .14], [659, .14, .14], [784, .28, .14], [1047, .42, .5], [784, .95, .14], [1047, 1.1, .7]].forEach(([f, d, l]) => {
+      tone(f, t + d, l + .1, 'sawtooth', .07); tone(f * 2, t + d, l, 'square', .02); tone(f / 2, t + d, l + .1, 'triangle', .06);
+    });
+    for (let i = 0; i < 60; i++) { // aplausos
+      const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .05);
+      const fl = c.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.value = 1200 + Math.random() * 1800; fl.Q.value = 1.5;
+      const g = c.createGain(); const st = t + .5 + Math.random() * 2;
+      g.gain.setValueAtTime(.18 * Math.random() + .05, st); g.gain.exponentialRampToValueAtTime(.001, st + .05);
+      s.connect(fl); fl.connect(g); g.connect(c.destination); s.start(st);
+    }
+  } catch {}
+}
+
+// clic de botón: «toc» corto y suave
+export function clickSound() {
+  try {
+    const c = ac(), t = c.currentTime;
+    const o = c.createOscillator(), g = c.createGain(); o.type = 'triangle';
+    o.frequency.setValueAtTime(1400, t); o.frequency.exponentialRampToValueAtTime(500, t + .05);
+    g.gain.setValueAtTime(.18, t); g.gain.exponentialRampToValueAtTime(.001, t + .08);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + .09);
+    const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .02); const sg = c.createGain(); sg.gain.value = .08; s.connect(sg); sg.connect(c.destination); s.start(t);
   } catch {}
 }

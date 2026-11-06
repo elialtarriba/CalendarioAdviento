@@ -1,9 +1,11 @@
 // Día 20: la ruleta del disparate
-import { t, tx } from './i18n.js?v=9';
-import { el, confetti } from './fx.js?v=9';
-import { chime, pop } from './sound.js?v=9';
+import { t, tx } from './i18n.js?v=15.4';
+import { el, confetti } from './fx.js?v=15.4';
+import { chime, pop } from './sound.js?v=15.4';
 
-const COLS = ['#e63946', '#2a9d62', '#ffb703', '#3a86ff', '#9b5de5', '#f15bb5', '#00b4d8', '#fb8500', '#06d6a0', '#8338ec'];
+export const R_COLS = ['#e63946', '#2a9d62', '#ffb703', '#3a86ff', '#9b5de5', '#f15bb5', '#00b4d8', '#fb8500', '#06d6a0', '#8338ec'];
+const COLS = R_COLS;
+export const DEFAULT_R_NOTE = 'Tienes que cantar, en el día de hoy, a tu madre o tu padre.';
 
 export function render(body, ctx) {
   const missions = (ctx.content.missions || []).map(m => tx(m)).filter(Boolean);
@@ -27,10 +29,19 @@ export function render(body, ctx) {
   };
   draw();
   const result = el('p', { class: 'mission' });
+  const noteTxt = ctx.content.rouletteNote ? tx(ctx.content.rouletteNote) : (ctx.lang === 'es' ? DEFAULT_R_NOTE : '');
+  const note = el('p', { class: 'mission-note', style: 'display:none' }, noteTxt);
   const btn = el('button', { class: 'btn btn-big' }, '🎡 ' + t('d20btn'));
+  // lista de lo que hay en cada casilla
+  const legend = el('ol', { class: 'r-legend' }, ...missions.map((m, i) => el('li', {}, el('span', { class: 'r-num', style: `background:${COLS[i % COLS.length]}` }, i + 1), el('span', {}, m))));
+  const mark = i => [...legend.children].forEach((li, k) => li.classList.toggle('on', k === i));
   body.append(el('div', { class: 'roulette' }, el('h2', { class: 'q-title' }, t('d20title')),
-    el('div', { class: 'roulette-wrap' }, el('div', { class: 'roulette-pointer' }), cv), btn, result));
-  if (ctx.prev?.answer) { result.textContent = t('d20mission') + ' ' + ctx.prev.answer; btn.remove(); return; }
+    el('div', { class: 'roulette-wrap' }, el('div', { class: 'roulette-pointer' }), cv), btn, result, note,
+    el('p', { class: 'r-legend-title' }, t('d20list')), legend));
+  if (ctx.prev?.answer) {
+    result.textContent = t('d20mission') + ' ' + ctx.prev.answer; btn.remove();
+    if (noteTxt) note.style.display = ''; mark(missions.indexOf(ctx.prev.answer)); return;
+  }
 
   btn.onclick = () => {
     btn.disabled = true; result.textContent = '';
@@ -49,7 +60,8 @@ export function render(body, ctx) {
       if (k < 1) requestAnimationFrame(f);
       else {
         chime(); confetti(140);
-        result.innerHTML = ''; result.append(el('span', { style: `color:${COLS[pick % COLS.length]}` }, `${t('d20mission')} `), missions[pick]);
+        result.innerHTML = ''; result.append(el('span', { style: `color:${COLS[pick % COLS.length]}` }, `${t('d20mission')} (${pick + 1}) `), missions[pick]);
+        if (noteTxt) note.style.display = ''; mark(pick);
         ctx.submit({ answer: missions[pick], status: 'correct' });
       }
     })(t0);

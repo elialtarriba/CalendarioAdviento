@@ -1,10 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=9';
-import { t, tx, setLang, getLang } from './i18n.js?v=9';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT } from './defaults.js?v=9';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho } from './sound.js?v=9';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=9';
+import { initStore, store, DEMO } from './store.js?v=15.4';
+import { t, tx, setLang, getLang } from './i18n.js?v=15.4';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=15.4';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound } from './sound.js?v=15.4';
+import { typeRich, gallery } from './richact.js?v=15.4';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=15.4';
 
-export const APP_VERSION = 'V9';
+export const APP_VERSION = 'V15.4';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -37,8 +38,66 @@ export function applyPaper(node) {
 }
 
 // ------------------------------------------------------------------ arranque
+// ------------------------------------------------------------------ pantalla de bienvenida con nieve
+function splashCfg() {
+  try { return { ...SPLASH_DEFAULT, ...(JSON.parse(localStorage.getItem('adv_splash')) || {}) }; } catch { return SPLASH_DEFAULT; }
+}
+function splash() {
+  const cfg = splashCfg();
+  let seen = false; try { seen = sessionStorage.getItem('adv_splash_seen') === '1'; sessionStorage.setItem('adv_splash_seen', '1'); } catch {}
+  if (cfg.show === false || seen) return Promise.resolve();
+  return new Promise(resolve => {
+    const secs = Math.max(1, Math.min(30, +cfg.seconds || 5));
+    const cv = el('canvas', { class: 'splash-snow' });
+    const title = el('h1', { class: 'splash-title' }, tx(cfg.text) || tx(SPLASH_DEFAULT.text));
+    const pic = el('div', { class: 'splash-pic' }, el('img', { src: 'arbol.png', alt: '' }));
+    const msg = el('div', { class: 'splash-msg' }, pic, title);
+    const skip = el('button', { class: 'splash-skip' }, '›');
+    const box = el('div', { class: 'splash' }, cv, msg, skip);
+    document.body.append(box);
+    const c = cv.getContext('2d'); let W, H, dpr = Math.min(2, devicePixelRatio || 1);
+    const size = () => { W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0); };
+    size(); addEventListener('resize', size);
+    const N = Math.round(Math.min(260, W * H / 3500));
+    const flakes = Array.from({ length: N }, () => ({ x: Math.random() * W, y: -Math.random() * H, r: Math.random() < .75 ? 1 + Math.random() * 2.5 : 3.5 + Math.random() * 3.5, v: .6 + Math.random() * 1.4, w: Math.random() * 6, s: .5 + Math.random() }));
+    const pile = new Float32Array(Math.ceil(W / 4) + 2);
+    const t0 = performance.now(); let done = false, shown = false;
+    (function loop(now) {
+      if (done) return;
+      const el_ = (now - t0) / 1000;
+      c.clearRect(0, 0, W, H);
+      // nieve que se acumula abajo (suavizada)
+      for (let k = 1; k < pile.length - 1; k++) pile[k] = pile[k] * .6 + (pile[k - 1] + pile[k + 1]) * .2;
+      c.fillStyle = '#eef4fb'; c.beginPath(); c.moveTo(0, H);
+      for (let i = 0; i < pile.length; i++) c.lineTo(i * 4, H - pile[i]);
+      c.lineTo(W, H); c.fill();
+      for (const f of flakes) {
+        f.y += f.v * (f.r / 3 + .6); f.x += Math.sin(now / 900 * f.s + f.w) * .5;
+        const floor = H - (pile[Math.max(0, Math.min(pile.length - 1, Math.round(f.x / 4)))] || 0);
+        if (f.y > floor) {
+          const i = Math.round(f.x / 4); if (i >= 0 && i < pile.length && pile[i] < H * .07) { pile[i] += f.r * .35; if (pile[i - 1] !== undefined) pile[i - 1] += f.r * .25; if (pile[i + 1] !== undefined) pile[i + 1] += f.r * .25; }
+          if (el_ < secs) { f.y = -10; f.x = Math.random() * W; } else f.y = H + 50;
+        }
+        if (f.y > -10 && f.y < H + 20) {
+          c.beginPath(); c.arc(f.x, f.y, f.r, 0, 7);
+          c.fillStyle = f.r > 3.4 ? '#b9d4ee' : '#cfe2f5'; c.fill();
+          if (f.r > 3.4) { c.strokeStyle = '#ffffff'; c.lineWidth = 1; c.stroke(); }
+        }
+      }
+      if (el_ >= secs && !shown) { shown = true; box.classList.add('show-msg'); setTimeout(finish, 3800); }
+      requestAnimationFrame(loop);
+    })(t0);
+    function finish() {
+      if (done) return; done = true; removeEventListener('resize', size);
+      box.classList.add('out'); setTimeout(() => { box.remove(); resolve(); }, 700);
+    }
+    skip.onclick = finish;
+  });
+}
+
 async function boot() {
   setLang(localStorage.getItem('adv_lang') || 'es');
+  await splash();
   try { await initStore(); } catch (e) {
     app.innerHTML = `<div class="fatal">No se ha podido conectar con Firebase. Revisa js/firebase-config.js.<br><small>${esc(e.message)}</small></div>`; return;
   }
@@ -55,10 +114,11 @@ async function boot() {
     S.settings = settings || { figure: 'galleta', showProgress: true };
     S.answers = answers || {};
     S.config = { ...DEFAULT_CONFIG, ...(config || {}), prizes: { ...DEFAULT_CONFIG.prizes, ...(config?.prizes || {}) } };
+    try { if (config?.splash) localStorage.setItem('adv_splash', JSON.stringify(config.splash)); } catch {}
     S.card = card;
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=9').catch(() => {});
+    import('./admin.js?v=15.4').catch(() => {});
   });
 }
 
@@ -113,12 +173,81 @@ let fullView = false, boardObserver = null;
 function currentTheme() {
   return PORTADAS.find(p => p.id === S.profile.portada) || PORTADAS.find(p => p.id === DEFAULT_PORTADA) || PORTADAS[0];
 }
+// un día ya pasado que no se ha abierto
+function missed(d) {
+  const { y, m, d: today } = madridToday(); const Y = S.config.year;
+  return y > Y || (y === Y && m === 12 && today > d);
+}
+function showMissed(d) {
+  wrong();
+  const msg = (S.config.missedMsg || MISSED_DEFAULT).replaceAll('{dia}', d);
+  popup(`<div class="missed-pop"><div class="missed-big">🧌</div><p class="prize-text">${esc(msg)}</p><div class="missed-gifts">🎁 🎁 🎁</div></div>`);
+}
+// Premio de la casilla g: del día 1 al g se pueden fallar (o no hacer) como máximo 3 casillas
+export const GOALS = [10, 15, 20, 25];
+function prizeState(g) {
+  let ok = 0, bad = 0, pend = 0, todo = 0;
+  for (let d = 1; d <= g; d++) {
+    const a = S.answers[d];
+    if (a?.status === 'correct') ok++;
+    else if (a?.status === 'incorrect') bad++;
+    else if (a?.status === 'pending') pend++;
+    else if (missed(d)) bad++;
+    else todo++;
+  }
+  const state = bad > 3 ? 'lost' : (todo || pend) ? 'play' : 'won';
+  return { g, ok, bad, pend, todo, state };
+}
+function prizeDetail(g) {
+  const p = prizeState(g);
+  const head = { won: '🏆 ' + t('prizeWon'), lost: '😢 ' + t('prizeLost'), play: '🎁 ' + t('prizePlay') }[p.state];
+  popup(`<h2>🎁 ${t('prize')} · ${t('dayRange', g)}</h2><p class="prize-state ${p.state}">${head}</p>
+    <div class="prize-counts"><div>✅<b>${p.ok}</b><small>${t('cntOk')}</small></div><div>❌<b>${p.bad}</b><small>${t('cntBad')}</small></div>
+    <div>⏳<b>${p.pend}</b><small>${t('cntPend')}</small></div><div>📅<b>${p.todo}</b><small>${t('cntTodo')}</small></div></div>
+    <p>${t('failsLeft', Math.max(0, 3 - p.bad))}</p>
+    ${p.state === 'won' ? `<p class="prize-text">${esc(S.config.prizes['p' + g])}</p>` : ''}`);
+}
+// al pulsar una figura de la franja: resultado del día o ánimo para hacerlo
+async function dayInfo(d) {
+  const fig = figure(), a = S.answers[d];
+  const img = el('img', { class: 'dinfo-fig' + (a?.status === 'correct' ? '' : ' bw'), src: FIG_IMG[fig], alt: '' });
+  const box = el('div', { class: 'dinfo' }, el('div', { class: 'dinfo-day' }, t('dayDate', d)), img);
+  let goBtn = false;
+  if (a) {
+    const c = await loadDay(d).catch(() => null) || defaultDay(d);
+    let ans = a.answer;
+    if (c.type === 'quiz' && typeof ans === 'number') ans = (tx(c.options) || [])[ans];
+    const st = { correct: ['dinfo-ok', '✅ ' + t('correct')], incorrect: ['dinfo-bad', '❌ ' + t('incorrect')], pending: ['dinfo-pend', '⏳ ' + t('pending')] }[a.status] || ['', ''];
+    box.append(el('p', { class: 'dinfo-status ' + st[0] }, st[1]));
+    if (c.type === 'quiz') box.append(el('p', { class: 'dinfo-q' }, tx(c.q)));
+    if (ans !== '' && ans != null && !/^[\p{Extended_Pictographic}\s]+$/u.test(String(ans))) box.append(el('p', { class: 'dinfo-a' }, el('b', {}, t('yourAnswer') + ': '), String(ans)));
+    box.append(el('p', { class: 'dinfo-msg' }, a.status === 'correct' ? t('dinfoWell') : a.status === 'pending' ? t('dinfoWait') : t('dinfoBad')));
+    if (actPending(d)) box.append(el('p', { class: 'dinfo-msg' }, '👉 ' + t('remindAct', t(fig === 'arbol' ? 'activity1' : 'activity2'))));
+  } else if (canOpen(d)) {
+    box.append(el('div', { class: 'dinfo-deco' }, '🎁✨🎄✨🎁'), el('p', { class: 'dinfo-msg big' }, t('dinfoGo', d)));
+    goBtn = true;
+  } else {
+    box.append(el('div', { class: 'dinfo-deco' }, '⏳❄️⏳'), el('p', { class: 'dinfo-msg' }, t('locked', d)));
+  }
+  const btns = [{ label: t('close'), value: false, cls: goBtn ? 'btn-ghost' : '' }];
+  if (goBtn) btns.push({ label: '🚪 ' + t('dinfoOpen'), value: true });
+  const r = await popup(box, { cls: 'small', outside: true, buttons: btns });
+  if (r) { const door = [...document.querySelectorAll('.door')].find(x => x.getAttribute('aria-label') === t('dayN', d)); if (door) openDoor(d, door); }
+}
 function showPrizes() {
-  const n = correctCount();
-  const goals = [10, 15, 20, 25];
-  const nextG = goals.find(g => g > n);
-  popup(`<h2>🏆 ${t('prizes')}</h2><p>${t('correctCount', n)} · ${nextG ? t('nextPrize', nextG - n) : t('allPrizes')}</p>` +
-    goals.map((g, i) => `<p class="prize-row ${n >= g ? 'won' : ''}">${n >= g ? '🏆' : '🎁'} <b>${g}</b> · ${n >= g ? esc(S.config.prizes['p' + g]) : '?'}</p>`).join(''));
+  const box = el('div', {},
+    el('h2', {}, '🏆 ' + t('prizes')),
+    el('div', { class: 'rules-deco' }, '🎄🎅🎁'),
+    el('p', { class: 'prize-rules' }, t('prizeRules')),
+    el('p', { class: 'muted' }, t('prizeTap')),
+    ...GOALS.map(g => {
+      const p = prizeState(g);
+      return el('button', { class: 'prize-row2 ' + p.state, onclick: () => prizeDetail(g) },
+        el('span', { class: 'pr-ico' }, { won: '🏆', lost: '💔', play: '🎁' }[p.state]),
+        el('span', { class: 'pr-txt' }, el('b', {}, t('dayRange', g)), el('small', {}, p.state === 'won' ? S.config.prizes['p' + g] : `✅ ${p.ok} · ❌ ${p.bad}`)),
+        el('span', { class: 'pr-go' }, '›'));
+    }));
+  popup(box);
 }
 export function renderHome() {
   document.title = t('appTitle');
@@ -127,12 +256,12 @@ export function renderHome() {
   const n = correctCount();
 
   const header = el('header', { class: 'top' },
-    el('div', { class: 'title-frame' },
+    el('div', { class: 'title-frame', onclick: e => { if (e.target.closest('.icon-btn')) return; const f = e.currentTarget; f.classList.add('moving'); clearTimeout(f._t); f._t = setTimeout(() => f.classList.remove('moving'), 4000); } },
       el('div', { class: 'title-inner' },
         el('div', { class: 'title-block' }, el('h1', { class: 'title-text' }, t('appTitle')), el('div', { class: 'greeting' }, greeting())),
         el('div', { class: 'top-actions' },
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=9')).openAdmin() }, '🔒'),
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=15.4')).openAdmin() }, '🔒'),
           el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪')))));
 
   let strip = null;
@@ -142,7 +271,12 @@ export function renderHome() {
     for (let d = 1; d <= 25; d++) {
       const a = S.answers[d];
       const st = a?.status === 'correct' ? 'on' : a?.status === 'pending' ? 'pend' : a ? 'off' : 'none';
-      row.append(el('div', { class: 'strip-fig ' + st + (d === 25 ? ' big' : ''), title: t('dayN', d) },
+      if (!a && missed(d)) {
+        row.append(el('button', { class: 'strip-fig missed' + (d === 25 ? ' big' : ''), title: t('dayN', d), onclick: () => showMissed(d) },
+          el('span', { class: 'missed-face' }, '🧌'), el('span', {}, d)));
+        continue;
+      }
+      row.append(el('button', { class: 'strip-fig ' + st + (d === 25 ? ' big' : ''), title: t('dayN', d), onclick: () => dayInfo(d) },
         el('img', { src: FIG_IMG[fig], alt: '' }), el('span', {}, d)));
     }
     strip = el('section', { class: 'strip' }, row);
@@ -220,6 +354,10 @@ async function openDoor(n, door) {
   unlockAudio();
   if (!canOpen(n)) { door.classList.add('shake'); setTimeout(() => door.classList.remove('shake'), 600); toast(t('locked', n)); return; }
   busy = true;
+  if (actPending(n)) {
+    door.classList.add('lighting'); doorSound(n); await sleep(700); door.classList.add('opening'); await sleep(700);
+    busy = false; return remindActivity(n);
+  }
   const content = await loadDay(n);
   if (!content) { busy = false; toast(t('locked', n)); return; }
   // la luz se enciende dentro de la ventana y después se abre
@@ -247,7 +385,7 @@ async function openDoor(n, door) {
     { opacity: 1, offset: .25 },
     { transform: 'translate(0,0) scale(1) rotate(0)', opacity: 1 },
   ], { duration: 1500, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' });
-  setTimeout(() => speak(t('welcome', n), getLang()), n === 25 ? 2600 : 0);
+  setTimeout(() => speak(t('welcome', n), getLang()), n === 25 ? 3200 : 0);
 
   let closed = false;
   const ctx = {
@@ -255,17 +393,17 @@ async function openDoor(n, door) {
     profile: S.profile, settings: S.settings, user: S.user, config: S.config,
     submit: async data => {
       if (S.answers[n]) return;
-      const rec = { answer: data.answer ?? '', status: data.status || 'pending', extra: data.extra ?? null };
-      S.answers[n] = { ...rec, at: Date.now() }; cancelBtn.remove();
+      const rec = { answer: data.answer ?? '', status: data.status || 'pending', extra: data.extra ?? null, at: Date.now() };
+      S.answers[n] = { ...rec }; cancelBtn.remove();
       try { await store.submitAnswer(S.user.uid, n, rec); } catch (e) { console.error(e); toast('⚠️ ' + e.message); }
-      if (rec.status === 'correct') checkPrize();
+      if (rec.status === 'correct') { fanfare(); checkPrize(); }
     },
     finish: () => { if (!closed) { closed = true; closeDay(n, layer, note, door); } },
   };
   finishBtn.onclick = ctx.finish; cancelBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=9`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=15.4`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -284,9 +422,12 @@ function renderSummary(body, ctx) {
 }
 
 function checkPrize() {
-  const n = correctCount();
-  const g = [10, 15, 20, 25].find(x => x === n);
-  if (g) setTimeout(() => { confetti(250); chime(); popup(`<h2>🏆 ${t('prize')}!</h2><p class="prize-text">${esc(S.config.prizes['p' + g])}</p>`); }, 1800);
+  let seen = {}; const key = 'adv_prizes_' + S.user.uid;
+  try { seen = JSON.parse(localStorage.getItem(key)) || {}; } catch {}
+  const g = GOALS.find(x => !seen[x] && prizeState(x).state === 'won');
+  if (!g) return;
+  seen[g] = 1; try { localStorage.setItem(key, JSON.stringify(seen)); } catch {}
+  setTimeout(() => { confetti(250); chime(); popup(`<h2>🏆 ${t('prize')}!</h2><p>${t('dayRange', g)}</p><p class="prize-text">${esc(S.config.prizes['p' + g])}</p>`); }, 1800);
 }
 
 // ------------------------------------------------------------------ cerrar el día
@@ -308,19 +449,34 @@ async function closeDay(n, layer, note, door) {
 }
 
 // Arrugar con filtro SVG de desplazamiento
+// Arrugar el papel: solo transformaciones y recortes (las hace la tarjeta gráfica, va fluido)
+const JAG = (k, seed) => { // contorno de bola arrugada: k=0 rectángulo, k=1 bola dentada
+  const pts = [], n = 28;
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2, r = 50 * (1 - k * .55) * (1 + (k * .16) * Math.sin(i * 7.3 + seed));
+    const sx = Math.cos(a), sy = Math.sin(a), m = Math.max(Math.abs(sx), Math.abs(sy));
+    const rx = 50 + (sx / m * 50) * (1 - k) + (sx * r) * k, ry = 50 + (sy / m * 50) * (1 - k) + (sy * r) * k;
+    pts.push(`${rx.toFixed(1)}% ${ry.toFixed(1)}%`);
+  }
+  return `polygon(${pts.join(',')})`;
+};
 export async function crumpleAnim(node, out = true) {
-  const disp = document.querySelector('#crumpleFilter feDisplacementMap');
-  node.style.filter = 'url(#crumpleFilter)';
-  const dur = 1100; const t0 = performance.now();
-  return new Promise(res => {
-    (function f(now) {
-      const k = Math.min(1, (now - t0) / dur); const p = out ? k : 1 - k;
-      disp.setAttribute('scale', String(p * 90));
-      node.style.transform = `scale(${1 - p * .82}) rotate(${p * 25}deg) translateY(${p * 30}px)`;
-      node.style.opacity = out ? String(1 - Math.max(0, k - .7) / .3) : String(Math.min(1, k * 3));
-      if (k < 1) requestAnimationFrame(f); else { if (!out) { node.style.filter = ''; node.style.transform = ''; } res(); }
-    })(t0);
-  });
+  const creases = el('div', { class: 'creases' }); node.append(creases);
+  node.style.willChange = 'transform, clip-path, opacity';
+  const steps = [0, .15, .3, .45, .6, .75, .9, 1];
+  const frames = steps.map(k => ({
+    offset: k,
+    clipPath: JAG(Math.min(1, k * 1.15), 3),
+    transform: `perspective(900px) scale(${1 - k * .78}) rotate(${k * 34 + Math.sin(k * 9) * 6}deg) rotateX(${Math.sin(k * 7) * 18}deg) rotateY(${Math.cos(k * 6) * 16}deg) translateY(${k * 40}px)`,
+    opacity: k > .85 ? 1 - (k - .85) / .15 * .9 : 1,
+  }));
+  const kf = out ? frames : frames.slice().reverse().map((f, i) => ({ ...f, offset: steps[i], opacity: i < 2 ? .3 + i * .35 : 1 }));
+  const dur = out ? 1700 : 1500;
+  const crease = [{ opacity: out ? 0 : .9 }, { opacity: out ? .9 : 0 }];
+  creases.animate(crease, { duration: dur, easing: 'ease-in-out', fill: 'forwards' });
+  const anim = node.animate(kf, { duration: dur, easing: out ? 'cubic-bezier(.45,.05,.55,.95)' : 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' });
+  await anim.finished.catch(() => {});
+  if (!out) { anim.cancel(); creases.remove(); node.style.willChange = ''; }
 }
 
 async function showActivity(n, layer) {
@@ -331,23 +487,61 @@ async function showActivity(n, layer) {
   const text = (over && over.trim()) || tx(content[key]);
   const note = el('div', { class: 'note activity-note' });
   applyPaper(note);
-  const textBox = el('p', { class: 'activity-text' });
+  const textBox = el('div', { class: 'activity-text rich' });
+  const media = (await store.getMedia(n).catch(() => [])).filter(m => m.act === key);
+  const gal = gallery(media);
   const btn = el('button', { class: 'btn btn-finish', disabled: true }, t('finish'));
+  const later = el('button', { class: 'btn btn-cancel' }, t('cancelLater'));
   note.append(
     el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, `${t(fig === 'arbol' ? 'activity1' : 'activity2')} · ${t('dayN', n)}`)),
     el('div', { class: 'note-body activity-body' },
       el('img', { class: 'activity-fig', src: FIG_IMG[fig], alt: '' }),
-      textBox,
+      textBox, gal,
       el('p', { class: 'activity-warn' }, t('warnColor', t('figName')[fig]))),
-    el('div', { class: 'note-foot' }, btn));
+    el('div', { class: 'note-foot' }, later, btn));
   layer.append(note);
   crumpleSound();
+  let choice = null; const decided = new Promise(r => { btn.onclick = () => r('done'); later.onclick = () => { choice = 'later'; r('later'); }; });
   await crumpleAnim(note, false);
-  await typewriter(textBox, text, 26);
+  await Promise.race([typeRich(textBox, text, 24), decided]);
   btn.disabled = false;
-  await new Promise(r => btn.onclick = r);
+  const res = choice || await decided;
+  if (res === 'done') {
+    const stamp = S.answers[n]?.at || true;
+    S.profile.actDone = { ...(S.profile.actDone || {}), [n]: stamp };
+    store.saveProfile(S.user.uid, { actDone: { [n]: stamp } }).catch(e => console.warn(e));
+  }
   note.classList.add('fly-away');
   await sleep(500);
+  return res;
+}
+const actPending = n => {
+  if (figure() === 'galleta' || !S.answers[n]) return false;
+  const v = S.profile?.actDone?.[n];
+  return !(v === true || (v && v === S.answers[n].at));
+};
+
+// volver a un día con el reto hecho pero la actividad pendiente
+async function remindActivity(n) {
+  const fig = figure();
+  const layer = el('div', { class: 'note-layer' }); document.body.append(layer);
+  const note = el('div', { class: 'note activity-note' }); applyPaper(note);
+  const go = el('button', { class: 'btn btn-finish' }, t('remindGo'));
+  const later = el('button', { class: 'btn btn-cancel' }, t('cancelLater'));
+  note.append(el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, t('dayN', n))),
+    el('div', { class: 'note-body activity-body' },
+      el('div', { class: 'remind-deco' }, '🎄 ⭐ 🎁 ⭐ 🎄'),
+      el('p', { class: 'activity-text' }, t('remindDone', n)),
+      el('img', { class: 'activity-fig', src: FIG_IMG[fig], alt: '' }),
+      el('p', { class: 'activity-text remind-small' }, t('remindAct', t(fig === 'arbol' ? 'activity1' : 'activity2'))),
+      el('div', { class: 'remind-deco' }, '❄️ 🦌 🔔 🦌 ❄️')),
+    el('div', { class: 'note-foot' }, later, go));
+  layer.append(note);
+  note.animate([{ transform: 'scale(.2)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  chime();
+  const r = await new Promise(res => { go.onclick = () => res('go'); later.onclick = () => res('later'); });
+  if (r === 'go') { crumpleSound(); await crumpleAnim(note, true); note.remove(); await showActivity(n, layer); }
+  creak(false); layer.classList.add('fade-out'); await sleep(700); layer.remove(); renderHome();
 }
 
 // ------------------------------------------------------------------ opciones del usuario
@@ -434,5 +628,19 @@ document.addEventListener('touchend', e => {
   lastTouch = now;
 }, { passive: false });
 document.addEventListener('touchmove', e => { if (e.touches.length > 1 && !e.target.closest('.santa-stage, .reindeer-scroll')) e.preventDefault(); }, { passive: false });
+
+// Botones: se hunden, hacen «clic» y, después, hacen su acción
+document.addEventListener('click', e => {
+  const b = e.target.closest('.btn, .icon-btn, .q-opt, .prize-row2, .strip-score, .tb-btn');
+  if (!b || b.disabled) return;
+  if (b._go) { b._go = false; return; } // segunda vez: ya toca hacer la acción
+  clickSound();
+  b.classList.remove('pressing'); void b.offsetWidth; b.classList.add('pressing');
+  setTimeout(() => b.classList.remove('pressing'), 260);
+  // los que necesitan el toque directo (compartir, archivos, enlaces) no esperan
+  if (b.matches('.no-delay, a, label, .file-btn') || b.closest('.santa-controls')) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  setTimeout(() => { b._go = true; b.click(); }, 170);
+}, true);
 
 boot();

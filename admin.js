@@ -1,11 +1,14 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store } from './store.js?v=9';
-import { t, tx } from './i18n.js?v=9';
-import { el, popup, toast, esc } from './fx.js?v=9';
-import { S, renderHome, loadDay } from './app.js?v=9';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS } from './defaults.js?v=9';
+import { store } from './store.js?v=15.4';
+import { t, tx } from './i18n.js?v=15.4';
+import { el, popup, toast, esc } from './fx.js?v=15.4';
+import { S, renderHome, loadDay } from './app.js?v=15.4';
+import { openActEditor, plain } from './richact.js?v=15.4';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=15.4';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=15.4';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
+export const OWNER_EMAIL = 'elialtarriba@gmail.com';
 const FIG_IMG = { galleta: 'galleta.png', arbol: 'arbol.png', gnomo: 'gnomo.png' };
 const ST = { correct: '✓', incorrect: '✗', pending: '⏳' };
 const TYPE_NAME = { quiz: 'Pregunta con 4 respuestas', reindeer: 'Busca los renos con gafas', differences: 'Las 5 diferencias + susto', tree: 'Decorar el árbol',
@@ -24,9 +27,12 @@ async function askPassword() {
   const first = !S.config.adminConfigured;
   const pw = el('input', { type: 'password', placeholder: t('adminPw'), autocomplete: 'off' });
   const pw2 = el('input', { type: 'password', placeholder: 'Repite la contraseña', autocomplete: 'off' });
-  const box = el('div', { class: 'settings-form' }, el('h2', {}, '🔒 ' + t('admin')), first ? el('p', {}, t('adminFirst')) : null, pw, first ? pw2 : null);
+  let forgot = false;
+  const box = el('div', { class: 'settings-form' }, el('h2', {}, '🔒 ' + t('admin')), first ? el('p', {}, t('adminFirst')) : null, pw, first ? pw2 : null,
+    first ? null : el('a', { href: '#', class: 'small', onclick: e => { e.preventDefault(); forgot = true; document.querySelector('.popup-back .popup-btns .btn-ghost')?.click(); } }, '¿Has olvidado la contraseña de configuración?'));
   setTimeout(() => pw.focus(), 50);
   const ok = await popup(box, { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: t('adminEnter'), value: true }] });
+  if (forgot) return forgotAdmin();
   if (!ok || !pw.value) return false;
   if (first) {
     if (pw.value.length < 6) { toast('Mínimo 6 caracteres'); return false; }
@@ -37,6 +43,22 @@ async function askPassword() {
   const good = await store.adminLogin(S.user.uid, pw.value);
   if (!good) toast(t('adminWrong'));
   return good;
+}
+
+async function forgotAdmin() {
+  if ((S.user.email || '').toLowerCase() !== OWNER_EMAIL) {
+    return popup(`<h2>🔐</h2><p>Solo la administradora (${OWNER_EMAIL}) puede crear una contraseña nueva. Pídesela a ella.</p>`);
+  }
+  const n1 = el('input', { type: 'password', placeholder: 'Contraseña nueva', autocomplete: 'new-password' });
+  const n2 = el('input', { type: 'password', placeholder: 'Repite la contraseña nueva', autocomplete: 'new-password' });
+  const ok = await popup(el('div', { class: 'settings-form' }, el('h2', {}, '🔐 Contraseña olvidada'),
+    el('p', {}, 'Como has entrado con la cuenta de la administradora (' + OWNER_EMAIL + '), puedes poner una contraseña de configuración nueva:'), n1, n2),
+    { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: 'Guardar', value: true }] });
+  if (!ok) return false;
+  if (n1.value.length < 6) { toast('Mínimo 6 caracteres'); return false; }
+  if (n1.value !== n2.value) { toast('Las contraseñas no coinciden'); return false; }
+  try { await store.adminOwnerReset(S.user.uid, n1.value); toast('🔐 Contraseña nueva guardada'); return true; }
+  catch (e) { toast('Error: ' + (e.code || e.message), 6000); return false; }
 }
 
 function showPanel() {
@@ -121,15 +143,33 @@ const VIEWS = {
           ...[0, 1, 2, 3].map(i => el('div', { class: 'opt-row' }, f.correct[i], el('b', {}, 'ABCD'[i]), f.opts[i])));
       }
       if (d.type === 'roulette') {
-        f.missions = ta((d.missions || []).map(m => m?.[L] ?? '').join('\n'), 9);
-        parts.push(el('label', {}, 'Misiones de la ruleta (una por línea, de 2 a 10)', f.missions));
+        // cada casilla de la ruleta con su número y su color
+        const list = el('div', { class: 'mis-list' });
+        f.mis = (d.missions || []).map(m => m?.[L] ?? m?.es ?? '');
+        const drawMis = () => list.replaceChildren(...f.mis.map((m, i) => el('div', { class: 'mis-row' },
+          el('span', { class: 'mis-num', style: `background:${R_COLS[i % R_COLS.length]}` }, i + 1),
+          el('input', { type: 'text', value: m, oninput: e => { f.mis[i] = e.target.value; } }),
+          f.mis.length > 2 ? el('button', { type: 'button', class: 'mis-del', title: 'Quitar', onclick: () => { f.mis.splice(i, 1); drawMis(); } }, '✕') : null)),
+          f.mis.length < 10 ? el('button', { type: 'button', class: 'btn btn-ghost small-btn', onclick: () => { f.mis.push(''); drawMis(); } }, '➕ Añadir casilla') : null);
+        drawMis();
+        f.note = el('input', { type: 'text', value: d.rouletteNote?.[L] ?? (L === 'es' ? DEFAULT_R_NOTE : '') });
+        parts.push(el('p', {}, el('b', {}, '🎡 Casillas de la ruleta'), ' (de 2 a 10; el número y el color son los que se ven en la ruleta)'), list,
+          el('label', {}, 'Frase que sale debajo de la misión', f.note));
       }
       if (d.type === 'differences') {
         f.scare = el('input', { type: 'number', min: 1, max: 30, value: d.scareSeconds ?? 5 });
         parts.push(el('label', {}, 'Segundos que dura la imagen del susto', f.scare));
       }
-      f.act1 = ta(d.act1?.[L] ?? '', 3); f.act2 = ta(d.act2?.[L] ?? '', 3);
-      parts.push(el('label', {}, '🎄 Actividad 1 (personas con árbol)', f.act1), el('label', {}, '🧙 Actividad 2 (personas con gnomo)', f.act2));
+      f.act1 = d.act1?.[L] ?? ''; f.act2 = d.act2?.[L] ?? '';
+      const langName = { es: 'español', ca: 'catalán', en: 'inglés' }[L];
+      const actBtn = (key, label) => {
+        const prev = el('div', { class: 'act-prev' }, plain(f[key]) || '—');
+        return el('div', { class: 'act-card', onclick: async () => {
+          const r = await openActEditor({ day: n, actKey: key, title: label, html: f[key], langName });
+          if (r != null) { f[key] = r; prev.textContent = plain(r) || '—'; toast('Recuerda pulsar «Guardar día ' + n + '»'); }
+        } }, el('b', {}, label), prev, el('span', { class: 'act-edit' }, '✏️ Editar (texto, títulos, emojis, fotos y vídeos)'));
+      };
+      parts.push(actBtn('act1', '🎄 Actividad 1 (personas con árbol)'), actBtn('act2', '🧙 Actividad 2 (personas con gnomo)'));
       const save = el('button', { class: 'btn', onclick: async () => {
         const nd = JSON.parse(JSON.stringify(d)); delete nd.openAt;
         const setL = (k, v) => { nd[k] = { ...(nd[k] || {}), [L]: v }; };
@@ -139,11 +179,13 @@ const VIEWS = {
           nd.correct = f.correct.findIndex(r => r.checked);
         }
         if (d.type === 'roulette') {
-          const lines = f.missions.value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 10);
+          const lines = f.mis.map(s => s.trim()).filter(Boolean).slice(0, 10);
+          if (lines.length < 2) return toast('La ruleta necesita al menos 2 casillas');
           nd.missions = lines.map((s, i) => ({ ...(d.missions?.[i] || {}), [L]: s }));
+          setL('rouletteNote', f.note.value.trim());
         }
         if (d.type === 'differences') nd.scareSeconds = Math.max(1, +f.scare.value || 5);
-        setL('act1', f.act1.value.trim()); setL('act2', f.act2.value.trim());
+        setL('act1', f.act1); setL('act2', f.act2);
         try { await store.saveDay(n, nd, S.config.year); toast('💾 Día ' + n + ' guardado'); } catch (e) { toast('Error: ' + e.message, 5000); }
       } }, '💾 Guardar día ' + n);
       const reset = el('button', { class: 'btn btn-ghost', onclick: async () => {
@@ -176,6 +218,23 @@ const VIEWS = {
         } }, '💾 Guardar premios')),
       marqueeCard(),
       (() => {
+        const sp = { ...SPLASH_DEFAULT, ...(S.config.splash || {}) };
+        const show = el('input', { type: 'checkbox', checked: sp.show !== false });
+        const secs = el('input', { type: 'number', min: 1, max: 30, value: sp.seconds });
+        const tt = Object.fromEntries(['es', 'ca', 'en'].map(l => [l, el('input', { type: 'text', value: sp.text?.[l] || '' })]));
+        return el('div', { class: 'card' }, el('h3', {}, '❄️ Pantalla de bienvenida (nieve)'),
+          el('label', { class: 'inline' }, show, ' Mostrarla al abrir la app'),
+          el('label', {}, 'Segundos que nieva antes de salir el título', secs),
+          el('label', {}, 'Título en español', tt.es), el('label', {}, 'Título en catalán', tt.ca), el('label', {}, 'Título en inglés', tt.en),
+          el('p', { class: 'muted' }, 'Se ve una vez cada vez que se abre la app. El cambio llega a cada persona la próxima vez que entre.'),
+          el('div', { class: 'row' },
+            el('button', { class: 'btn small-btn', onclick: async () => {
+              const v = { show: show.checked, seconds: Math.max(1, Math.min(30, +secs.value || 5)), text: { es: tt.es.value.trim(), ca: tt.ca.value.trim(), en: tt.en.value.trim() } };
+              await store.saveConfig({ splash: v }); S.config.splash = v; try { localStorage.setItem('adv_splash', JSON.stringify(v)); } catch {} toast('💾 Bienvenida guardada');
+            } }, '💾 Guardar'),
+            el('button', { class: 'btn btn-ghost small-btn', onclick: () => { try { sessionStorage.removeItem('adv_splash_seen'); } catch {} location.reload(); } }, '👀 Verla ahora')));
+      })(),
+      (() => {
         const v = el('input', { type: 'text', value: S.config.danceVideo || '', placeholder: 'https://www.youtube.com/watch?v=…' });
         return el('div', { class: 'card' }, el('h3', {}, '💃 Vídeo del baile (día 24)'),
           el('p', { class: 'muted' }, 'Pega el enlace de un vídeo de YouTube (o el nombre de un vídeo tuyo subido a GitHub, por ejemplo baile.mp4). Si lo dejas vacío, baila el hombrecito de jengibre.'),
@@ -192,11 +251,26 @@ const VIEWS = {
         } }, 'Guardar año'))),
       el('div', { class: 'card' }, el('h3', {}, '🧪 Modo prueba'),
         el('label', { class: 'inline' }, test, ' Abrir todas las casillas (solo para ti, mientras no cierres la pestaña)')),
-      el('div', { class: 'card' }, el('h3', {}, '🔐 Cambiar contraseña de configuración'),
-        el('div', { class: 'row' }, np, el('button', { class: 'btn small-btn', onclick: async () => {
-          if (np.value.length < 6) return toast('Mínimo 6 caracteres');
-          try { await store.adminChangePw(S.user.uid, np.value); np.value = ''; toast('🔐 Contraseña cambiada'); } catch (e) { toast('Error: ' + e.message, 5000); }
-        } }, 'Cambiar'))));
+      (() => {
+        const cur = el('input', { type: 'password', placeholder: 'Contraseña actual', autocomplete: 'off' });
+        const n1 = el('input', { type: 'password', placeholder: 'Contraseña nueva', autocomplete: 'new-password' });
+        const n2 = el('input', { type: 'password', placeholder: 'Repite la contraseña nueva', autocomplete: 'new-password' });
+        return el('div', { class: 'card' }, el('h3', {}, '🔐 Cambiar contraseña de configuración'),
+          el('div', { class: 'settings-form' }, cur, n1, n2),
+          el('button', { class: 'btn small-btn', style: 'margin-top:8px', onclick: async () => {
+            if (n1.value.length < 6) return toast('Mínimo 6 caracteres');
+            if (n1.value !== n2.value) return toast('Las dos contraseñas nuevas no son iguales');
+            if (!(await store.adminLogin(S.user.uid, cur.value))) return toast('La contraseña actual no es correcta');
+            try { await store.adminChangePw(S.user.uid, n1.value); [cur, n1, n2].forEach(x => x.value = ''); toast('🔐 Contraseña cambiada'); } catch (e) { toast('Error: ' + e.message, 5000); }
+          } }, 'Cambiar'),
+          el('p', { class: 'muted', style: 'margin-top:8px' }, `Si la olvidas: entra con la cuenta ${OWNER_EMAIL}, pulsa 🔒 y luego «¿Has olvidado la contraseña de configuración?».`));
+      })(),
+      (() => {
+        const ta = el('textarea', { rows: 3 }, S.config.missedMsg || MISSED_DEFAULT);
+        return el('div', { class: 'card' }, el('h3', {}, '🧌 Aviso de día olvidado'),
+          el('p', { class: 'muted' }, 'Sale al pulsar el duende verde que aparece en la franja cuando alguien no ha abierto un día. Escribe {dia} donde quieras que salga el número del día.'),
+          ta, el('button', { class: 'btn small-btn', style: 'margin-top:8px', onclick: async () => { await store.saveConfig({ missedMsg: ta.value.trim() }); S.config.missedMsg = ta.value.trim(); toast('💾 Guardado'); } }, '💾 Guardar aviso'));
+      })());
   },
 };
 
@@ -223,8 +297,12 @@ function userPanel(root, u, answers, set) {
   for (let d = 1; d <= 25; d++) {
     const r = answers[d];
     grid.append(el('div', { class: 'day-cell' }, el('b', {}, `Día ${d}`),
-      r?.answer != null && r.answer !== '' ? el('div', { class: 'ans' }, String(r.answer)) : el('div', { class: 'ans muted' }, '—'),
-      statusButtons(u.uid, d, r)));
+      r?.answer != null && r.answer !== '' ? el('div', { class: 'ans' }, String(r.answer)) : el('div', { class: 'ans muted' }, r ? '✔︎' : '—'),
+      statusButtons(u.uid, d, r),
+      r ? el('button', { class: 'reset-day', title: 'Dejar este día sin hacer', onclick: async () => {
+        if (!(await popup(`<h2>↺ Día ${d}</h2><p>¿Dejar el día ${d} de <b>${esc(u.name || u.email)}</b> como no hecho, para que lo pueda repetir?</p>`, { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: 'Sí, reiniciar', value: true }] }))) return;
+        await resetDays(u, [d]); delete answers[d]; userPanel(root, u, answers, set);
+      } }, '↺ Reiniciar') : null));
   }
   const ov = { ...(set.actOverrides || {}) };
   const daySel = el('select', {}, ...Array.from({ length: 25 }, (_, i) => el('option', { value: i + 1 }, `Día ${i + 1}`)));
@@ -241,7 +319,12 @@ function userPanel(root, u, answers, set) {
     el('div', { class: 'card' },
       el('label', {}, 'Figura y tipo de calendario', fig),
       el('label', { class: 'inline' }, show, ' Ver arriba la franja con sus figuras y su progreso')),
-    el('div', { class: 'card' }, el('h3', {}, 'Días (✓ con color · ✗ blanco y negro · ⏳ pendiente)'), grid),
+    el('div', { class: 'card' }, el('h3', {}, 'Días (✓ con color · ✗ blanco y negro · ⏳ pendiente)'), grid,
+      el('button', { class: 'btn small-btn', style: 'margin-top:10px;background:linear-gradient(#e86a3a,#a83b12)', onclick: async () => {
+        const days = Object.keys(answers).map(Number); if (!days.length) return toast('No tiene ningún día hecho');
+        if (!(await popup(`<h2>↺ Reiniciar todo</h2><p>Se borrarán los <b>${days.length}</b> días hechos de <b>${esc(u.name || u.email)}</b> y todas sus casillas quedarán como nuevas, sin abrir. ¿Seguro?</p>`, { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: 'Sí, reiniciar todo', value: true }] }))) return;
+        await resetDays(u, days); Object.keys(answers).forEach(k => delete answers[k]); userPanel(root, u, answers, set);
+      } }, '↺ Reiniciar todas sus casillas')),
     el('div', { class: 'card' }, el('h3', {}, 'Actividades personalizadas para esta persona'),
       el('label', {}, 'Día', daySel), el('label', {}, '🎄 Actividad 1 (si tiene árbol)', a1), el('label', {}, '🧙 Actividad 2 (si tiene gnomo)', a2)),
     el('button', { class: 'btn', onclick: async () => {
@@ -281,4 +364,17 @@ function marqueeCard() {
     el('button', { class: 'btn', style: 'margin-top:10px', onclick: async () => {
       const v = cur(); try { await store.saveConfig({ marquee: v }); S.config.marquee = v; toast('💾 Marquesina guardada'); } catch (e) { toast('Error: ' + e.message, 5000); }
     } }, '💾 Guardar marquesina'));
+}
+
+// deja días sin hacer (borra la respuesta); si es tu propio usuario, la portada se actualiza
+async function resetDays(u, days) {
+  try {
+    for (const d of days) await store.deleteAnswer(u.uid, d);
+    clearCache();
+    if (u.uid === S.user.uid) {
+      days.forEach(d => delete S.answers[d]);
+      try { localStorage.removeItem('adv_prizes_' + u.uid); } catch {}
+    }
+    toast(days.length === 1 ? `↺ Día ${days[0]} reiniciado` : `↺ ${days.length} días reiniciados`);
+  } catch (e) { toast('Error: ' + (e.code || e.message), 6000); }
 }

@@ -8,6 +8,7 @@ service cloud.firestore {
     function me(uid) { return signedIn() && request.auth.uid == uid; }
     function secret() { return get(/databases/$(database)/documents/adminSecret/main).data.hash; }
     // Es administrador quien ha entrado con la contraseña de configuración vigente
+    function isOwner() { return signedIn() && request.auth.token.email == 'elialtarriba@gmail.com'; }
     function isAdmin() {
       return signedIn()
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
@@ -35,6 +36,10 @@ service cloud.firestore {
     }
 
     // Contenido de cada día: solo visible a partir de su fecha (la administradora lo ve siempre)
+    match /content/{day}/media/{id} {
+      allow read: if signedIn() && (isAdmin() || request.time >= get(/databases/$(database)/documents/content/$(day)).data.openAt);
+      allow write: if isAdmin();
+    }
     match /content/{day} {
       allow read: if signedIn() && (resource == null || request.time >= resource.data.openAt || isAdmin());
       allow write: if isAdmin();
@@ -50,7 +55,7 @@ service cloud.firestore {
     match /adminSecret/{doc} {
       allow read: if false;
       allow create: if signedIn() && doc == 'main';
-      allow update: if isAdmin();
+      allow update: if isAdmin() || isOwner();
     }
 
     // Quien escribe aquí la contraseña correcta pasa a ser administrador
