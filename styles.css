@@ -786,3 +786,10 @@ button.strip-fig { border: 0; background: none; padding: 0; font: inherit; curso
 .splash-hint.show { opacity: 1; animation: bob 1.6s ease-in-out infinite; }
 .splash-hint.hide { opacity: 0 !important; animation: none; }
 .xmas-banner.out { opacity: 0; transition: opacity .4s; }
+/* V16.0 · casilla mal hecha: duende verde iluminado */
+.strip-fig.wrong { border: 0; background: none; padding: 0; cursor: pointer; animation: grumpy 2.2s ease-in-out infinite; }
+.strip-fig.wrong .missed-face { font-size: clamp(24px, 5vw, 34px); line-height: 1.15; filter: drop-shadow(0 0 4px #3bd16f) drop-shadow(0 0 9px #22c55e) brightness(1.1); animation: greenGlow 2.4s ease-in-out infinite; }
+.strip-fig.wrong span:last-child { color: #1f8a46; font-weight: 800; }
+@keyframes greenGlow { 50% { filter: drop-shadow(0 0 7px #4ade80) drop-shadow(0 0 16px #16a34a) brightness(1.25); } }
+.dinfo-grumpy { font-size: 84px; line-height: 1.1; filter: drop-shadow(0 0 10px #4ade80) drop-shadow(0 0 22px #16a34a); animation: grumpy 1.6s ease-in-out infinite; }
+.dinfo-why { background: #eefbf1; border: 2px solid #86efac; border-radius: 12px; padding: 8px 10px; font-weight: 700; color: #14532d; margin: 8px 0; }

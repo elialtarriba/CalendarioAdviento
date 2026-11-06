@@ -1,11 +1,11 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store } from './store.js?v=15.8';
-import { t, tx } from './i18n.js?v=15.8';
-import { el, popup, toast, esc } from './fx.js?v=15.8';
-import { S, renderHome, loadDay } from './app.js?v=15.8';
-import { openActEditor, plain } from './richact.js?v=15.8';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=15.8';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=15.8';
+import { store } from './store.js?v=16.0';
+import { t, tx } from './i18n.js?v=16.0';
+import { el, popup, toast, esc } from './fx.js?v=16.0';
+import { S, renderHome, loadDay } from './app.js?v=16.0';
+import { openActEditor, plain } from './richact.js?v=16.0';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=16.0';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=16.0';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -71,7 +71,7 @@ function showPanel() {
   const special = el('button', { class: 'sp-special no-delay', onclick: () => {
     [...bar.children].forEach(b => b.classList.remove('active'));
     content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
-    import('./surprise.js?v=15.8').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
+    import('./surprise.js?v=16.0').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
   } }, el('span', { class: 'sp-special-ico' }, '💌'), el('span', {}, el('b', {}, 'Mensajes sorpresa'), el('small', {}, 'Un popup para quien tú quieras, el día que quieras')));
   const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), special, bar, content);
   popup(box, { cls: 'wide', buttons: [{ label: t('close'), value: true }] }).then(async () => {

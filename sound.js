@@ -1,26 +1,38 @@
 // Sonidos sintetizados (sin archivos) + voz de Papá Noel con la voz del navegador.
 let ctx;
+// En iPhone/iPad: decir desde el principio que la app «reproduce sonido» (como un vídeo),
+// así suena aunque el botón de silencio esté puesto. Tiene que ser ANTES de crear el sonido:
+// si se cambia después, el iPhone corta el sonido de golpe.
+try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch {}
 const ac = () => {
-  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-  if (ctx.state === 'suspended') ctx.resume();
+  if (!ctx || ctx.state === 'closed') ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state !== 'running') ctx.resume().catch(() => {}); // «suspended» o «interrupted» (iPhone)
   return ctx;
 };
-// En iPhone/iPad, con el botón de silencio activado, los sonidos de la web no suenan.
-// Esto pide al iPhone que trate la app como «reproducción» (como un vídeo) para que se oigan.
-let unlocked = false;
+// iPhones antiguos (sin audioSession): un audio silencioso en bucle hace lo mismo
+let silentEl = null;
 const SILENT = 'data:audio/mp4;base64,AAAAHGZ0eXBNNEEgAAACAE00QSBpc29taXNvMgAAAAhmcmVlAAAAG21kYXQhAAOgQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
+let checking = false;
+// se llama en cada toque: si el sonido se ha cortado (llamada, bloqueo, voz…), lo recupera
 export const unlockAudio = () => {
   try {
-    if (navigator.audioSession) navigator.audioSession.type = 'playback';
     const c = ac();
-    if (!unlocked) {
-      unlocked = true;
-      const a = new Audio(SILENT); a.setAttribute('playsinline', ''); a.loop = true; a.volume = .01; a.play().catch(() => {});
-      const b = c.createBuffer(1, 1, 22050), s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(0);
+    if (!navigator.audioSession) {
+      if (!silentEl) { silentEl = new Audio(SILENT); silentEl.setAttribute('playsinline', ''); silentEl.loop = true; silentEl.volume = .01; }
+      if (silentEl.paused) silentEl.play().catch(() => {});
+    }
+    const b = c.createBuffer(1, 1, 22050), src = c.createBufferSource(); src.buffer = b; src.connect(c.destination); src.start(0);
+    // si tras intentarlo sigue sin funcionar, se crea un sonido nuevo para el siguiente toque
+    if (c.state !== 'running' && !checking) {
+      checking = true;
+      setTimeout(() => { checking = false; if (ctx === c && c.state !== 'running' && c.state !== 'suspended') { try { c.close(); } catch {} ctx = null; } }, 600);
     }
   } catch {}
 };
-['pointerdown', 'touchend', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { capture: true, passive: true }));
+['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { capture: true, passive: true }));
+// al volver a la app (después de bloquear el móvil o cambiar de app)
+const wake = () => { if (document.visibilityState === 'visible' && ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); };
+document.addEventListener('visibilitychange', wake); window.addEventListener('pageshow', wake); window.addEventListener('focus', wake);
 
 function noiseBuffer(c, secs) {
   const b = c.createBuffer(1, c.sampleRate * secs, c.sampleRate);
@@ -152,9 +164,10 @@ export function speak(text, lang = 'es', { hoho = false } = {}) {
       const parts = [];
       if (hoho) parts.push(say(lang === 'en' ? 'Ho! Ho! Ho!' : '¡Jo! ¡Jo! ¡Jo!', .1, .65));
       if (text) parts.push(say(text, .55, .85));
-      parts[parts.length - 1].onend = res; parts[parts.length - 1].onerror = res;
+      const done = () => { wake(); setTimeout(wake, 300); res(); };
+      parts[parts.length - 1].onend = done; parts[parts.length - 1].onerror = done;
       parts.forEach(p => speechSynthesis.speak(p));
-      setTimeout(res, 12000);
+      setTimeout(() => { wake(); res(); }, 12000);
     } catch { res(); }
   });
 }
@@ -331,7 +344,7 @@ export function christmasSong() {
   pump();
   return {
     get playing() { return c.state === 'running'; },
-    stop(fade = 2.5) {
+    stop(fade = 4) {
       if (stopped) return; stopped = true; clearTimeout(timer);
       const now = c.currentTime;
       master.gain.cancelScheduledValues(now); master.gain.setValueAtTime(master.gain.value, now);

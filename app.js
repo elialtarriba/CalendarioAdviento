@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=15.8';
-import { t, tx, setLang, getLang } from './i18n.js?v=15.8';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=15.8';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong } from './sound.js?v=15.8';
-import { typeRich, gallery } from './richact.js?v=15.8';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=15.8';
+import { initStore, store, DEMO } from './store.js?v=16.0';
+import { t, tx, setLang, getLang } from './i18n.js?v=16.0';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=16.0';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong } from './sound.js?v=16.0';
+import { typeRich, gallery } from './richact.js?v=16.0';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=16.0';
 
-export const APP_VERSION = 'V15.8';
+export const APP_VERSION = 'V16.0';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -61,7 +61,12 @@ function splash() {
     let music = null; try { music = christmasSong(); } catch {}
     const checkSound = () => { if (music?.playing) hint.classList.add('hide'); else hint.classList.add('show'); };
     setTimeout(checkSound, 600);
-    box.addEventListener('pointerdown', e => { if (e.target !== skip) { unlockAudio(); setTimeout(checkSound, 200); hint.classList.add('hide'); } });
+    box.addEventListener('pointerdown', e => {
+      if (e.target === skip) return;
+      unlockAudio(); hint.classList.add('hide');
+      // si la música no ha arrancado (el sonido se había cortado), se vuelve a empezar
+      setTimeout(() => { if (!music?.playing) { music?.stop(0); try { music = christmasSong(); } catch {} } checkSound(); }, 300);
+    });
     const c = cv.getContext('2d'); let W, H, dpr = Math.min(2, devicePixelRatio || 1);
     const size = () => { W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0); };
     size(); addEventListener('resize', size);
@@ -97,7 +102,7 @@ function splash() {
     function finish() {
       if (done) return; done = true; removeEventListener('resize', size);
       box.classList.add('out'); setTimeout(() => { box.remove(); resolve(); }, 700);
-      setTimeout(() => music?.stop(3), 6000); // sigue sonando unos segundos con la portada abierta
+      setTimeout(() => music?.stop(4), 7000); // sigue sonando unos segundos con la portada abierta
     }
     skip.onclick = finish;
   });
@@ -126,8 +131,8 @@ async function boot() {
     S.card = card;
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=15.8').catch(() => {});
-    import('./surprise.js?v=15.8').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./admin.js?v=16.0').catch(() => {});
+    import('./surprise.js?v=16.0').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -219,7 +224,9 @@ function prizeDetail(g) {
 // al pulsar una figura de la franja: resultado del día o ánimo para hacerlo
 async function dayInfo(d) {
   const fig = figure(), a = S.answers[d];
-  const img = el('img', { class: 'dinfo-fig' + (a?.status === 'correct' ? '' : ' bw'), src: FIG_IMG[fig], alt: '' });
+  const img = a?.status === 'incorrect' ? el('div', { class: 'dinfo-grumpy' }, '🧌')
+    : el('img', { class: 'dinfo-fig' + (a?.status === 'correct' ? '' : ' bw'), src: FIG_IMG[fig], alt: '' });
+  if (a?.status === 'incorrect') wrong();
   const box = el('div', { class: 'dinfo' }, el('div', { class: 'dinfo-day' }, t('dayDate', d)), img);
   let goBtn = false;
   if (a) {
@@ -230,8 +237,16 @@ async function dayInfo(d) {
     box.append(el('p', { class: 'dinfo-status ' + st[0] }, st[1]));
     if (c.type === 'quiz') box.append(el('p', { class: 'dinfo-q' }, tx(c.q)));
     if (ans !== '' && ans != null && !/^[\p{Extended_Pictographic}\s]+$/u.test(String(ans))) box.append(el('p', { class: 'dinfo-a' }, el('b', {}, t('yourAnswer') + ': '), String(ans)));
-    box.append(el('p', { class: 'dinfo-msg' }, a.status === 'correct' ? t('dinfoWell') : a.status === 'pending' ? t('dinfoWait') : t('dinfoBad')));
-    if (actPending(d)) box.append(el('p', { class: 'dinfo-msg' }, '👉 ' + t('remindAct', t(fig === 'arbol' ? 'activity1' : 'activity2'))));
+    if (a.status === 'incorrect') {
+      // por qué no ha salido
+      let why = t('dinfoWhyGeneric');
+      if (c.type === 'quiz') { const right = (tx(c.options) || [])[+c.correct]; if (right != null) why = t('dinfoWhyQuiz', right); }
+      else if (a.extra?.missing) why = t('dinfoWhyMissing', a.extra.missing);
+      box.append(el('p', { class: 'dinfo-why' }, '🔍 ' + why));
+      // ánimo: cuántos fallos quedan para el próximo premio
+      const g = GOALS.find(x => x >= d && prizeState(x).state !== 'lost');
+      box.append(el('p', { class: 'dinfo-msg' }, g ? t('dinfoCheer', Math.max(0, 3 - prizeState(g).bad), g) : t('dinfoCheerLost')));
+    } else box.append(el('p', { class: 'dinfo-msg' }, a.status === 'correct' ? t('dinfoWell') : t('dinfoWait')));
   } else if (canOpen(d)) {
     box.append(el('div', { class: 'dinfo-deco' }, '🎁✨🎄✨🎁'), el('p', { class: 'dinfo-msg big' }, t('dinfoGo', d)));
     goBtn = true;
@@ -270,7 +285,7 @@ export function renderHome() {
         el('div', { class: 'title-block' }, el('h1', { class: 'title-text' }, t('appTitle')), el('div', { class: 'greeting' }, greeting())),
         el('div', { class: 'top-actions' },
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=15.8')).openAdmin() }, '🔒'),
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=16.0')).openAdmin() }, '🔒'),
           el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪')))));
 
   let strip = null;
@@ -282,6 +297,11 @@ export function renderHome() {
       const st = a?.status === 'correct' ? 'on' : a?.status === 'pending' ? 'pend' : a ? 'off' : 'none';
       if (!a && missed(d)) {
         row.append(el('button', { class: 'strip-fig missed' + (d === 25 ? ' big' : ''), title: t('dayN', d), onclick: () => showMissed(d) },
+          el('span', { class: 'missed-face' }, '🧌'), el('span', {}, d)));
+        continue;
+      }
+      if (st === 'off') { // casilla mal hecha: en vez de la figura, el duende verde gruñón iluminado
+        row.append(el('button', { class: 'strip-fig wrong' + (d === 25 ? ' big' : ''), title: t('dayN', d), onclick: () => dayInfo(d) },
           el('span', { class: 'missed-face' }, '🧌'), el('span', {}, d)));
         continue;
       }
@@ -363,7 +383,7 @@ function buildImage(theme, v) {
 // ------------------------------------------------------------------ abrir puerta
 let busy = false;
 async function openDoor(n, door) {
-  if (busy) return;
+  if (busy || document.querySelector('.note-layer')) return; // nunca dos casillas a la vez
   unlockAudio();
   if (!canOpen(n)) { door.classList.add('shake'); setTimeout(() => door.classList.remove('shake'), 600); toast(t('locked', n)); return; }
   busy = true;
@@ -416,7 +436,7 @@ async function openDoor(n, door) {
   finishBtn.onclick = ctx.finish; cancelBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=15.8`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=16.0`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
