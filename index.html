@@ -9,8 +9,8 @@
   <link rel="apple-touch-icon" href="galleta.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&family=Mountains+of+Christmas:wght@700&family=Montserrat:wght@400;600;800&family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Great+Vibes&family=Inter:wght@400;600&family=Berkshire+Swash&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=15.4">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&family=Mountains+of+Christmas:wght@400;700&family=Montserrat:wght@100..900&family=Playfair+Display:ital,wght@0,400..900;1,500&family=Great+Vibes&family=Inter:wght@400;600&family=Berkshire+Swash&family=Fredoka:wght@300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=15.7">
 </head>
 <body>
   <div class="snow" aria-hidden="true"></div>
@@ -19,10 +19,10 @@
   <!-- Filtro SVG para arrugar el papel -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <filter id="crumpleFilter" x="-20%" y="-20%" width="140%" height="140%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="7" result="noise"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="noise"/>
       <feDisplacementMap in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G"/>
     </filter>
   </svg>
-  <script type="module" src="app.js?v=15.4"></script>
+  <script type="module" src="app.js?v=15.7"></script>
 </body>
 </html>

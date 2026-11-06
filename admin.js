@@ -1,17 +1,17 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store } from './store.js?v=15.4';
-import { t, tx } from './i18n.js?v=15.4';
-import { el, popup, toast, esc } from './fx.js?v=15.4';
-import { S, renderHome, loadDay } from './app.js?v=15.4';
-import { openActEditor, plain } from './richact.js?v=15.4';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=15.4';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=15.4';
+import { store } from './store.js?v=15.7';
+import { t, tx } from './i18n.js?v=15.7';
+import { el, popup, toast, esc } from './fx.js?v=15.7';
+import { S, renderHome, loadDay } from './app.js?v=15.7';
+import { openActEditor, plain } from './richact.js?v=15.7';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=15.7';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=15.7';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
 const FIG_IMG = { galleta: 'galleta.png', arbol: 'arbol.png', gnomo: 'gnomo.png' };
 const ST = { correct: '✓', incorrect: '✗', pending: '⏳' };
-const TYPE_NAME = { quiz: 'Pregunta con 4 respuestas', reindeer: 'Busca los renos con gafas', differences: 'Las 5 diferencias + susto', tree: 'Decorar el árbol',
+const TYPE_NAME = { hats: 'Atrapa los 3 gorros', quiz: 'Pregunta con 4 respuestas', reindeer: 'Busca los renos con gafas', differences: 'Las 5 diferencias + susto', tree: 'Decorar el árbol',
   memory: 'Ojo de lince (objeto que falta)', goodcheck: '¿Has sido bueno?', diploma: 'Diploma absurdo', roulette: 'Ruleta del disparate', dance: 'El baile secreto', santa: 'Tu cara en Papá Noel' };
 
 export async function openAdmin() {
@@ -68,7 +68,12 @@ function showPanel() {
   const go = id => { [...bar.children].forEach(b => b.classList.toggle('active', b.dataset.id === id)); content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
     Promise.resolve(VIEWS[id](content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message)))); };
   tabs.forEach(([id, label]) => bar.append(el('button', { 'data-id': id, onclick: () => go(id) }, label)));
-  const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), bar, content);
+  const special = el('button', { class: 'sp-special no-delay', onclick: () => {
+    [...bar.children].forEach(b => b.classList.remove('active'));
+    content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
+    import('./surprise.js?v=15.7').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
+  } }, el('span', { class: 'sp-special-ico' }, '💌'), el('span', {}, el('b', {}, 'Mensajes sorpresa'), el('small', {}, 'Un popup para quien tú quieras, el día que quieras')));
+  const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), special, bar, content);
   popup(box, { cls: 'wide', buttons: [{ label: t('close'), value: true }] }).then(async () => {
     S.answers = await store.getAnswers(S.user.uid).catch(() => S.answers);
     S.settings = (await store.getSettings(S.user.uid).catch(() => null)) || S.settings;
@@ -156,20 +161,17 @@ const VIEWS = {
         parts.push(el('p', {}, el('b', {}, '🎡 Casillas de la ruleta'), ' (de 2 a 10; el número y el color son los que se ven en la ruleta)'), list,
           el('label', {}, 'Frase que sale debajo de la misión', f.note));
       }
+      if (d.type === 'hats') {
+        const H = [['hat1Title', 'Gorro 1 · título'], ['hat1Text', 'Gorro 1 · mensaje'], ['hatReminder', 'Gorro 1 · recordatorio en pequeño'],
+          ['hat2Title', 'Gorro 2 · título'], ['hat2Joke', 'Gorro 2 · chiste'], ['hat2Answer', 'Gorro 2 · respuesta'], ['gdResult', 'Gorro 3 · resultado del detector']];
+        f.hats = {};
+        H.forEach(([k, l]) => { f.hats[k] = ta(d[k]?.[L] ?? '', 2); f.hats[k].placeholder = 'Vacío = texto original'; parts.push(el('label', {}, l, f.hats[k])); });
+      }
       if (d.type === 'differences') {
         f.scare = el('input', { type: 'number', min: 1, max: 30, value: d.scareSeconds ?? 5 });
         parts.push(el('label', {}, 'Segundos que dura la imagen del susto', f.scare));
       }
-      f.act1 = d.act1?.[L] ?? ''; f.act2 = d.act2?.[L] ?? '';
-      const langName = { es: 'español', ca: 'catalán', en: 'inglés' }[L];
-      const actBtn = (key, label) => {
-        const prev = el('div', { class: 'act-prev' }, plain(f[key]) || '—');
-        return el('div', { class: 'act-card', onclick: async () => {
-          const r = await openActEditor({ day: n, actKey: key, title: label, html: f[key], langName });
-          if (r != null) { f[key] = r; prev.textContent = plain(r) || '—'; toast('Recuerda pulsar «Guardar día ' + n + '»'); }
-        } }, el('b', {}, label), prev, el('span', { class: 'act-edit' }, '✏️ Editar (texto, títulos, emojis, fotos y vídeos)'));
-      };
-      parts.push(actBtn('act1', '🎄 Actividad 1 (personas con árbol)'), actBtn('act2', '🧙 Actividad 2 (personas con gnomo)'));
+      parts.push(actCard(n, L, d, 'act1', '🎄 Actividad 1 (personas con árbol)'), actCard(n, L, d, 'act2', '🧙 Actividad 2 (personas con gnomo)'));
       const save = el('button', { class: 'btn', onclick: async () => {
         const nd = JSON.parse(JSON.stringify(d)); delete nd.openAt;
         const setL = (k, v) => { nd[k] = { ...(nd[k] || {}), [L]: v }; };
@@ -184,8 +186,9 @@ const VIEWS = {
           nd.missions = lines.map((s, i) => ({ ...(d.missions?.[i] || {}), [L]: s }));
           setL('rouletteNote', f.note.value.trim());
         }
+        if (d.type === 'hats') Object.entries(f.hats).forEach(([k, x]) => setL(k, x.value.trim()));
         if (d.type === 'differences') nd.scareSeconds = Math.max(1, +f.scare.value || 5);
-        setL('act1', f.act1); setL('act2', f.act2);
+        { const fresh = await loadDay(n); if (fresh) { nd.act1 = fresh.act1; nd.act2 = fresh.act2; } } // las actividades se guardan aparte, al momento
         try { await store.saveDay(n, nd, S.config.year); toast('💾 Día ' + n + ' guardado'); } catch (e) { toast('Error: ' + e.message, 5000); }
       } }, '💾 Guardar día ' + n);
       const reset = el('button', { class: 'btn btn-ghost', onclick: async () => {
@@ -304,15 +307,17 @@ function userPanel(root, u, answers, set) {
         await resetDays(u, [d]); delete answers[d]; userPanel(root, u, answers, set);
       } }, '↺ Reiniciar') : null));
   }
-  const ov = { ...(set.actOverrides || {}) };
+  // actividades: son las mismas que en «Contenido de los días» (un solo sitio donde se guardan)
   const daySel = el('select', {}, ...Array.from({ length: 25 }, (_, i) => el('option', { value: i + 1 }, `Día ${i + 1}`)));
-  const a1 = el('textarea', { rows: 2, placeholder: 'Vacío = se usa la actividad general del día' });
-  const a2 = el('textarea', { rows: 2, placeholder: 'Vacío = se usa la actividad general del día' });
-  const loadOv = () => { const o = ov[daySel.value] || {}; a1.value = o.act1 || ''; a2.value = o.act2 || ''; };
-  const keepOv = () => { ov[daySel.value] = { act1: a1.value, act2: a2.value }; };
-  let prevDay = daySel.value;
-  daySel.onchange = () => { const cur = daySel.value; daySel.value = prevDay; keepOv(); daySel.value = cur; prevDay = cur; loadOv(); };
-  loadOv();
+  const langSel = el('select', {}, el('option', { value: 'es' }, 'Español'), el('option', { value: 'ca' }, 'Català'), el('option', { value: 'en' }, 'English'));
+  const actsBox = el('div');
+  const drawActs = async () => {
+    const n = +daySel.value, L = langSel.value;
+    const d = await loadDay(n) || defaultDay(n);
+    actsBox.replaceChildren(actCard(n, L, d, 'act1', '🎄 Actividad 1 (personas con árbol)'), actCard(n, L, d, 'act2', '🧙 Actividad 2 (personas con gnomo)'));
+  };
+  daySel.onchange = drawActs; langSel.onchange = drawActs; drawActs();
+  const mq = el('input', { type: 'text', value: set.marqueeText || '', placeholder: 'Vacío = el mensaje general de la marquesina' });
   root.replaceChildren(
     el('button', { class: 'btn btn-ghost small-btn', onclick: () => VIEWS.users(root) }, '← Volver'),
     el('h3', {}, `${esc(u.name || '')} · ${u.email}`),
@@ -325,14 +330,15 @@ function userPanel(root, u, answers, set) {
         if (!(await popup(`<h2>↺ Reiniciar todo</h2><p>Se borrarán los <b>${days.length}</b> días hechos de <b>${esc(u.name || u.email)}</b> y todas sus casillas quedarán como nuevas, sin abrir. ¿Seguro?</p>`, { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: 'Sí, reiniciar todo', value: true }] }))) return;
         await resetDays(u, days); Object.keys(answers).forEach(k => delete answers[k]); userPanel(root, u, answers, set);
       } }, '↺ Reiniciar todas sus casillas')),
-    el('div', { class: 'card' }, el('h3', {}, 'Actividades personalizadas para esta persona'),
-      el('label', {}, 'Día', daySel), el('label', {}, '🎄 Actividad 1 (si tiene árbol)', a1), el('label', {}, '🧙 Actividad 2 (si tiene gnomo)', a2)),
+    el('div', { class: 'card' }, el('h3', {}, '📣 Mensaje de su marquesina'),
+      el('p', { class: 'muted' }, 'Lo que verá esta persona pasando por la pantalla de inicio. Si lo dejas vacío, verá el mensaje general.'), mq),
     el('button', { class: 'btn', onclick: async () => {
-      keepOv();
-      Object.keys(ov).forEach(k => { if (!ov[k].act1?.trim() && !ov[k].act2?.trim()) delete ov[k]; });
-      try { await store.setSettings(u.uid, { figure: fig.value, showProgress: show.checked, actOverrides: ov }); toast('💾 Guardado'); }
+      try { await store.setSettings(u.uid, { figure: fig.value, showProgress: show.checked, marqueeText: mq.value.trim(), actOverrides: {} }); toast('💾 Guardado'); }
       catch (e) { toast('Error: ' + e.message, 5000); }
-    } }, '💾 Guardar configuración'));
+    } }, '💾 Guardar configuración'),
+    el('div', { class: 'card' }, el('h3', {}, '✏️ Actividades del día'),
+      el('p', { class: 'muted' }, 'Son las mismas actividades que en «Contenido de los días»: si cambias algo aquí, cambia allí también, y al revés.'),
+      el('div', { class: 'row' }, el('label', {}, 'Día', daySel), el('label', {}, 'Idioma', langSel)), actsBox));
 }
 
 function marqueeCard() {
@@ -377,4 +383,22 @@ async function resetDays(u, days) {
     }
     toast(days.length === 1 ? `↺ Día ${days[0]} reiniciado` : `↺ ${days.length} días reiniciados`);
   } catch (e) { toast('Error: ' + (e.code || e.message), 6000); }
+}
+
+// tarjeta de actividad (la misma en «Contenido de los días» y en cada usuario): al guardar se guarda al momento
+function actCard(n, L, d, key, label) {
+  const langName = { es: 'español', ca: 'catalán', en: 'inglés' }[L];
+  const prev = el('div', { class: 'act-prev' }, plain(d[key]?.[L] ?? '') || '—');
+  return el('div', { class: 'act-card', onclick: async () => {
+    const cur = (await loadDay(n)) || defaultDay(n);
+    const r = await openActEditor({ day: n, actKey: key, title: label, html: cur[key]?.[L] ?? '', langName });
+    if (r == null) return;
+    try {
+      const nd = JSON.parse(JSON.stringify(cur)); delete nd.openAt;
+      nd[key] = { ...(nd[key] || {}), [L]: r };
+      await store.saveDay(n, nd, S.config.year);
+      d[key] = nd[key]; prev.textContent = plain(r) || '—';
+      toast('✅ Texto guardado');
+    } catch (e) { toast('Error al guardar: ' + (e.code || e.message), 6000); }
+  } }, el('b', {}, label), prev, el('span', { class: 'act-edit' }, '✏️ Editar (texto, títulos, emojis, fotos y vídeos)'));
 }

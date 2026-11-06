@@ -1,5 +1,5 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js?v=15.4';
+import { firebaseConfig } from './firebase-config.js?v=15.7';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {
@@ -102,6 +102,19 @@ async function firebaseApi() {
     },
     saveCard: (uid, img) => F.setDoc(d('cards', uid), { img, at: Date.now() }),
     getCard: async uid => (await get('cards', uid))?.img || null,
+    // mensajes sorpresa: surprises/{uid}/msgs/{id} con { active, dates: ['AAAA-MM-DD', …], … }
+    getSurprise: async (uid, date) => {
+      const qs = await F.getDocs(F.query(F.collection(db, 'surprises', uid, 'msgs'), F.where('dates', 'array-contains', date)));
+      const out = []; qs.forEach(x => out.push(x.data()));
+      return out.filter(m => m.active !== false).sort((a, b) => (b.at || 0) - (a.at || 0))[0] || null;
+    },
+    listSurprises: async uid => {
+      const qs = await F.getDocs(F.collection(db, 'surprises', uid, 'msgs'));
+      const out = []; qs.forEach(x => out.push({ id: x.id, ...x.data() })); return out.sort((a, b) => (a.dates?.[0] || '9').localeCompare(b.dates?.[0] || '9'));
+    },
+    saveSurprise: async (uid, id, data) => { const r = id ? d('surprises', uid, 'msgs', id) : F.doc(F.collection(db, 'surprises', uid, 'msgs')); await F.setDoc(r, { ...data, at: Date.now() }); return r.id; },
+    setSurpriseActive: (uid, id, active) => F.updateDoc(d('surprises', uid, 'msgs', id), { active }),
+    deleteSurprise: (uid, id) => F.deleteDoc(d('surprises', uid, 'msgs', id)),
   };
 }
 
@@ -173,6 +186,11 @@ function demoApi() {
     listUsers: async () => Object.entries(ld('users', {})).map(([uid, u]) => ({ uid, ...u })),
     saveCard: async (uid, img) => { const c = ld('cards', {}); c[uid] = img; sv('cards', c); },
     getCard: async uid => ld('cards', {})[uid] || null,
+    getSurprise: async (uid, date) => Object.values(ld('surprises', {})[uid] || {}).filter(m => m.active !== false && (m.dates || []).includes(date)).sort((a, b) => (b.at || 0) - (a.at || 0))[0] || null,
+    listSurprises: async uid => Object.entries(ld('surprises', {})[uid] || {}).map(([id, v]) => ({ id, ...v })).sort((a, b) => (a.dates?.[0] || '9').localeCompare(b.dates?.[0] || '9')),
+    saveSurprise: async (uid, id, data) => { const s = ld('surprises', {}); id = id || 's' + Date.now() + Math.random().toString(36).slice(2, 6); (s[uid] = s[uid] || {})[id] = { ...data, at: Date.now() }; sv('surprises', s); return id; },
+    setSurpriseActive: async (uid, id, active) => { const s = ld('surprises', {}); if (s[uid]?.[id]) s[uid][id].active = active; sv('surprises', s); },
+    deleteSurprise: async (uid, id) => { const s = ld('surprises', {}); if (s[uid]) delete s[uid][id]; sv('surprises', s); },
   };
 }
 

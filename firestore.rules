@@ -65,6 +65,12 @@ service cloud.firestore {
         && request.resource.data.key == getAfter(/databases/$(database)/documents/adminSecret/main).data.hash;
     }
 
+    // Mensajes sorpresa que la administradora prepara para cada persona y día
+    match /surprises/{uid}/msgs/{id} {
+      allow read: if me(uid) || isAdmin();
+      allow write: if isAdmin();
+    }
+
     // Tarjeta de Navidad del día 25
     match /cards/{uid} {
       allow read: if me(uid) || isAdmin();

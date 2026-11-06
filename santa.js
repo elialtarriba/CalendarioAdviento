@@ -1,9 +1,9 @@
 // Día 25: tu cara en Papá Noel + felicitación con letras, confeti y luces
-import { t, getLang } from './i18n.js?v=15.4';
-import { el, sleep, confetti, popup } from './fx.js?v=15.4';
-import { chime, jingle, speak, hohoho } from './sound.js?v=15.4';
-import { S } from './app.js?v=15.4';
-import { store } from './store.js?v=15.4';
+import { t, getLang } from './i18n.js?v=15.7';
+import { el, sleep, confetti, popup } from './fx.js?v=15.7';
+import { chime, jingle, speak, hohoho } from './sound.js?v=15.7';
+import { S } from './app.js?v=15.7';
+import { store } from './store.js?v=15.7';
 
 const W = 882, H = 1192, FACE = { x: 458, y: 500, rx: 215, ry: 185 };
 const BULBS = ['#ff3b3b', '#ffd23b', '#3bff6a', '#3bb6ff', '#ff7af0'];

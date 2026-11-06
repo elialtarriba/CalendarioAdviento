@@ -35,8 +35,11 @@ Sin Firebase ya funciona en **modo demo** (todo se guarda solo en ese navegador)
 - **Árbol**: además, al finalizar, el papel se arruga y aparece la **actividad 1**.
 - **Gnomo**: igual, con la **actividad 2**.
 - ✓ = figura en color · ✗ = blanco y negro · ⏳ = pendiente (por ejemplo el día 12, que corriges tú).
-- Premios con 10, 15, 20 y 25 aciertos.
-- Días especiales: 4 renos, 6 diferencias + susto, 8 árbol, 12 ojo de lince, 13 ¿has sido bueno?, 15 diploma, 20 ruleta, 24 baile, 25 tu cara en Papá Noel.
+- Actividades 1 y 2: son las mismas para todos y se editan en un solo sitio (Contenido de los días o desde cada usuario: es el mismo texto). Admiten fotos y vídeos.
+- Cada usuario puede tener su propio mensaje en la cinta que se mueve (si está vacío, sale el general).
+- Premios en los días 10, 15, 20 y 25: se ganan si como mucho has fallado o dejado sin hacer 3 días hasta esa fecha.
+- **Mensajes sorpresa** (botón rojo en Configuración): eliges persona, una o varias fechas y lo marcas «Activado» (o no), y al entrar ese día le sale un popup con título (colores por letra, grosor, tamaño, giro y posición libres), texto, hasta 2 fotos y/o un vídeo. Necesita las reglas nuevas de Firestore.
+- Días especiales: 1 gorros de Papá Noel (mensaje anónimo, chiste y detector de personas buenas), 4 renos, 6 diferencias + susto, 8 árbol, 12 ojo de lince, 13 ¿has sido bueno?, 15 diploma, 20 ruleta, 24 baile, 25 tu cara en Papá Noel.
 
 ## Añadir más temas
 Cada tema tiene 3 versiones de la imagen: `-movil` (vertical), `-cuadrado` (iPad) y `-ancho` (ordenador). La app elige sola la que mejor llena la pantalla.

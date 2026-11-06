@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=15.4';
-import { t, tx, setLang, getLang } from './i18n.js?v=15.4';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=15.4';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound } from './sound.js?v=15.4';
-import { typeRich, gallery } from './richact.js?v=15.4';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=15.4';
+import { initStore, store, DEMO } from './store.js?v=15.7';
+import { t, tx, setLang, getLang } from './i18n.js?v=15.7';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=15.7';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound } from './sound.js?v=15.7';
+import { typeRich, gallery } from './richact.js?v=15.7';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=15.7';
 
-export const APP_VERSION = 'V15.4';
+export const APP_VERSION = 'V15.7';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -30,7 +30,8 @@ const correctCount = () => Object.values(S.answers).filter(a => a.status === 'co
 export async function loadDay(n) {
   const c = await store.getDay(n).catch(() => null);
   if (c && c.locked) return null;
-  return { ...defaultDay(n), ...(c || {}) };
+  const def = defaultDay(n);
+  return { ...def, ...(c || {}), type: def.type }; // el tipo de juego de cada día es fijo
 }
 export function applyPaper(node) {
   PAPERS.forEach(p => node.classList.remove('paper-' + p.id));
@@ -118,7 +119,8 @@ async function boot() {
     S.card = card;
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=15.4').catch(() => {});
+    import('./admin.js?v=15.7').catch(() => {});
+    import('./surprise.js?v=15.7').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -261,7 +263,7 @@ export function renderHome() {
         el('div', { class: 'title-block' }, el('h1', { class: 'title-text' }, t('appTitle')), el('div', { class: 'greeting' }, greeting())),
         el('div', { class: 'top-actions' },
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=15.4')).openAdmin() }, '🔒'),
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=15.7')).openAdmin() }, '🔒'),
           el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪')))));
 
   let strip = null;
@@ -286,7 +288,7 @@ export function renderHome() {
   const mq = { ...MARQUEE_DEFAULT, ...(S.config.marquee || {}) };
   const marquee = mq.show === false ? null : el('div', { class: 'marquee', onclick: () => { fullView = true; renderHome(); } },
     el('div', { class: 'marquee-track', style: `animation-duration:${Math.max(4, +mq.speed || 14)}s;color:${mq.color};font-weight:${mq.weight};${/neon/.test(mq.colorName || '') ? `text-shadow:0 0 6px ${mq.color},0 0 14px ${mq.color};` : ''}` },
-      ...Array.from({ length: 8 }, () => el('span', {}, (tx(mq.text) || t('tapToZoom')) + '\u2003✦\u2003'))));
+      ...Array.from({ length: 8 }, () => el('span', {}, ((S.settings?.marqueeText || '').trim() || tx(mq.text) || t('tapToZoom')) + '\u2003✦\u2003'))));
   const bars = [];
   if (DEMO) bars.push(el('div', { class: 'demo-bar' }, t('demo')));
   if (testMode()) bars.push(el('div', { class: 'demo-bar test' }, '🧪 Modo prueba: todas las casillas abiertas'));
@@ -403,7 +405,7 @@ async function openDoor(n, door) {
   finishBtn.onclick = ctx.finish; cancelBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=15.4`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=15.7`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -448,7 +450,6 @@ async function closeDay(n, layer, note, door) {
   renderHome();
 }
 
-// Arrugar con filtro SVG de desplazamiento
 // Arrugar el papel: solo transformaciones y recortes (las hace la tarjeta gráfica, va fluido)
 const JAG = (k, seed) => { // contorno de bola arrugada: k=0 rectángulo, k=1 bola dentada
   const pts = [], n = 28;
@@ -460,30 +461,71 @@ const JAG = (k, seed) => { // contorno de bola arrugada: k=0 rectángulo, k=1 bo
   }
   return `polygon(${pts.join(',')})`;
 };
+// Textura de pliegues: facetas de papel arrugado (se genera una sola vez)
+let CREASE_URL = null;
+function creaseTexture() {
+  if (CREASE_URL) return CREASE_URL;
+  const S = 360, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const g = cv.getContext('2d'), N = 7, c = S / N, P = [];
+  for (let y = 0; y <= N; y++) { P[y] = []; for (let x = 0; x <= N; x++) {
+    const edge = x === 0 || y === 0 || x === N || y === N;
+    P[y][x] = [x * c + (edge ? 0 : (Math.random() - .5) * c * .9), y * c + (edge ? 0 : (Math.random() - .5) * c * .9)];
+  } }
+  const tri = (a, b, d) => { // cada faceta con su luz, como si el papel tuviera relieve
+    const l = 150 + Math.random() * 105 | 0;
+    g.fillStyle = `rgb(${l},${l},${l})`; g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.lineTo(...d); g.closePath(); g.fill();
+    g.strokeStyle = Math.random() < .5 ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.8)'; g.lineWidth = 1.2; g.stroke();
+  };
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const p = P[y][x], q = P[y][x + 1], r = P[y + 1][x + 1], s = P[y + 1][x];
+    if (Math.random() < .5) { tri(p, q, r); tri(p, r, s); } else { tri(p, q, s); tri(q, r, s); }
+  }
+  CREASE_URL = cv.toDataURL('image/jpeg', .8);
+  return CREASE_URL;
+}
+
+// Arrugar como papel de verdad: pliegues con luz y sombra + deformación SVG + bola que se encoge
 export async function crumpleAnim(node, out = true) {
-  const creases = el('div', { class: 'creases' }); node.append(creases);
-  node.style.willChange = 'transform, clip-path, opacity';
-  const steps = [0, .15, .3, .45, .6, .75, .9, 1];
-  const frames = steps.map(k => ({
-    offset: k,
-    clipPath: JAG(Math.min(1, k * 1.15), 3),
-    transform: `perspective(900px) scale(${1 - k * .78}) rotate(${k * 34 + Math.sin(k * 9) * 6}deg) rotateX(${Math.sin(k * 7) * 18}deg) rotateY(${Math.cos(k * 6) * 16}deg) translateY(${k * 40}px)`,
-    opacity: k > .85 ? 1 - (k - .85) / .15 * .9 : 1,
-  }));
-  const kf = out ? frames : frames.slice().reverse().map((f, i) => ({ ...f, offset: steps[i], opacity: i < 2 ? .3 + i * .35 : 1 }));
-  const dur = out ? 1700 : 1500;
-  const crease = [{ opacity: out ? 0 : .9 }, { opacity: out ? .9 : 0 }];
-  creases.animate(crease, { duration: dur, easing: 'ease-in-out', fill: 'forwards' });
-  const anim = node.animate(kf, { duration: dur, easing: out ? 'cubic-bezier(.45,.05,.55,.95)' : 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' });
-  await anim.finished.catch(() => {});
-  if (!out) { anim.cancel(); creases.remove(); node.style.willChange = ''; }
+  const creases = el('div', { class: 'creases' });
+  creases.style.backgroundImage = `url(${creaseTexture()})`;
+  node.append(creases);
+  const disp = document.querySelector('#crumpleFilter feDisplacementMap');
+  const turb = document.querySelector('#crumpleFilter feTurbulence');
+  if (turb) turb.setAttribute('seed', String(1 + Math.random() * 90 | 0));
+  node.style.willChange = 'transform, clip-path, opacity, filter';
+  const dur = out ? 1800 : 1500, t0 = performance.now(), seed = Math.random() * 9;
+  const ease = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+  let frame = 0;
+  await new Promise(done => {
+    const f = now => {
+      const p = Math.min(1, (now - t0) / dur);
+      const k = out ? ease(p) : 1 - ease(p); // 0 = hoja lisa, 1 = bola
+      // pliegues: aparecen enseguida y se marcan cada vez más
+      creases.style.opacity = Math.min(.95, k * 2.2).toFixed(3);
+      // deformación del papel (cada 2 fotogramas para que vaya suave)
+      if (disp && (frame++ % 2 === 0 || p === 1)) {
+        disp.setAttribute('scale', (k * 55).toFixed(1));
+        node.style.filter = k > .02 ? 'url(#crumpleFilter)' : '';
+      }
+      node.style.clipPath = k > .01 ? JAG(Math.min(1, k * 1.1), seed) : '';
+      const sc = 1 - k * .8;
+      node.style.transform = `perspective(900px) scale(${sc}) rotate(${k * 30 + Math.sin(k * 9) * 5}deg) rotateX(${Math.sin(k * 7) * 14}deg) rotateY(${Math.cos(k * 6) * 12}deg) translateY(${k * 40}px)`;
+      node.style.opacity = out ? (k > .88 ? 1 - (k - .88) / .12 : 1) : Math.min(1, .25 + p * 3);
+      if (p < 1) requestAnimationFrame(f); else done();
+    };
+    requestAnimationFrame(f);
+  });
+  if (!out) {
+    creases.remove();
+    Object.assign(node.style, { filter: '', clipPath: '', transform: '', opacity: '', willChange: '' });
+  }
 }
 
 async function showActivity(n, layer) {
   const fig = figure();
   const content = await loadDay(n) || defaultDay(n);
   const key = fig === 'arbol' ? 'act1' : 'act2';
-  const over = S.settings?.actOverrides?.[n]?.[key];
+  const over = null; // ya no hay actividades por persona: todos ven las del día
   const text = (over && over.trim()) || tx(content[key]);
   const note = el('div', { class: 'note activity-note' });
   applyPaper(note);

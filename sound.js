@@ -5,7 +5,22 @@ const ac = () => {
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
 };
-export const unlockAudio = () => { try { ac(); } catch {} };
+// En iPhone/iPad, con el botón de silencio activado, los sonidos de la web no suenan.
+// Esto pide al iPhone que trate la app como «reproducción» (como un vídeo) para que se oigan.
+let unlocked = false;
+const SILENT = 'data:audio/mp4;base64,AAAAHGZ0eXBNNEEgAAACAE00QSBpc29taXNvMgAAAAhmcmVlAAAAG21kYXQhAAOgQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
+export const unlockAudio = () => {
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = 'playback';
+    const c = ac();
+    if (!unlocked) {
+      unlocked = true;
+      const a = new Audio(SILENT); a.setAttribute('playsinline', ''); a.loop = true; a.volume = .01; a.play().catch(() => {});
+      const b = c.createBuffer(1, 1, 22050), s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(0);
+    }
+  } catch {}
+};
+['pointerdown', 'touchend', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { capture: true, passive: true }));
 
 function noiseBuffer(c, secs) {
   const b = c.createBuffer(1, c.sampleRate * secs, c.sampleRate);
@@ -172,29 +187,30 @@ const PHRASES = [
   [64, 65, 67, 72, 71, 69, 67],                          // campanitas
   [67, 64, 60, 64, 67, 72],                              // fanfarria
 ];
+// 24 sonidos alegres distintos: 8 villancicos × 3 instrumentos, con cascabeles
+const CAROLS = [
+  [[64,.5],[64,.5],[64,1],[64,.5],[64,.5],[64,1],[64,.5],[67,.5],[60,.75],[62,.25],[64,1.5]],          // Jingle Bells
+  [[67,.5],[72,.5],[72,.25],[74,.25],[72,.25],[71,.25],[69,.5],[69,.5],[69,.5],[74,1]],                 // We wish you
+  [[72,.75],[71,.25],[69,.5],[67,.5],[65,.5],[64,.5],[62,.5],[60,1]],                                     // Joy to the world
+  [[67,.75],[65,.25],[64,.5],[62,.5],[60,.5],[62,.5],[64,.5],[60,1]],                                     // Deck the halls
+  [[60,.5],[65,.5],[65,.5],[67,.5],[69,.5],[65,.5],[69,.5],[70,.5],[72,1]],                               // Ding dong merrily
+  [[67,.75],[69,.25],[67,.5],[64,1.25],[67,.75],[69,.25],[67,.5],[64,1.25]],                              // Noche de paz
+  [[64,.5],[64,.5],[65,.5],[67,.5],[67,.5],[65,.5],[64,.5],[62,.5],[60,.5],[60,.5],[62,.5],[64,1]],       // campanitas alegres
+  [[60,.25],[64,.25],[67,.25],[72,.5],[67,.25],[72,1],[76,.25],[79,1]],                                  // fanfarria
+];
+function voice(kind, f, at, len) {
+  if (kind === 0) { tone(f * 2, at, len * 1.6 + .3, 'sine', .13); tone(f * 4, at, .2, 'sine', .03); }                 // caja de música
+  else if (kind === 1) { [[1, .1], [2.76, .04], [5.4, .02]].forEach(([m, v]) => tone(f * 2 * m, at, 1.1 / Math.sqrt(m), 'sine', v)); } // campanas
+  else { tone(f * 2, at, len + .25, 'triangle', .11); tone(f, at, len, 'sine', .06); tone(f * 3, at, .12, 'sine', .02); } // celesta
+}
 export function doorSound(n) {
   try {
-    const c = ac(), t = c.currentTime;
-    const kind = n % 6, shift = Math.floor(n / 6) * 2 - 3; // 6 tipos x 4 variaciones = 24 sonidos distintos
-    if (kind === 0) { // caja de música
-      const ph = PHRASES[n % PHRASES.length];
-      ph.forEach((m, i) => { tone(NOTE(m + 12 + shift), t + i * .16, .5, 'sine', .12); tone(NOTE(m + 24 + shift), t + i * .16, .25, 'sine', .03); });
-    } else if (kind === 1) { // cascabeles de trineo + campanita
-      sleighBells(t, 12); bellTone(NOTE(84 + shift), t + .3, 1.2, .08);
-    } else if (kind === 2) { // destello mágico (glissando)
-      for (let i = 0; i < 14; i++) tone(NOTE(72 + shift + i * (n % 2 ? 2 : 3)), t + i * .045, .35, 'triangle', .06);
-      sleighBells(t + .5, 4, .03);
-    } else if (kind === 3) { // toc-toc y crujido de madera
-      [0, .18].forEach(d => { tone(180 + shift * 8, t + d, .08, 'square', .12); tone(90, t + d, .1, 'sine', .25); });
-      setTimeout(() => creak(true), 420);
-    } else if (kind === 4) { // campanas de iglesia
-      const base = NOTE(67 + shift);
-      [0, .35, .7].forEach((d, i) => bellTone(base * [1, 1.25, 1.5][(i + n) % 3], t + d, 1.8, .1));
-    } else { // arpa
-      const sc = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
-      sc.forEach((s, i) => tone(NOTE(60 + shift + s), t + i * .05, .9, 'triangle', .07));
-      tone(NOTE(84 + shift), t + .6, 1.2, 'sine', .06);
-    }
+    unlockAudio();
+    const c = ac(); let t = c.currentTime + .03;
+    const carol = CAROLS[(n - 1) % CAROLS.length], kind = Math.floor((n - 1) / 8) % 3, beat = .2;
+    sleighBells(t, 6, .035);
+    for (const [m, d] of carol) { voice(kind, NOTE(m), t, d * beat); t += d * beat; }
+    tone(NOTE(84), t + .05, 1, 'sine', .05); sleighBells(t, 5, .03);
   } catch {}
 }
 // Campanillas a lo lejos: cascabeles suaves y apagados que van y vienen
@@ -232,17 +248,28 @@ export function hohoho() {
 // ¡Enhorabuena!: fanfarria de trompetas + aplausos
 export function fanfare() {
   try {
+    unlockAudio();
     const c = ac(), t = c.currentTime;
-    [[523, 0, .14], [659, .14, .14], [784, .28, .14], [1047, .42, .5], [784, .95, .14], [1047, 1.1, .7]].forEach(([f, d, l]) => {
-      tone(f, t + d, l + .1, 'sawtooth', .07); tone(f * 2, t + d, l, 'square', .02); tone(f / 2, t + d, l + .1, 'triangle', .06);
+    [[523, 0, .14], [659, .14, .14], [784, .28, .14], [1047, .42, .5], [784, .95, .14], [1047, 1.1, .8]].forEach(([f, d, l]) => {
+      tone(f, t + d, l + .1, 'sawtooth', .09); tone(f * 2, t + d, l, 'square', .025); tone(f / 2, t + d, l + .1, 'triangle', .08);
     });
-    for (let i = 0; i < 60; i++) { // aplausos
-      const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .05);
-      const fl = c.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.value = 1200 + Math.random() * 1800; fl.Q.value = 1.5;
-      const g = c.createGain(); const st = t + .5 + Math.random() * 2;
-      g.gain.setValueAtTime(.18 * Math.random() + .05, st); g.gain.exponentialRampToValueAtTime(.001, st + .05);
+    // aplausos: muchas palmadas durante 3 segundos
+    for (let i = 0; i < 220; i++) {
+      const st = t + .4 + Math.pow(Math.random(), .8) * 3, k = 1 - (st - t - .4) / 3.2;
+      const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .04);
+      const fl = c.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.value = 900 + Math.random() * 2200; fl.Q.value = 1.2;
+      const g = c.createGain(); g.gain.setValueAtTime((.25 * Math.random() + .12) * k, st); g.gain.exponentialRampToValueAtTime(.001, st + .045);
       s.connect(fl); fl.connect(g); g.connect(c.destination); s.start(st);
     }
+    // «¡bieeen!» de la gente: varias voces que suben
+    for (let v = 0; v < 6; v++) {
+      const st = t + .45 + v * .04, o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(220 + v * 35, st); o.frequency.linearRampToValueAtTime(330 + v * 45, st + .35); o.frequency.linearRampToValueAtTime(280 + v * 40, st + 1);
+      f.type = 'bandpass'; f.frequency.value = 900 + v * 120; f.Q.value = 3;
+      g.gain.setValueAtTime(0, st); g.gain.linearRampToValueAtTime(.05, st + .08); g.gain.exponentialRampToValueAtTime(.001, st + 1.1);
+      o.connect(f); f.connect(g); g.connect(c.destination); o.start(st); o.stop(st + 1.2);
+    }
+    sleighBells(t + .3, 18, .04);
   } catch {}
 }
 

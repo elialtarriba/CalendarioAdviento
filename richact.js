@@ -1,6 +1,6 @@
 // Actividades con texto enriquecido (títulos de colores, emojis) y fotos/vídeos
-import { el, sleep, popup, toast } from './fx.js?v=15.4';
-import { store } from './store.js?v=15.4';
+import { el, sleep, popup, toast } from './fx.js?v=15.7';
+import { store } from './store.js?v=15.7';
 
 // ---------- limpieza del HTML (solo etiquetas y estilos seguros)
 const OK_TAGS = new Set(['H2', 'H3', 'P', 'DIV', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'FONT', 'UL', 'OL', 'LI']);
@@ -46,7 +46,7 @@ export async function typeRich(node, html, speed = 24) {
 }
 
 // ---------- galería de miniaturas + ampliar
-const ytId = s => (String(s).match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/) || [])[1];
+export const ytId = s => (String(s).match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/) || [])[1];
 function mediaEl(m, big) {
   if (m.kind === 'video') {
     const id = ytId(m.src);
@@ -75,14 +75,14 @@ export function lightbox(items, i) {
 }
 
 // ---------- reducir fotos para guardarlas (máx. 1200 px)
-async function shrink(file) {
+export async function shrink(file, max = 1200, limit = 700000) {
   const url = URL.createObjectURL(file);
   const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
-  const s = Math.min(1, 1200 / Math.max(img.width, img.height));
+  const s = Math.min(1, max / Math.max(img.width, img.height));
   const c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
   let q = .8, out = c.toDataURL('image/jpeg', q);
-  while (out.length > 700000 && q > .4) { q -= .1; out = c.toDataURL('image/jpeg', q); }
+  while (out.length > limit && q > .35) { q -= .1; out = c.toDataURL('image/jpeg', q); }
   return out;
 }
 
@@ -113,41 +113,47 @@ export function openActEditor({ day, actKey, title, html, langName }) {
       tb('😀', () => { emojiBox.style.display = emojiBox.style.display === 'none' ? '' : 'none'; }, 'Emojis'),
       swatches);
     // fotos y vídeos
-    let media = (await store.getMedia(day)).filter(m => m.act === actKey);
-    const mediaBox = el('div', { class: 'ed-media' });
+    let media = null;
+    const mediaBox = el('div', { class: 'ed-media' }, el('p', { class: 'muted', style: 'margin:0' }, '❄ Cargando fotos…'));
     const drawMedia = () => mediaBox.replaceChildren(...media.map(m => el('div', { class: 'ed-thumb' }, mediaEl(m, false),
       el('button', { type: 'button', class: 'ed-del no-delay', title: 'Borrar', onclick: async () => {
         if (!(await popup('<p>¿Borrar esta foto o vídeo?</p>', { buttons: [{ label: 'No', value: false, cls: 'btn-ghost' }, { label: 'Sí, borrar', value: true }] }))) return;
         await store.deleteMedia(day, m.id); media = media.filter(x => x !== m); drawMedia();
       } }, '✕'))),
-      media.length ? null : el('p', { class: 'muted', style: 'margin:0' }, 'Aún no hay fotos ni vídeos.'));
-    drawMedia();
+      ...(media.length ? [] : [el('p', { class: 'muted', style: 'margin:0' }, 'Aún no hay fotos ni vídeos.')]));
+    store.getMedia(day).then(list => { media = list.filter(m => m.act === actKey); drawMedia(); }).catch(() => { media = []; drawMedia(); });
     const fileIn = el('input', { type: 'file', accept: 'image/*', multiple: true, style: 'display:none', onchange: async () => {
       const files = [...fileIn.files]; fileIn.value = '';
       for (const f of files) {
         try {
           toast('📤 Subiendo ' + f.name + '…', 1500);
           const src = await shrink(f); const item = { act: actKey, kind: 'img', src, order: Date.now() };
-          item.id = await store.addMedia(day, item); media.push(item); drawMedia();
+          item.id = await store.addMedia(day, item); (media = media || []).push(item); drawMedia(); toast('📷 Foto guardada');
         } catch (e) { toast('No se ha podido subir ' + f.name + ': ' + (e.code || e.message), 6000); }
       }
     } });
-    const vidIn = el('input', { type: 'text', placeholder: 'Enlace de YouTube o nombre de vídeo (baile.mp4)' });
-    const addVid = el('button', { type: 'button', class: 'btn small-btn', onclick: async () => {
-      const v = vidIn.value.trim(); if (!v) return;
-      const item = { act: actKey, kind: 'video', src: v, order: Date.now() };
-      item.id = await store.addMedia(day, item); media.push(item); vidIn.value = ''; drawMedia();
-    } }, '➕ Añadir vídeo');
+    const addVideo = async () => {
+      const inp = el('input', { type: 'text', placeholder: 'https://www.youtube.com/watch?v=…  o  baile.mp4' });
+      setTimeout(() => inp.focus(), 50);
+      const ok = await popup(el('div', { class: 'settings-form' }, el('h2', {}, '🎥 Añadir vídeo'),
+        el('p', {}, 'Pega el enlace de un vídeo de YouTube, o escribe el nombre de un vídeo que hayas subido a GitHub junto a los demás archivos (por ejemplo baile.mp4).'), inp),
+        { buttons: [{ label: 'Cancelar', value: false, cls: 'btn-ghost no-delay' }, { label: '➕ Añadir', value: true, cls: 'no-delay' }] });
+      const v = inp.value.trim(); if (!ok || !v) return;
+      if (!/^https?:\/\//.test(v) && !/\.(mp4|mov|m4v|webm)$/i.test(v)) return toast('Eso no parece un enlace de YouTube ni un nombre de vídeo (.mp4)', 5000);
+      try { const item = { act: actKey, kind: 'video', src: v, order: Date.now() }; item.id = await store.addMedia(day, item); (media = media || []).push(item); drawMedia(); toast('🎥 Vídeo añadido'); }
+      catch (e) { toast('Error: ' + (e.code || e.message), 6000); }
+    };
     const box = el('div', { class: 'act-editor' },
       el('h2', {}, '✏️ ' + title),
       el('p', { class: 'muted' }, `Día ${day} · texto en ${langName}. Escribe todo lo que quieras; usa T para títulos, el color para pintarlos y 😀 para emojis (o los del teclado).`),
       toolbar, emojiBox, ed,
       el('h3', {}, '📷 Fotos y vídeos'),
       mediaBox,
-      el('div', { class: 'row' }, el('button', { type: 'button', class: 'btn small-btn', onclick: () => fileIn.click() }, '➕ Añadir fotos'), fileIn),
-      el('div', { class: 'row' }, vidIn, addVid),
+      el('div', { class: 'media-btns' },
+        el('button', { type: 'button', class: 'btn media-btn no-delay', title: 'Añadir fotos', onclick: () => fileIn.click() }, '📷', el('small', {}, 'Fotos')),
+        el('button', { type: 'button', class: 'btn media-btn no-delay', title: 'Añadir vídeo', onclick: addVideo }, '🎥', el('small', {}, 'Vídeo')), fileIn),
       el('p', { class: 'muted' }, 'Las fotos se guardan al momento. Los vídeos se ponen con un enlace de YouTube o subiendo el vídeo a GitHub y escribiendo su nombre.'));
-    const ok = await popup(box, { cls: 'wide', buttons: [{ label: 'Cancelar', value: false, cls: 'btn-ghost' }, { label: '💾 Guardar texto', value: true }] });
+    const ok = await popup(box, { cls: 'wide', buttons: [{ label: 'Cancelar', value: false, cls: 'btn-ghost no-delay' }, { label: '💾 Guardar texto', value: true, cls: 'no-delay' }] });
     resolve(ok ? sanitize(ed.innerHTML).replace(/^(<br>|\s)+|(<br>|\s)+$/g, '') : null);
   });
 }
