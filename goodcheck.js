@@ -1,7 +1,7 @@
 // Día 13: máquina que comprueba si has sido bueno
-import { t, getLang } from './i18n.js?v=7';
-import { el, sleep, confetti } from './fx.js?v=7';
-import { machine, speak } from './sound.js?v=7';
+import { t, getLang } from './i18n.js?v=9';
+import { el, sleep, confetti } from './fx.js?v=9';
+import { machine, speak } from './sound.js?v=9';
 
 export function render(body, ctx) {
   const lines = el('div', { class: 'machine-lines' });

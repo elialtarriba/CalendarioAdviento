@@ -1,13 +1,17 @@
 // Día 24: el baile secreto
-import { t } from './i18n.js?v=7';
-import { el, sleep, confetti } from './fx.js?v=7';
-import { jingle } from './sound.js?v=7';
+import { t } from './i18n.js?v=9';
+import { el, sleep, confetti } from './fx.js?v=9';
+import { jingle } from './sound.js?v=9';
 
 export function render(body, ctx) {
   const dancer = el('div', { class: 'dancer' }, el('img', { src: 'galleta.png', alt: '' }));
   const timer = el('div', { class: 'dance-timer' }, '25');
-  const stage = el('div', { class: 'dance-stage' }, el('div', { class: 'disco' }), el('div', { class: 'floor' }), dancer, timer);
-  const again = el('button', { class: 'btn btn-green', onclick: play }, '💃 ' + t('d24again'));
+  const vid = (ctx.config?.danceVideo || '').trim();
+  const yt = vid.match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/);
+  const stage = yt ? el('iframe', { class: 'dance-video', src: `https://www.youtube-nocookie.com/embed/${yt[1]}?autoplay=1&playsinline=1&rel=0`, allow: 'autoplay; encrypted-media; fullscreen', allowfullscreen: true })
+    : vid ? el('video', { class: 'dance-video', src: vid, controls: true, autoplay: true, playsinline: true })
+    : el('div', { class: 'dance-stage' }, el('div', { class: 'disco' }), el('div', { class: 'floor' }), dancer, timer);
+  const again = vid ? null : el('button', { class: 'btn btn-green', onclick: play }, '💃 ' + t('d24again'));
   const share = el('a', { class: 'btn', href: 'https://wa.me/', target: '_blank', rel: 'noopener', style: 'text-decoration:none;display:inline-block' }, '📱 ' + t('d24share'));
   body.append(el('div', { class: 'dance' },
     el('h2', { class: 'q-title' }, '🕺 ' + t('d24title') + ' 💃'), stage,
@@ -23,7 +27,7 @@ export function render(body, ctx) {
     // ~6,6 s por vuelta de melodía → 4 vueltas ≈ 25 s
     jingle(4);
   }
-  setTimeout(play, 1600);
+  if (!vid) setTimeout(play, 1600);
   ctx.finishBtn.addEventListener('click', () => clearInterval(iv));
   if (!ctx.prev) ctx.submit({ answer: '💃', status: 'correct' });
 }

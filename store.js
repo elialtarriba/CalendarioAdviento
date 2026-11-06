@@ -1,5 +1,5 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js?v=7';
+import { firebaseConfig } from './firebase-config.js?v=9';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {
@@ -20,7 +20,7 @@ async function firebaseApi() {
   const F = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
   const app = initializeApp(firebaseConfig);
   const auth = A.getAuth(app);
-  const db = F.getFirestore(app);
+  const db = F.initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
   const d = (...p) => F.doc(db, ...p);
   const get = async (...p) => { const s = await F.getDoc(d(...p)); return s.exists() ? s.data() : null; };
 

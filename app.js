@@ -1,10 +1,10 @@
-import { initStore, store, DEMO } from './store.js?v=7';
-import { t, tx, setLang, getLang } from './i18n.js?v=7';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT } from './defaults.js?v=7';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho } from './sound.js?v=7';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=7';
+import { initStore, store, DEMO } from './store.js?v=9';
+import { t, tx, setLang, getLang } from './i18n.js?v=9';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT } from './defaults.js?v=9';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho } from './sound.js?v=9';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=9';
 
-export const APP_VERSION = 'V7';
+export const APP_VERSION = 'V9';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -58,6 +58,7 @@ async function boot() {
     S.card = card;
     setLang(S.profile.lang || 'es');
     renderHome();
+    import('./admin.js?v=9').catch(() => {});
   });
 }
 
@@ -131,7 +132,7 @@ export function renderHome() {
         el('div', { class: 'title-block' }, el('h1', { class: 'title-text' }, t('appTitle')), el('div', { class: 'greeting' }, greeting())),
         el('div', { class: 'top-actions' },
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=7')).openAdmin() }, '🔒'),
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=9')).openAdmin() }, '🔒'),
           el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪')))));
 
   let strip = null;
@@ -234,7 +235,8 @@ async function openDoor(n, door) {
   applyPaper(note);
   const body = el('div', { class: 'note-body' });
   const finishBtn = el('button', { class: 'btn btn-finish' }, t('finish'));
-  note.append(el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, t('dayN', n))), body, el('div', { class: 'note-foot' }, finishBtn));
+  const cancelBtn = el('button', { class: 'btn btn-cancel' }, t('cancelLater'));
+  note.append(el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, t('dayN', n))), body, el('div', { class: 'note-foot' }, ...(S.answers[n] ? [] : [cancelBtn]), finishBtn));
   layer.append(note);
   document.body.append(layer);
   // la nota viene "de lejos": desde la puerta hasta ocupar la pantalla
@@ -254,16 +256,16 @@ async function openDoor(n, door) {
     submit: async data => {
       if (S.answers[n]) return;
       const rec = { answer: data.answer ?? '', status: data.status || 'pending', extra: data.extra ?? null };
-      S.answers[n] = { ...rec, at: Date.now() };
+      S.answers[n] = { ...rec, at: Date.now() }; cancelBtn.remove();
       try { await store.submitAnswer(S.user.uid, n, rec); } catch (e) { console.error(e); toast('⚠️ ' + e.message); }
       if (rec.status === 'correct') checkPrize();
     },
     finish: () => { if (!closed) { closed = true; closeDay(n, layer, note, door); } },
   };
-  finishBtn.onclick = ctx.finish;
+  finishBtn.onclick = ctx.finish; cancelBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=7`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=9`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -431,6 +433,6 @@ document.addEventListener('touchend', e => {
   if (now - lastTouch < 350 && !e.target.closest('input, textarea, select')) e.preventDefault();
   lastTouch = now;
 }, { passive: false });
-document.addEventListener('touchmove', e => { if (e.touches.length > 1 && !e.target.closest('.santa-stage')) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', e => { if (e.touches.length > 1 && !e.target.closest('.santa-stage, .reindeer-scroll')) e.preventDefault(); }, { passive: false });
 
 boot();

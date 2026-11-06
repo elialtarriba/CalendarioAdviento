@@ -526,3 +526,15 @@ body.full-view .board { cursor: default; }
 .settings-form .after-preview { margin-top: 18px; }
 .settings-form .account-box { margin-top: 14px; }
 .paper-preview { margin-bottom: 4px; }
+
+.loading-msg { color: #7a5a2a; } .loading-msg .spin { display: inline-block; animation: spin 1.5s linear infinite; }
+
+.reindeer-scroll { overflow: hidden !important; position: relative; touch-action: none !important; height: min(62dvh, 560px); max-height: none; cursor: grab; }
+.reindeer-scroll canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.btn-cancel { background: #fff; color: #7a1020; box-shadow: 0 4px 0 #c9a978; }
+.fig-pick { display: flex; gap: 8px; flex-wrap: wrap; }
+.fig-pick label { flex: 1; min-width: 90px; display: flex; flex-direction: column; align-items: center; gap: 4px; border: 2px solid #e3cfa5; border-radius: 12px; padding: 8px; background: #fff; font-size: 12px; text-align: center; cursor: pointer; }
+.fig-pick label.sel { border-color: #b3122e; box-shadow: 0 0 0 3px #b3122e33; background: #fff6f6; }
+.fig-pick img { height: 56px; }
+.fig-pick input { display: none; }
+.dance-video { width: min(100%, 520px); border-radius: 18px; aspect-ratio: 16/9; border: 0; background: #000; }

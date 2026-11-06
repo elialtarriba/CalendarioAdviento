@@ -1,8 +1,8 @@
 // Día 4: busca los 5 renos con gafas negras entre ~1000 renos
-import { t } from './i18n.js?v=7';
-import { el, popup, starBurst } from './fx.js?v=7';
-import { chime, pop, wrong } from './sound.js?v=7';
-import { figure } from './app.js?v=7';
+import { t } from './i18n.js?v=9';
+import { el, popup, starBurst } from './fx.js?v=9';
+import { chime, pop, wrong } from './sound.js?v=9';
+import { figure } from './app.js?v=9';
 
 const W = 1600, H = 1100, COLS = 40, ROWS = 25;
 
@@ -83,21 +83,50 @@ export function render(body, ctx) {
   draw();
 
   const counter = el('div', {}, t('d4count', 0));
+  // zoom y desplazamiento propios: un dedo arrastra, dos dedos pellizcan, toque = pulsar reno
   const scroll = el('div', { class: 'reindeer-scroll' }, cv);
-  let zoom = 1;
-  const applyZoom = () => { const base = scroll.clientWidth || 800; const w = Math.max(base, base * zoom); cv.style.width = w + 'px'; cv.style.height = w * H / W + 'px'; };
+  let zoom = 1, tx = 0, ty = 0, base = 0;
+  const clamp = () => {
+    const vw = scroll.clientWidth, vh = scroll.clientHeight, w = base * zoom, h = w * H / W;
+    tx = Math.min(0, Math.max(vw - w, tx)); ty = h > vh ? Math.min(0, Math.max(vh - h, ty)) : (vh - h) / 2;
+  };
+  const apply = () => { clamp(); cv.style.width = base * zoom + 'px'; cv.style.height = base * zoom * H / W + 'px'; cv.style.transform = `translate(${tx}px,${ty}px)`; };
+  const zoomAt = (nz, px, py) => { nz = Math.max(1, Math.min(6, nz)); const k = nz / zoom; tx = px - (px - tx) * k; ty = py - (py - ty) * k; zoom = nz; apply(); };
+  const center = () => [scroll.clientWidth / 2, scroll.clientHeight / 2];
   const zoomBar = el('div', { class: 'zoom-bar' },
-    el('button', { onclick: () => { zoom = Math.max(1, zoom / 1.4); applyZoom(); } }, '−'),
+    el('button', { onclick: () => zoomAt(zoom / 1.5, ...center()) }, '−'),
     el('span', {}, t('zoomHelp')),
-    el('button', { onclick: () => { zoom = Math.min(5, zoom * 1.4); applyZoom(); } }, '+'));
+    el('button', { onclick: () => zoomAt(zoom * 1.5, ...center()) }, '+'));
   body.append(el('h2', { class: 'q-title' }, t('d4title')), el('p', { class: 'game-help' }, t('d4help')),
     el('div', { class: 'game-stats' }, counter), zoomBar, scroll);
-  requestAnimationFrame(() => { zoom = Math.max(1, 1000 / (scroll.clientWidth || 1000)); applyZoom(); });
+  requestAnimationFrame(() => { base = scroll.clientWidth || 800; zoomAt(Math.max(1, 1000 / base), ...center()); });
+  const pts = new Map(); let g0 = null, moved = 0;
+  const local = (x, y) => { const r = scroll.getBoundingClientRect(); return [x - r.left, y - r.top]; };
+  const gest = () => { const p = [...pts.values()]; return p.length > 1 ? { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2, d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) } : { x: p[0].x, y: p[0].y, d: 0 }; };
+  const startG = () => { g0 = { ...gest(), tx, ty, zoom }; };
+  scroll.addEventListener('pointerdown', e => { e.preventDefault(); try { scroll.setPointerCapture(e.pointerId); } catch {} pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 1) moved = 0; startG(); });
+  scroll.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId) || !g0) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const g = gest(); moved = Math.max(moved, Math.hypot(g.x - g0.x, g.y - g0.y) + (g.d && g0.d ? Math.abs(g.d - g0.d) : 0));
+    if (g.d && g0.d) { const [px, py] = local(g0.x, g0.y); zoom = g0.zoom; tx = g0.tx; ty = g0.ty; zoomAt(g0.zoom * g.d / g0.d, px, py); }
+    if (g.d && g0.d) { tx += g.x - g0.x; ty += g.y - g0.y; }
+    if (!(g.d && g0.d)) { tx = g0.tx + g.x - g0.x; ty = g0.ty + g.y - g0.y; }
+    apply();
+  });
+  const up = e => {
+    const single = pts.size === 1 && moved < 8 && e.type === 'pointerup';
+    pts.delete(e.pointerId);
+    if (single) tap(e.clientX, e.clientY);
+    if (pts.size) startG(); else g0 = null;
+  };
+  scroll.addEventListener('pointerup', up); scroll.addEventListener('pointercancel', up);
+  scroll.addEventListener('wheel', e => { e.preventDefault(); const [px, py] = local(e.clientX, e.clientY); zoomAt(zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15), px, py); }, { passive: false });
   setTimeout(() => popup(`<h2>🦌🕶️</h2><p style="font-size:20px">${t('d4help')}</p>`, { buttons: [{ label: '¡OK!', value: 1 }] }), 1600);
 
   let found = 0, finished = !!ctx.prev;
   if (finished) { deer.filter(d => d.target).forEach(d => d.found = true); found = 5; counter.textContent = t('d4count', 5); draw(); }
-  cv.addEventListener('click', e => {
+  function tap(cx, cy) {
+    const e = { clientX: cx, clientY: cy };
     if (finished) return;
     const rect = cv.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width * W, y = (e.clientY - rect.top) / rect.height * H;
@@ -111,5 +140,5 @@ export function render(body, ctx) {
         setTimeout(async () => { await popup(`<h2>🏆</h2><p class="prize-text">${t('prizeGot')[figure()]}</p>`); ctx.finish(); }, 900);
       }
     } else wrong();
-  });
+  }
 }

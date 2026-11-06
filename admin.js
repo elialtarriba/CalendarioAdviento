@@ -1,11 +1,12 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store } from './store.js?v=7';
-import { t, tx } from './i18n.js?v=7';
-import { el, popup, toast, esc } from './fx.js?v=7';
-import { S, renderHome, loadDay } from './app.js?v=7';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS } from './defaults.js?v=7';
+import { store } from './store.js?v=9';
+import { t, tx } from './i18n.js?v=9';
+import { el, popup, toast, esc } from './fx.js?v=9';
+import { S, renderHome, loadDay } from './app.js?v=9';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS } from './defaults.js?v=9';
 
-const FIGS = [['galleta', '🍪 Galleta de jengibre (solo la puerta)'], ['arbol', '🎄 Árbol de Navidad (+ actividad 1)'], ['gnomo', '🧙 Gnomo (+ actividad 2)']];
+const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
+const FIG_IMG = { galleta: 'galleta.png', arbol: 'arbol.png', gnomo: 'gnomo.png' };
 const ST = { correct: '✓', incorrect: '✗', pending: '⏳' };
 const TYPE_NAME = { quiz: 'Pregunta con 4 respuestas', reindeer: 'Busca los renos con gafas', differences: 'Las 5 diferencias + susto', tree: 'Decorar el árbol',
   memory: 'Ojo de lince (objeto que falta)', goodcheck: '¿Has sido bueno?', diploma: 'Diploma absurdo', roulette: 'Ruleta del disparate', dance: 'El baile secreto', santa: 'Tu cara en Papá Noel' };
@@ -42,7 +43,8 @@ function showPanel() {
   const content = el('div');
   const tabs = [['answers', '📨 Respuestas'], ['users', '👥 Usuarios'], ['days', '📅 Contenido de los días'], ['general', '🏆 Premios y ajustes']];
   const bar = el('div', { class: 'tabs' });
-  const go = id => { [...bar.children].forEach(b => b.classList.toggle('active', b.dataset.id === id)); content.replaceChildren(el('p', {}, 'Cargando…')); VIEWS[id](content); };
+  const go = id => { [...bar.children].forEach(b => b.classList.toggle('active', b.dataset.id === id)); content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
+    Promise.resolve(VIEWS[id](content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message)))); };
   tabs.forEach(([id, label]) => bar.append(el('button', { 'data-id': id, onclick: () => go(id) }, label)));
   const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), bar, content);
   popup(box, { cls: 'wide', buttons: [{ label: t('close'), value: true }] }).then(async () => {
@@ -54,10 +56,15 @@ function showPanel() {
 }
 
 // ------------------------------------------------------------------ Respuestas
-async function loadAll() {
+// se guarda 1 minuto para que cambiar de pestaña sea instantáneo
+let cache = null, cacheAt = 0;
+export function clearCache() { cache = null; }
+async function loadAll(force) {
+  if (!force && cache && Date.now() - cacheAt < 60000) return cache;
   const users = await store.listUsers();
   const all = await Promise.all(users.map(async u => ({ u, a: await store.getAnswers(u.uid).catch(() => ({})) })));
-  return { users, all };
+  cache = { users, all }; cacheAt = Date.now();
+  return cache;
 }
 const VIEWS = {
   async answers(root) {
@@ -89,7 +96,7 @@ const VIEWS = {
       el('table', {}, el('tr', {}, el('th', {}, 'Correo'), el('th', {}, 'Nombre'), el('th', {}, 'Figura'), el('th', {}, 'Aciertos'), el('th', {}, '')),
         ...all.map(({ u, a }, i) => el('tr', {},
           el('td', {}, u.email), el('td', {}, u.name || ''),
-          el('td', {}, (FIGS.find(f => f[0] === (settings[i]?.figure || 'galleta')) || FIGS[0])[1].split(' (')[0]),
+          el('td', {}, el('img', { src: FIG_IMG[settings[i]?.figure || 'galleta'], style: 'height:34px', alt: '' })),
           el('td', {}, String(Object.values(a).filter(r => r.status === 'correct').length)),
           el('td', {}, el('button', { class: 'btn small-btn', onclick: () => userPanel(root, u, a, settings[i] || {}) }, 'Configurar'))))));
   },
@@ -168,6 +175,12 @@ const VIEWS = {
           await store.saveConfig({ prizes }); S.config.prizes = prizes; toast('💾 Premios guardados');
         } }, '💾 Guardar premios')),
       marqueeCard(),
+      (() => {
+        const v = el('input', { type: 'text', value: S.config.danceVideo || '', placeholder: 'https://www.youtube.com/watch?v=…' });
+        return el('div', { class: 'card' }, el('h3', {}, '💃 Vídeo del baile (día 24)'),
+          el('p', { class: 'muted' }, 'Pega el enlace de un vídeo de YouTube (o el nombre de un vídeo tuyo subido a GitHub, por ejemplo baile.mp4). Si lo dejas vacío, baila el hombrecito de jengibre.'),
+          v, el('button', { class: 'btn small-btn', style: 'margin-top:8px', onclick: async () => { await store.saveConfig({ danceVideo: v.value.trim() }); S.config.danceVideo = v.value.trim(); toast('💾 Vídeo guardado'); } }, '💾 Guardar vídeo'));
+      })(),
       el('div', { class: 'card' }, el('h3', {}, '📅 Año del calendario'),
         el('p', { class: 'muted' }, 'Las casillas se abren del 1 al 25 de diciembre de este año (hora de España).'),
         el('div', { class: 'row' }, year, el('button', { class: 'btn small-btn', onclick: async e => {
@@ -200,7 +213,11 @@ function statusButtons(uid, day, r, after) {
 }
 
 function userPanel(root, u, answers, set) {
-  const fig = el('select', {}, ...FIGS.map(([v, l]) => el('option', { value: v, selected: v === (set.figure || 'galleta') }, l)));
+  // selector con dibujos de las tres figuras
+  const fig = el('div', { class: 'fig-pick' }); fig.value = set.figure || 'galleta';
+  const drawFig = () => fig.replaceChildren(...FIGS.map(([v, l]) => el('label', { class: v === fig.value ? 'sel' : '', onclick: () => { fig.value = v; drawFig(); } },
+    el('img', { src: FIG_IMG[v], alt: '' }), l)));
+  drawFig();
   const show = el('input', { type: 'checkbox', checked: set.showProgress !== false });
   const grid = el('div', { class: 'day-grid' });
   for (let d = 1; d <= 25; d++) {
