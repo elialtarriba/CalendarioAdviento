@@ -159,7 +159,7 @@ export const SPLASH_DEFAULT = {
 };
 export const MARQUEE_DEFAULT = {
   show: true, speed: 14, weight: 700, colorName: 'rojo', color: '#b3122e',
-  text: { es: 'Pulsa la imagen para verla en grande', ca: 'Prem la imatge per veure-la en gran', en: 'Tap the picture to see it full screen' },
+  text: { es: '', ca: '', en: '' }, // vacío = «¡Feliz Navidad (año) y próspero Año Nuevo!»
 };
 export const MARQUEE_COLORS = [
   ['rojo', 'Rojo Navidad', '#b3122e'], ['neon-amarillo', 'Neón amarillo', '#f5e400'], ['neon-rosa', 'Neón rosa', '#ff2fd6'], ['neon-verde', 'Neón verde', '#28ff6a'], ['neon-azul', 'Neón azul', '#1fe4ff'],

@@ -1,23 +1,34 @@
 // Día 24: el baile secreto
-import { t } from './i18n.js?v=16.2';
-import { el, sleep, confetti } from './fx.js?v=16.2';
-import { jingle } from './sound.js?v=16.2';
+import { t } from './i18n.js?v=17.0';
+import { el, sleep, confetti } from './fx.js?v=17.0';
+import { jingle } from './sound.js?v=17.0';
 
 export function render(body, ctx) {
   const dancer = el('div', { class: 'dancer' }, el('img', { src: 'galleta.png', alt: '' }));
   const timer = el('div', { class: 'dance-timer' }, '25');
   const vid = (ctx.config?.danceVideo || '').trim();
-  const yt = vid.match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/);
-  const stage = yt ? el('iframe', { class: 'dance-video', src: `https://www.youtube-nocookie.com/embed/${yt[1]}?autoplay=1&playsinline=1&rel=0`, allow: 'autoplay; encrypted-media; fullscreen', allowfullscreen: true })
-    : vid ? el('video', { class: 'dance-video', src: vid, controls: true, autoplay: true, playsinline: true })
-    : el('div', { class: 'dance-stage' }, el('div', { class: 'disco' }), el('div', { class: 'floor' }), dancer, timer);
+  const yt = vid.match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/|live\/)([\w-]{11})/);
+  const isFile = !yt && /\.(mp4|mov|m4v|webm)(\?|$)/i.test(vid);
+  const openUrl = yt ? `https://www.youtube.com/watch?v=${yt[1]}` : vid;
+  const errMsg = el('p', { class: 'dance-err', style: 'display:none' }, '⚠️ ' + t('d24videoErr'));
+  let stage;
+  if (yt) stage = el('iframe', { class: 'dance-video', src: `https://www.youtube-nocookie.com/embed/${yt[1]}?playsinline=1&rel=0`, allow: 'autoplay; encrypted-media; fullscreen; picture-in-picture', allowfullscreen: true });
+  else if (isFile) { stage = el('video', { class: 'dance-video', src: vid, controls: true, playsinline: true, preload: 'metadata' }); stage.addEventListener('error', () => errMsg.style.display = ''); }
+  else if (vid) stage = el('a', { class: 'dance-link', href: vid, target: '_blank', rel: 'noopener' }, el('span', {}, '▶'), t('d24openVideo'));
+  else stage = el('div', { class: 'dance-stage' }, el('div', { class: 'disco' }), el('div', { class: 'floor' }), dancer, timer);
+  // si hay vídeo, siempre hay un botón para abrirlo fuera (por si no se puede ver dentro de la app)
+  const openBtn = vid ? el('a', { class: 'btn btn-ghost no-delay', href: openUrl, target: '_blank', rel: 'noopener', style: 'text-decoration:none;display:inline-block' }, '▶️ ' + t('d24openVideo')) : null;
   const again = vid ? null : el('button', { class: 'btn btn-green', onclick: play }, '💃 ' + t('d24again'));
-  const share = el('a', { class: 'btn', href: 'https://wa.me/', target: '_blank', rel: 'noopener', style: 'text-decoration:none;display:inline-block' }, '📱 ' + t('d24share'));
+  // abre WhatsApp directamente (sin enlaces): la persona elige el chat y adjunta su vídeo
+  const share = el('button', { class: 'btn no-delay', onclick: () => {
+    const msg = encodeURIComponent(t('d24waText'));
+    location.href = `whatsapp://send?text=${msg}`;
+  } }, '📱 ' + t('d24share'));
   body.append(el('div', { class: 'dance' },
-    el('h2', { class: 'q-title' }, '🕺 ' + t('d24title') + ' 💃'), stage,
+    el('h2', { class: 'q-title' }, '🕺 ' + t('d24title') + ' 💃'), stage, errMsg,
     el('p', { class: 'game-help' }, t('d24help')),
     el('ol', {}, ...t('d24steps').map(s => el('li', {}, s))),
-    el('div', { class: 'popup-btns' }, again, share),
+    el('div', { class: 'popup-btns' }, again, openBtn, share),
     el('p', { class: 'tomorrow' }, '🎄 ' + t('d24tomorrow') + ' 🎄')));
   let iv;
   function play() {

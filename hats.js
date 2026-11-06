@@ -1,7 +1,7 @@
 // Día 1: atrapa los 3 gorros de Papá Noel; cada uno guarda una sorpresa
-import { t, tx, getLang } from './i18n.js?v=16.2';
-import { el, sleep, confetti, popup, svgEl } from './fx.js?v=16.2';
-import { chime, pop, machine, scare, hohoho } from './sound.js?v=16.2';
+import { t, tx, getLang } from './i18n.js?v=17.0';
+import { el, sleep, confetti, popup, svgEl } from './fx.js?v=17.0';
+import { chime, pop, machine, scare, hohoho } from './sound.js?v=17.0';
 
 const HAT = `<svg viewBox="0 0 120 110"><path d="M18 78 C24 36 52 8 92 18 C110 24 112 46 102 58 C96 44 86 40 78 44 C66 52 64 68 66 78 Z" fill="#d6203a"/>
 <path d="M26 76 C34 44 56 24 86 26" stroke="#ff6b7d" stroke-width="5" fill="none" opacity=".6"/>

@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=16.2';
-import { t, tx, setLang, getLang } from './i18n.js?v=16.2';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=16.2';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong } from './sound.js?v=16.2';
-import { typeRich, gallery } from './richact.js?v=16.2';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=16.2';
+import { initStore, store, DEMO } from './store.js?v=17.0';
+import { t, tx, setLang, getLang } from './i18n.js?v=17.0';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.0';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong } from './sound.js?v=17.0';
+import { typeRich, gallery } from './richact.js?v=17.0';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.0';
 
-export const APP_VERSION = 'V16.2';
+export const APP_VERSION = 'V17.0';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -131,8 +131,8 @@ async function boot() {
     S.card = card;
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=16.2').catch(() => {});
-    import('./surprise.js?v=16.2').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./admin.js?v=17.0').catch(() => {});
+    import('./surprise.js?v=17.0').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -268,10 +268,18 @@ function showPrizes() {
       const p = prizeState(g);
       return el('button', { class: 'prize-row2 ' + p.state, onclick: () => prizeDetail(g) },
         el('span', { class: 'pr-ico' }, { won: '🏆', lost: '💔', play: '🎁' }[p.state]),
-        el('span', { class: 'pr-txt' }, el('b', {}, t('dayRange', g)), el('small', {}, p.state === 'won' ? S.config.prizes['p' + g] : `✅ ${p.ok} · ❌ ${p.bad}`)),
+        el('span', { class: 'pr-txt' }, el('b', {}, t('dayRange', g)),
+          S.config.prizes?.['p' + g] ? el('span', { class: 'pr-prize' }, S.config.prizes['p' + g]) : null,
+          el('small', {}, `✅ ${p.ok} · ❌ ${p.bad}`)),
         el('span', { class: 'pr-go' }, '›'));
     }));
   popup(box);
+}
+// texto general de la cinta (el antiguo «pulsa para verla en grande» se cambia por la felicitación)
+function marqueeGeneral(mq) {
+  const txt = tx(mq.text) || '';
+  if (!txt || /en grande|en gran|full screen/i.test(txt)) return t('marqueeDefault', S.config.year || new Date().getFullYear());
+  return txt;
 }
 export function renderHome() {
   document.title = t('appTitle');
@@ -283,10 +291,10 @@ export function renderHome() {
     el('div', { class: 'title-frame', onclick: e => { if (e.target.closest('.icon-btn')) return; const f = e.currentTarget; f.classList.add('moving'); clearTimeout(f._t); f._t = setTimeout(() => f.classList.remove('moving'), 4000); } },
       el('div', { class: 'title-inner' },
         el('div', { class: 'title-block' }, el('h1', { class: 'title-text' }, t('appTitle')), el('div', { class: 'greeting' }, greeting())),
+        el('span', { class: 'ver-tag' }, APP_VERSION),
         el('div', { class: 'top-actions' },
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=16.2')).openAdmin() }, '🔒'),
-          el('button', { class: 'icon-btn', title: t('logout'), onclick: () => store.signOut() }, '🚪')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.0')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -315,13 +323,14 @@ export function renderHome() {
   const mq = { ...MARQUEE_DEFAULT, ...(S.config.marquee || {}) };
   const marquee = mq.show === false ? null : el('div', { class: 'marquee', onclick: () => { fullView = true; renderHome(); } },
     el('div', { class: 'marquee-track', style: `animation-duration:${Math.max(4, +mq.speed || 14)}s;color:${mq.color};font-weight:${mq.weight};${/neon/.test(mq.colorName || '') ? `text-shadow:0 0 6px ${mq.color},0 0 14px ${mq.color};` : ''}` },
-      ...Array.from({ length: 8 }, () => el('span', {}, ((S.settings?.marqueeText || '').trim() || tx(mq.text) || t('tapToZoom')) + '\u2003✦\u2003'))));
+      ...Array.from({ length: 8 }, () => el('span', {}, ((S.settings?.marqueeText || '').trim() || marqueeGeneral(mq)) + '\u2003✦\u2003'))));
   const bars = [];
   if (DEMO) bars.push(el('div', { class: 'demo-bar' }, t('demo')));
   if (testMode()) bars.push(el('div', { class: 'demo-bar test' }, '🧪 Modo prueba: todas las casillas abiertas'));
+  if (!fullView) bars.push(el('button', { class: 'zoom-bar no-delay', onclick: () => { fullView = true; renderHome(); } }, '🔍 ' + t('zoomBar')));
   const exitBtn = fullView ? el('button', { class: 'exit-full', onclick: () => { fullView = false; renderHome(); } }, '✕ ' + t('exitFull')) : null;
   document.body.classList.toggle('full-view', fullView);
-  app.replaceChildren(header, ...bars, ...(strip ? [strip] : []), ...(marquee ? [marquee] : []), board, el('div', { class: 'app-version' }, APP_VERSION), ...(exitBtn ? [exitBtn] : []));
+  app.replaceChildren(header, ...bars, ...(strip ? [strip] : []), ...(marquee ? [marquee] : []), board, ...(exitBtn ? [exitBtn] : []));
 
   fitTitle(); document.fonts?.ready?.then(fitTitle);
   boardObserver?.disconnect();
@@ -436,7 +445,7 @@ async function openDoor(n, door) {
   finishBtn.onclick = ctx.finish; cancelBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=16.2`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=17.0`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -469,10 +478,11 @@ async function closeDay(n, layer, note, door) {
   const done = !!S.answers[n];
   speechSynthesis?.cancel?.();
   if (fig !== 'galleta' && done) {
-    crumpleSound();
-    await crumpleAnim(note, true);
+    // la actividad tiene que salir siempre: si la animación falla, se sigue igualmente
+    try { crumpleSound(); await crumpleAnim(note, true); } catch (e) { console.error(e); }
     note.remove();
-    await showActivity(n, layer);
+    try { await showActivity(n, layer); }
+    catch (e) { console.error(e); toast('⚠️ ' + (e.code || e.message), 6000); }
   }
   creak(false);
   layer.classList.add('fade-out');
@@ -516,45 +526,82 @@ function creaseTexture() {
 }
 
 // Arrugar como papel de verdad: pliegues con luz y sombra + deformación SVG + bola que se encoge
+// Arrugar como papel de verdad: la nota se parte en facetas (trocitos triangulares de la propia nota),
+// cada faceta se dobla hacia el centro con su propia luz y sombra, y todo se convierte en una bola.
+// Solo usa transformaciones (van por la tarjeta gráfica): fluido también en iPhone.
 export async function crumpleAnim(node, out = true) {
-  const creases = el('div', { class: 'creases' });
-  creases.style.backgroundImage = `url(${creaseTexture()})`;
-  node.append(creases);
-  const disp = document.querySelector('#crumpleFilter feDisplacementMap');
-  const turb = document.querySelector('#crumpleFilter feTurbulence');
-  if (turb) turb.setAttribute('seed', String(1 + Math.random() * 90 | 0));
-  node.style.willChange = 'transform, clip-path, opacity, filter';
-  const dur = out ? 1800 : 1500, t0 = performance.now(), seed = Math.random() * 9;
-  const ease = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
-  let frame = 0;
-  await new Promise(done => {
-    const f = now => {
-      const p = Math.min(1, (now - t0) / dur);
-      const k = out ? ease(p) : 1 - ease(p); // 0 = hoja lisa, 1 = bola
-      // pliegues: aparecen enseguida y se marcan cada vez más
-      creases.style.opacity = Math.min(.95, k * 2.2).toFixed(3);
-      // deformación del papel (cada 2 fotogramas para que vaya suave)
-      if (disp && (frame++ % 2 === 0 || p === 1)) {
-        disp.setAttribute('scale', (k * 55).toFixed(1));
-        node.style.filter = k > .02 ? 'url(#crumpleFilter)' : '';
-      }
-      node.style.clipPath = k > .01 ? JAG(Math.min(1, k * 1.1), seed) : '';
-      const sc = 1 - k * .8;
-      node.style.transform = `perspective(900px) scale(${sc}) rotate(${k * 30 + Math.sin(k * 9) * 5}deg) rotateX(${Math.sin(k * 7) * 14}deg) rotateY(${Math.cos(k * 6) * 12}deg) translateY(${k * 40}px)`;
-      node.style.opacity = out ? (k > .88 ? 1 - (k - .88) / .12 : 1) : Math.min(1, .25 + p * 3);
-      if (p < 1) requestAnimationFrame(f); else done();
-    };
-    requestAnimationFrame(f);
-  });
-  if (!out) {
-    creases.remove();
-    Object.assign(node.style, { filter: '', clipPath: '', transform: '', opacity: '', willChange: '' });
+  const dur = (out ? 1900 : 1600) * (window.__crumpleSlow || 1);
+  let wrap = null;
+  try {
+    const r = node.getBoundingClientRect();
+    if (!r.width || !r.height) throw new Error('sin tamaño');
+    const W = r.width, H = r.height, COLS = 4, ROWS = 5;
+    // malla de puntos con un poco de desorden (los bordes se quedan rectos)
+    const P = [];
+    for (let y = 0; y <= ROWS; y++) { P[y] = []; for (let x = 0; x <= COLS; x++) {
+      const edgeX = x === 0 || x === COLS, edgeY = y === 0 || y === ROWS;
+      P[y][x] = [x / COLS * W + (edgeX ? 0 : (Math.random() - .5) * W / COLS * .7), y / ROWS * H + (edgeY ? 0 : (Math.random() - .5) * H / ROWS * .7)];
+    } }
+    const tris = [];
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      const a = P[y][x], b = P[y][x + 1], c = P[y + 1][x + 1], d = P[y + 1][x];
+      if ((x + y) % 2) tris.push([a, b, c], [a, c, d]); else tris.push([a, b, d], [b, c, d]);
+    }
+    wrap = el('div', { class: 'crumple-wrap' });
+    Object.assign(wrap.style, { left: r.left + 'px', top: r.top + 'px', width: W + 'px', height: H + 'px' });
+    const facets = tris.map(t => {
+      const cx = (t[0][0] + t[1][0] + t[2][0]) / 3, cy = (t[0][1] + t[1][1] + t[2][1]) / 3;
+      const clone = node.cloneNode(true);
+      clone.classList.add('crumple-facet');
+      clone.querySelectorAll('iframe, video').forEach(v => v.replaceWith(el('div', { class: 'crumple-media' })));
+      Object.assign(clone.style, { position: 'absolute', left: '0', top: '0', width: W + 'px', height: H + 'px', margin: '0', transform: 'none', animation: 'none', opacity: '1', filter: 'none',
+        clipPath: `polygon(${t.map(p => `${p[0].toFixed(1)}px ${p[1].toFixed(1)}px`).join(',')})`, transformOrigin: `${cx}px ${cy}px` });
+      const dark = Math.random() < .6;
+      const shade = el('div', { class: 'crumple-shade' });
+      shade.style.background = dark ? 'linear-gradient(135deg,#0000,#000)' : 'linear-gradient(135deg,#fff,#fff0)';
+      clone.append(shade);
+      wrap.append(clone);
+      const len = Math.hypot(Math.random() - .5, Math.random() - .5) || 1;
+      return { el: clone, shade, dx: W / 2 - cx, dy: H / 2 - cy, ax: (Math.random() - .5) / len, ay: (Math.random() - .5) / len, ang: 25 + Math.random() * 45,
+        jx: (Math.random() - .5) * 12, jy: (Math.random() - .5) * 12, sh: dark ? .25 + Math.random() * .45 : .15 + Math.random() * .4, z: (Math.random() - .5) * 40 };
+    });
+    document.body.append(wrap);
+    node.style.visibility = 'hidden';
+    const t0 = performance.now(), spin = (Math.random() < .5 ? -1 : 1) * (20 + Math.random() * 20);
+    const ease = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+    await new Promise(done => {
+      let finished = false; const end = () => { if (!finished) { finished = true; done(); } };
+      const f = now => {
+        if (finished) return;
+        const p = Math.min(1, (now - t0) / dur);
+        const k = out ? ease(p) : 1 - ease(p); // 0 = hoja lisa, 1 = bola de papel
+        // cada faceta se pliega hacia el centro con su giro y su luz
+        const fold = Math.min(1, k * 1.4), pull = Math.max(0, (k - .12) / .88);
+        for (const fc of facets) {
+          fc.el.style.transform = `translate3d(${(fc.dx * .9 * pull + fc.jx * fold).toFixed(1)}px,${(fc.dy * .9 * pull + fc.jy * fold).toFixed(1)}px,${(fc.z * fold).toFixed(1)}px) rotate3d(${fc.ax.toFixed(3)},${fc.ay.toFixed(3)},0.25,${(fc.ang * fold).toFixed(1)}deg) scale(${(1 - .45 * pull).toFixed(3)})`;
+          fc.shade.style.opacity = (fc.sh * Math.min(1, k * 1.6)).toFixed(3);
+        }
+        wrap.style.transform = `perspective(900px) translateY(${(k * 50).toFixed(1)}px) rotate(${(spin * k).toFixed(1)}deg) scale(${(1 - .55 * k).toFixed(3)})`;
+        wrap.style.opacity = out ? (k > .9 ? (1 - (k - .9) / .1).toFixed(3) : '1') : Math.min(1, .3 + p * 4).toFixed(3);
+        if (p < 1) requestAnimationFrame(f); else end();
+      };
+      requestAnimationFrame(f);
+      setTimeout(end, dur + 1000); // protección: nunca se queda a medias
+    });
+  } catch (e) {
+    console.warn('arrugado sencillo', e);
+    // protección: si algo falla, un arrugado sencillo que funciona en todas partes
+    const kf = [{ transform: 'scale(1) rotate(0)', opacity: 1 }, { transform: 'scale(.25) rotate(35deg)', opacity: 0 }];
+    try { await node.animate(out ? kf : kf.slice().reverse(), { duration: 900, easing: 'ease-in-out', fill: out ? 'forwards' : 'none' }).finished; } catch {}
+  } finally {
+    wrap?.remove();
+    if (!out) node.style.visibility = '';
   }
 }
 
 async function showActivity(n, layer) {
   const fig = figure();
-  const content = await loadDay(n) || defaultDay(n);
+  const content = await loadDay(n).catch(() => null) || defaultDay(n);
   const key = fig === 'arbol' ? 'act1' : 'act2';
   const over = null; // ya no hay actividades por persona: todos ven las del día
   const text = (over && over.trim()) || tx(content[key]);
@@ -628,10 +675,12 @@ function openUserSettings() {
   paper.onchange = upd; upd();
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.0').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+      el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('label', {}, t('paper'), paper), preview, el('label', { class: 'after-preview' }, t('portada'), port),
     accountSection());
-  popup(box, { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: t('save'), value: true }] }).then(async ok => {
+  popup(box, { top: true, buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: t('save'), value: true }] }).then(async ok => {
     if (!ok) return;
     Object.assign(S.profile, { name: name.value.trim() || S.profile.name, lang: lang.value, paper: paper.value, portada: port.value });
     setLang(lang.value); localStorage.setItem('adv_lang', lang.value);
@@ -674,7 +723,8 @@ function accountSection() {
     el('div', { class: 'acc-row' }, el('span', {}, '👤 ' + t('user')), el('b', {}, S.user.email)),
     el('div', { class: 'acc-row' }, el('span', {}, '🔑 ' + t('password')), el('b', { class: 'dots', title: t('pwHidden'), onclick: () => toast(t('pwHidden'), 6000) }, '•••••••• 👁️'),
       el('button', { type: 'button', class: 'btn btn-ghost small-btn', onclick: () => { form.style.display = form.style.display === 'none' ? '' : 'none'; } }, t('changePw'))),
-    form);
+    form,
+    el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: () => { document.querySelector('.popup-back')?.remove(); store.signOut(); } }, '🚪 ' + t('logoutLong')));
 }
 
 // modo demo: no se pueden mandar correos, así que se pone una contraseña nueva aquí mismo

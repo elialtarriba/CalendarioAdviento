@@ -1,11 +1,11 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store } from './store.js?v=16.2';
-import { t, tx } from './i18n.js?v=16.2';
-import { el, popup, toast, esc } from './fx.js?v=16.2';
-import { S, renderHome, loadDay } from './app.js?v=16.2';
-import { openActEditor, plain } from './richact.js?v=16.2';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=16.2';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=16.2';
+import { store } from './store.js?v=17.0';
+import { t, tx } from './i18n.js?v=17.0';
+import { el, popup, toast, esc } from './fx.js?v=17.0';
+import { S, renderHome, loadDay } from './app.js?v=17.0';
+import { openActEditor, plain } from './richact.js?v=17.0';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=17.0';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.0';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -71,16 +71,37 @@ function showPanel() {
   const special = el('button', { class: 'sp-special no-delay', onclick: () => {
     [...bar.children].forEach(b => b.classList.remove('active'));
     content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
-    import('./surprise.js?v=16.2').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
+    import('./surprise.js?v=17.0').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
   } }, el('span', { class: 'sp-special-ico' }, '💌'), el('span', {}, el('b', {}, 'Mensajes sorpresa'), el('small', {}, 'Un popup para quien tú quieras, el día que quieras')));
-  const guide = el('button', { class: 'hg-open no-delay', onclick: () => import('./help.js?v=16.2').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+  const guide = el('button', { class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.0').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
     el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos')));
   const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), special, guide, bar, content);
-  popup(box, { cls: 'wide', buttons: [{ label: t('close'), value: true }] }).then(async () => {
+  // los botones de guardar y de volver se quedan siempre a la vista al hacer scroll
+  const pin = () => content.querySelectorAll('button:not([data-pin])').forEach(b => {
+    b.dataset.pin = '1';
+    if (b.closest('.adm-sticky, .sp-actions, .popup-back .popup:not(.wide)')) return;
+    const txt = b.textContent.trim();
+    if (/^←/.test(txt)) b.classList.add('adm-back');
+    else if (/^💾|^Guardar/.test(txt)) (b.parentElement.matches('.row') ? b.parentElement : b).classList.add('adm-save');
+  });
+  new MutationObserver(pin).observe(content, { childList: true, subtree: true });
+  popup(box, { cls: 'wide', buttons: [{ label: t('close'), value: true }] }).then(async r => {
+    if (r === 'logout') return;
     S.answers = await store.getAnswers(S.user.uid).catch(() => S.answers);
     S.settings = (await store.getSettings(S.user.uid).catch(() => null)) || S.settings;
     renderHome();
   });
+  // botón para cerrar la sesión (pregunta antes)
+  const bar2 = box.closest('.popup')?.querySelector(':scope > .popup-btns');
+  if (bar2) bar2.prepend(el('button', { class: 'btn btn-ghost adm-logout', onclick: async () => {
+    const ok = await popup(`<h2>🚪 Cerrar sesión</h2><p>¿Seguro que quieres salir de tu cuenta?<br><small>Para volver a entrar necesitarás tu correo y tu contraseña.</small></p>`,
+      { cls: 'small', buttons: [{ label: 'Cancelar', value: false, cls: 'btn-ghost' }, { label: 'Sí, cerrar sesión', value: true }] });
+    if (!ok) return; // se queda en Configuración
+    S.isAdmin = false;
+    box.closest('.popup-back')?.remove();
+    try { sessionStorage.removeItem('adv_test'); } catch {}
+    await store.signOut();
+  } }, '🚪 Cerrar sesión'));
   go('answers');
 }
 
@@ -322,8 +343,14 @@ function userPanel(root, u, answers, set) {
   };
   daySel.onchange = drawActs; langSel.onchange = drawActs; drawActs();
   const mq = el('input', { type: 'text', value: set.marqueeText || '', placeholder: 'Vacío = el mensaje general de la marquesina' });
+  const saveUser = async () => {
+    try { await store.setSettings(u.uid, { figure: fig.value, showProgress: show.checked, marqueeText: mq.value.trim(), actOverrides: {} }); toast('💾 Guardado'); }
+    catch (e) { toast('Error: ' + e.message, 5000); }
+  };
   root.replaceChildren(
-    el('button', { class: 'btn btn-ghost small-btn', onclick: () => VIEWS.users(root) }, '← Volver'),
+    el('div', { class: 'adm-sticky' },
+      el('button', { class: 'btn btn-ghost small-btn', onclick: () => VIEWS.users(root) }, '← Volver'),
+      el('button', { class: 'btn small-btn', onclick: saveUser }, '💾 Guardar configuración')),
     el('h3', {}, `${esc(u.name || '')} · ${u.email}`),
     el('div', { class: 'card' },
       el('label', {}, 'Figura y tipo de calendario', fig),
@@ -336,10 +363,7 @@ function userPanel(root, u, answers, set) {
       } }, '↺ Reiniciar todas sus casillas')),
     el('div', { class: 'card' }, el('h3', {}, '📣 Mensaje de su marquesina'),
       el('p', { class: 'muted' }, 'Lo que verá esta persona pasando por la pantalla de inicio. Si lo dejas vacío, verá el mensaje general.'), mq),
-    el('button', { class: 'btn', onclick: async () => {
-      try { await store.setSettings(u.uid, { figure: fig.value, showProgress: show.checked, marqueeText: mq.value.trim(), actOverrides: {} }); toast('💾 Guardado'); }
-      catch (e) { toast('Error: ' + e.message, 5000); }
-    } }, '💾 Guardar configuración'),
+
     el('div', { class: 'card' }, el('h3', {}, '✏️ Actividades del día'),
       el('p', { class: 'muted' }, 'Son las mismas actividades que en «Contenido de los días»: si cambias algo aquí, cambia allí también, y al revés.'),
       el('div', { class: 'row' }, el('label', {}, 'Día', daySel), el('label', {}, 'Idioma', langSel)), actsBox));
@@ -348,7 +372,7 @@ function userPanel(root, u, answers, set) {
 function marqueeCard() {
   const m = { ...MARQUEE_DEFAULT, ...(S.config.marquee || {}) };
   const show = el('input', { type: 'checkbox', checked: m.show !== false });
-  const texts = Object.fromEntries(['es', 'ca', 'en'].map(l => [l, el('input', { type: 'text', value: (m.text && m.text[l]) || '' })]));
+  const texts = Object.fromEntries(['es', 'ca', 'en'].map(l => [l, el('input', { type: 'text', value: (m.text && m.text[l]) || '', placeholder: 'Vacío = ¡Feliz Navidad ' + (S.config.year || '') + ' y próspero Año Nuevo!' })]));
   const speed = el('input', { type: 'range', min: 4, max: 40, value: 44 - m.speed }); // derecha = más rápida
   const speedLbl = el('span', {}, '');
   const color = el('select', {}, ...MARQUEE_COLORS.map(([id, name]) => el('option', { value: id, selected: id === m.colorName }, name)));

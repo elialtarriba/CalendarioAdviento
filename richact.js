@@ -1,6 +1,6 @@
 // Actividades con texto enriquecido (títulos de colores, emojis) y fotos/vídeos
-import { el, sleep, popup, toast } from './fx.js?v=16.2';
-import { store } from './store.js?v=16.2';
+import { el, sleep, popup, toast } from './fx.js?v=17.0';
+import { store } from './store.js?v=17.0';
 
 // ---------- limpieza del HTML (solo etiquetas y estilos seguros)
 const OK_TAGS = new Set(['H2', 'H3', 'P', 'DIV', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'FONT', 'UL', 'OL', 'LI']);
