@@ -1,6 +1,6 @@
 // Guía de la app (para la administradora): pantalla completa, índice, dibujos y zoom con dos dedos
-import { el } from './fx.js?v=17.0';
-import { getLang } from './i18n.js?v=17.0';
+import { el } from './fx.js?v=17.2';
+import { getLang } from './i18n.js?v=17.2';
 let LANG = 'es';
 const L = (es, ca, en) => ({ es, ca, en })[LANG] ?? es;
 
@@ -57,7 +57,7 @@ const SECTIONS = [
     mock('⚙️ Configuración', el('div', { class: 'hg-special' }, '💌 ', B('Mensajes sorpresa')),
       el('div', { class: 'hg-tabs' }, pill('📨 Respuestas'), pill('👥 Usuarios'), pill('📅 Contenido de los días'), pill('🏆 Premios y ajustes')),
       el('div', { class: 'hg-help-btn' }, '📖 Guía de la app')),
-    P('Arriba tienes el botón rojo de ', B('Mensajes sorpresa'), ' y debajo las cuatro pestañas. Abajo del todo, siempre a la vista, ', B('🚪 Cerrar sesión'), ' (te pregunta antes si estás segura) y ', B('Cerrar'), '.'),
+    P('Arriba tienes el botón rojo de ', B('Mensajes sorpresa'), ' y debajo las cuatro pestañas. Abajo del todo, siempre a la vista, el botón ', B('Cerrar'), '.'),
     tip('Si olvidas la contraseña: entra con tu cuenta (elialtarriba@gmail.com), pulsa 🔒 y luego «¿Has olvidado la contraseña de configuración?». Podrás poner una nueva.'),
   ] },
   { id: 'surprise', ico: '💌', title: 'Mensajes sorpresa', color: '#e11d48', body: () => [
@@ -118,24 +118,25 @@ const SECTIONS = [
       [13, '😇', '¿Has sido bueno?', 'La máquina de bondad.'],
       [15, '📜', 'Diploma absurdo', ''],
       [20, '🎡', 'Ruleta del disparate', 'Tú escribes las misiones de cada casilla y la frase de debajo.'],
-      [24, '💃', 'El baile secreto', 'Pon tu vídeo en Premios y ajustes.'],
+      [24, '💃', 'El baile secreto', 'Sale siempre el vídeo baile.mp4 (súbelo a GitHub con los demás archivos). La grabación se comparte por WhatsApp.'],
       [25, '🎅', 'Tu cara en Papá Noel', 'Foto para compartir, guardar o imprimir.'],
     ].map(([n, e, t, d]) => el('div', { class: 'hg-day' }, el('span', { class: 'hg-day-n' }, n), el('span', { class: 'hg-day-e' }, e), el('div', {}, B(t), d ? el('small', {}, d) : null)))),
   ] },
   { id: 'general', ico: '🏆', title: 'Premios y ajustes', color: '#b45309', body: () => [
+    P('Arriba tienes un solo botón fijo, ', btn('💾 Guardar todo', 'red'), ', que guarda todos los apartados a la vez.'),
     el('div', { class: 'hg-list' },
       el('div', {}, el('span', {}, '🏆'), el('div', {}, B('Premios'), el('small', {}, 'Lo que se gana en los días 10, 15, 20 y 25. Se gana si como mucho has fallado o dejado sin hacer 3 días hasta esa fecha.'))),
       el('div', {}, el('span', {}, '📣'), el('div', {}, B('Cinta que se mueve'), el('small', {}, 'Texto general en 3 idiomas, color, grosor y velocidad, con vista previa.'))),
       el('div', {}, el('span', {}, '❄️'), el('div', {}, B('Bienvenida con nieve'), el('small', {}, 'Mostrarla o no, segundos que nieva y el título. «👀 Verla ahora» para probarla.'))),
-      el('div', {}, el('span', {}, '💃'), el('div', {}, B('Vídeo del baile (día 24)'), el('small', {}, 'Enlace de YouTube o nombre del vídeo. Vacío = baila el hombrecito de jengibre.'))),
       el('div', {}, el('span', {}, '📅'), el('div', {}, B('Año del calendario'), el('small', {}, 'Las casillas se abren del 1 al 25 de diciembre de ese año.'))),
-      el('div', {}, el('span', {}, '🧪'), el('div', {}, B('Modo prueba'), el('small', {}, 'Abre todas las casillas solo para ti mientras no cierres la app. Ideal para probar.'))),
+      el('div', {}, el('span', {}, '🧪'), el('div', {}, B('Modo prueba'), el('small', {}, 'Abre todas las casillas solo para ti. Se queda activado hasta que lo desactives con su interruptor.'))),
       el('div', {}, el('span', {}, '🔐'), el('div', {}, B('Contraseña de configuración'), el('small', {}, 'Cambiarla (actual + nueva dos veces).'))),
-      el('div', {}, el('span', {}, '🧌'), el('div', {}, B('Aviso de día olvidado'), el('small', {}, 'El texto del duende verde cuando alguien no abre un día. {dia} = el número del día.')))),
+      el('div', {}, el('span', {}, '🚪'), el('div', {}, B('Cerrar sesión'), el('small', {}, 'Debajo de la contraseña. Te pregunta antes si estás segura.'))),
+      el('div', {}, el('span', {}, '🧌'), el('div', {}, B('Aviso de día olvidado'), el('small', {}, 'Solo en diciembre: si alguien deja pasar un día sin abrir su casilla, sale un duende verde en su franja y, al tocarlo, este mensaje. No tiene que ver con las actividades. {dia} = el número del día.')))),
   ] },
   { id: 'tips', ico: '🛠️', title: 'Consejos y problemas', color: '#475569', body: () => [
     el('div', { class: 'hg-list' },
-      el('div', {}, el('span', {}, '🔢'), el('div', {}, B('Versión'), el('small', {}, 'En la cabecera, abajo a la izquierda y en letra pequeña, se ve la versión (por ejemplo V17.0). Si después de subir cambios no la ves, recarga la página.'))),
+      el('div', {}, el('span', {}, '🔢'), el('div', {}, B('Versión'), el('small', {}, 'En la cabecera, abajo a la izquierda y en letra pequeña, se ve la versión (por ejemplo V17.2). Si después de subir cambios no la ves, recarga la página.'))),
       el('div', {}, el('span', {}, '⬆️'), el('div', {}, B('Subir cambios'), el('small', {}, 'Sube a GitHub todos los .js, index.html y styles.css a la vez, para que no se mezclen versiones.'))),
       el('div', {}, el('span', {}, '🔊'), el('div', {}, B('Sonido en iPhone'), el('small', {}, 'Apple no deja sonar nada hasta tocar la pantalla. Si deja de sonar, toca la pantalla otra vez: se recupera solo.'))),
       el('div', {}, el('span', {}, '↺'), el('div', {}, B('Empezar de cero'), el('small', {}, 'Usuarios → Configurar → Reiniciar todo, para borrar los días de prueba.'))),

@@ -1,9 +1,9 @@
 // Día 25: tu cara en Papá Noel + felicitación con letras, confeti y luces
-import { t, getLang } from './i18n.js?v=17.0';
-import { el, sleep, confetti, popup } from './fx.js?v=17.0';
-import { chime, jingle, speak, hohoho } from './sound.js?v=17.0';
-import { S } from './app.js?v=17.0';
-import { store } from './store.js?v=17.0';
+import { t, getLang } from './i18n.js?v=17.2';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=17.2';
+import { chime, jingle, speak, hohoho } from './sound.js?v=17.2';
+import { S } from './app.js?v=17.2';
+import { store } from './store.js?v=17.2';
 
 const W = 882, H = 1192, FACE = { x: 458, y: 500, rx: 215, ry: 185 };
 const BULBS = ['#ff3b3b', '#ffd23b', '#3bff6a', '#3bb6ff', '#ff7af0'];
@@ -138,7 +138,7 @@ export function render(body, ctx) {
     await sleep(spans.length * 90 + 1700);
     st.text = text; redraw(); letters.replaceChildren();
     chime(); confetti(350, { frames: 360 }); setTimeout(() => confetti(250), 1200);
-    hohoho(getLang()); setTimeout(() => speak(text, getLang()), 2200);
+    hohoho(getLang()); setTimeout(() => speak(text, getLang()), 4600);
     // se van encendiendo las luces
     for (let i = 1; i <= 40; i++) { st.bulbs = i / 40; st.glow = i / 40; redraw(); await sleep(60); }
     let ph = 0; const blink = setInterval(() => { st.phase = ++ph; redraw(); }, 700);
@@ -159,7 +159,7 @@ export function render(body, ctx) {
     let blob = null;
     fetch(url).then(r => r.blob()).then(b => { blob = b; }).catch(() => {});
     const name = 'feliz-navidad.png';
-    const save = el('button', { class: 'btn', onclick: async () => {
+    const save = el('button', { class: 'btn no-delay', onclick: async () => {
       try {
         const b = blob || await (await fetch(url)).blob();
         const file = new File([b], name, { type: b.type || 'image/png' });
@@ -169,8 +169,17 @@ export function render(body, ctx) {
         setTimeout(() => { a.remove(); URL.revokeObjectURL(u); }, 4000);
       } catch (e) { if (e.name !== 'AbortError') showBig(url); }
     } }, '💾 ' + t('d25save'));
-    const print = el('button', { class: 'btn btn-green', onclick: () => {
-      // se imprime desde un marco aparte que solo contiene la imagen
+    const print = el('button', { class: 'btn btn-green no-delay', onclick: async () => {
+      // iPhone/iPad: imprimir desde la app no está permitido, pero el menú de compartir tiene «Imprimir»
+      const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (iOS || navigator.standalone || matchMedia('(display-mode: standalone)').matches) {
+        try {
+          const b = blob || await (await fetch(url)).blob();
+          const file = new File([b], name, { type: b.type || 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) { toast('🖨️ ' + t('d25printHint'), 5000); await navigator.share({ files: [file] }); return; }
+        } catch (e) { if (e.name === 'AbortError') return; }
+      }
+      // ordenador: se imprime desde un marco aparte que solo contiene la imagen
       const fr = el('iframe', { style: 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0' });
       document.body.append(fr);
       const d = fr.contentWindow.document;
@@ -178,12 +187,12 @@ export function render(body, ctx) {
       const go = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch { window.print(); } setTimeout(() => fr.remove(), 60000); };
       const img = d.querySelector('img'); if (img.complete) setTimeout(go, 200); else img.onload = () => setTimeout(go, 200);
     } }, '🖨️ ' + t('d25print'));
-    const share = el('button', { class: 'btn', style: 'background:linear-gradient(#25d366,#128c4a);box-shadow:0 4px 0 #0b5e31', onclick: async () => {
+    const share = el('button', { class: 'btn no-delay', style: 'background:linear-gradient(#25d366,#128c4a);box-shadow:0 4px 0 #0b5e31', onclick: async () => {
       try {
         const b = blob || await (await fetch(url)).blob();
         const file = new File([b], name, { type: b.type || 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], text: t('d25shareText') });
-        else { save.click(); setTimeout(() => window.open('https://wa.me/?text=' + encodeURIComponent(t('d25shareText')), '_blank'), 800); }
+        else { save.click(); setTimeout(() => { location.href = 'whatsapp://send?text=' + encodeURIComponent(t('d25shareText')); }, 800); }
       } catch (e) { if (e.name !== 'AbortError') showBig(url); }
     }, html: '<svg viewBox="0 0 32 32" width="20" height="20" style="vertical-align:-4px;margin-right:6px"><path fill="#fff" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.6c-2 0-4-.6-5.7-1.6l-.4-.2-3.9 1 1-3.8-.3-.4A10.6 10.6 0 1 1 16 26.6zm5.8-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7 0a8.7 8.7 0 0 1-4.3-3.8c-.3-.6.3-.5.9-1.7.1-.2 0-.4 0-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.6 3.6 0 0 0-1.1 2.7 6.3 6.3 0 0 0 1.3 3.3 14.4 14.4 0 0 0 5.5 4.9c2 .9 2.8 1 3.9.8a3.3 3.3 0 0 0 2.1-1.5 2.7 2.7 0 0 0 .2-1.5c-.1-.2-.3-.3-.6-.4z"/></svg>' + t('d25shareBtn') });
     out.replaceChildren(el('p', { class: 'd25-family' }, '👨‍👩‍👧‍👦 ' + t('d25family')), share, save, print,

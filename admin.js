@@ -1,11 +1,11 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store } from './store.js?v=17.0';
-import { t, tx } from './i18n.js?v=17.0';
-import { el, popup, toast, esc } from './fx.js?v=17.0';
-import { S, renderHome, loadDay } from './app.js?v=17.0';
-import { openActEditor, plain } from './richact.js?v=17.0';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=17.0';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.0';
+import { store } from './store.js?v=17.2';
+import { t, tx } from './i18n.js?v=17.2';
+import { el, popup, toast, esc } from './fx.js?v=17.2';
+import { S, renderHome, loadDay, testMode, setTestMode } from './app.js?v=17.2';
+import { openActEditor, plain } from './richact.js?v=17.2';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=17.2';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.2';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -71,9 +71,9 @@ function showPanel() {
   const special = el('button', { class: 'sp-special no-delay', onclick: () => {
     [...bar.children].forEach(b => b.classList.remove('active'));
     content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
-    import('./surprise.js?v=17.0').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
+    import('./surprise.js?v=17.2').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
   } }, el('span', { class: 'sp-special-ico' }, '💌'), el('span', {}, el('b', {}, 'Mensajes sorpresa'), el('small', {}, 'Un popup para quien tú quieras, el día que quieras')));
-  const guide = el('button', { class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.0').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+  const guide = el('button', { class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.2').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
     el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos')));
   const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), special, guide, bar, content);
   // los botones de guardar y de volver se quedan siempre a la vista al hacer scroll
@@ -91,17 +91,6 @@ function showPanel() {
     S.settings = (await store.getSettings(S.user.uid).catch(() => null)) || S.settings;
     renderHome();
   });
-  // botón para cerrar la sesión (pregunta antes)
-  const bar2 = box.closest('.popup')?.querySelector(':scope > .popup-btns');
-  if (bar2) bar2.prepend(el('button', { class: 'btn btn-ghost adm-logout', onclick: async () => {
-    const ok = await popup(`<h2>🚪 Cerrar sesión</h2><p>¿Seguro que quieres salir de tu cuenta?<br><small>Para volver a entrar necesitarás tu correo y tu contraseña.</small></p>`,
-      { cls: 'small', buttons: [{ label: 'Cancelar', value: false, cls: 'btn-ghost' }, { label: 'Sí, cerrar sesión', value: true }] });
-    if (!ok) return; // se queda en Configuración
-    S.isAdmin = false;
-    box.closest('.popup-back')?.remove();
-    try { sessionStorage.removeItem('adv_test'); } catch {}
-    await store.signOut();
-  } }, '🚪 Cerrar sesión'));
   go('answers');
 }
 
@@ -233,10 +222,24 @@ const VIEWS = {
     const pr = S.config.prizes;
     const fields = Object.fromEntries(['p10', 'p15', 'p20', 'p25'].map(k => [k, el('textarea', { rows: 2 }, pr[k] || '')]));
     const year = el('input', { type: 'number', value: S.config.year, min: 2024, max: 2100 });
-    const test = el('input', { type: 'checkbox', checked: sessionStorage.getItem('adv_test') === '1' });
-    test.onchange = () => sessionStorage.setItem('adv_test', test.checked ? '1' : '0');
+    const testBtn = el('button', { class: 'test-switch no-delay', onclick: () => {
+      const on = !testMode(); setTestMode(on); drawTest(); toast(on ? '🧪 Modo prueba activado' : 'Modo prueba desactivado');
+    } });
+    const drawTest = () => { const on = testMode(); testBtn.classList.toggle('on', on); testBtn.replaceChildren(el('span', { class: 'ts-knob' }), el('b', {}, on ? 'ACTIVADO' : 'DESACTIVADO')); };
+    drawTest();
     const np = el('input', { type: 'password', placeholder: 'Nueva contraseña' });
+    // un solo botón fijo arriba que guarda todo lo de esta pestaña
+    const saveAll = el('button', { class: 'btn small-btn no-delay', onclick: async () => {
+      saveAll.disabled = true;
+      const btns = [...root.querySelectorAll('.card button')].filter(b => /^💾|^Guardar/.test(b.textContent.trim()));
+      for (const b of btns) {
+        if (/año/.test(b.textContent) && +year.value === +S.config.year) continue; // el año solo si ha cambiado
+        b._go = true; b.click(); await new Promise(r => setTimeout(r, 250));
+      }
+      saveAll.disabled = false; setTimeout(() => toast('💾 Todo guardado'), 400);
+    } }, '💾 Guardar todo');
     root.replaceChildren(
+      el('div', { class: 'adm-sticky' }, el('span', { class: 'adm-sticky-t' }, '🏆 Premios y ajustes'), saveAll),
       el('div', { class: 'card' }, el('h3', {}, '🏆 Premios'),
         el('label', {}, 'Con 10 aciertos', fields.p10), el('label', {}, 'Con 15 aciertos', fields.p15),
         el('label', {}, 'Con 20 aciertos', fields.p20), el('label', {}, 'Con las 25 (los 4 premios + extra)', fields.p25),
@@ -262,12 +265,6 @@ const VIEWS = {
             } }, '💾 Guardar'),
             el('button', { class: 'btn btn-ghost small-btn', onclick: () => { try { sessionStorage.removeItem('adv_splash_seen'); } catch {} location.reload(); } }, '👀 Verla ahora')));
       })(),
-      (() => {
-        const v = el('input', { type: 'text', value: S.config.danceVideo || '', placeholder: 'https://www.youtube.com/watch?v=…' });
-        return el('div', { class: 'card' }, el('h3', {}, '💃 Vídeo del baile (día 24)'),
-          el('p', { class: 'muted' }, 'Pega el enlace de un vídeo de YouTube (o el nombre de un vídeo tuyo subido a GitHub, por ejemplo baile.mp4). Si lo dejas vacío, baila el hombrecito de jengibre.'),
-          v, el('button', { class: 'btn small-btn', style: 'margin-top:8px', onclick: async () => { await store.saveConfig({ danceVideo: v.value.trim() }); S.config.danceVideo = v.value.trim(); toast('💾 Vídeo guardado'); } }, '💾 Guardar vídeo'));
-      })(),
       el('div', { class: 'card' }, el('h3', {}, '📅 Año del calendario'),
         el('p', { class: 'muted' }, 'Las casillas se abren del 1 al 25 de diciembre de este año (hora de España).'),
         el('div', { class: 'row' }, year, el('button', { class: 'btn small-btn', onclick: async e => {
@@ -278,7 +275,7 @@ const VIEWS = {
           e.target.disabled = false; toast('💾 Año guardado');
         } }, 'Guardar año'))),
       el('div', { class: 'card' }, el('h3', {}, '🧪 Modo prueba'),
-        el('label', { class: 'inline' }, test, ' Abrir todas las casillas (solo para ti, mientras no cierres la pestaña)')),
+        el('p', { class: 'muted' }, 'Abre todas las casillas, solo para ti, para probarlas. Se queda activado (aunque cierres la app) hasta que tú lo desactives aquí.'), testBtn),
       (() => {
         const cur = el('input', { type: 'password', placeholder: 'Contraseña actual', autocomplete: 'off' });
         const n1 = el('input', { type: 'password', placeholder: 'Contraseña nueva', autocomplete: 'new-password' });
@@ -293,12 +290,24 @@ const VIEWS = {
           } }, 'Cambiar'),
           el('p', { class: 'muted', style: 'margin-top:8px' }, `Si la olvidas: entra con la cuenta ${OWNER_EMAIL}, pulsa 🔒 y luego «¿Has olvidado la contraseña de configuración?».`));
       })(),
+      el('div', { class: 'card' }, el('h3', {}, '🚪 Cerrar sesión'),
+        el('p', { class: 'muted' }, 'Sales de tu cuenta en este móvil u ordenador. Para volver a entrar necesitarás tu correo y tu contraseña.'),
+        el('button', { class: 'btn btn-ghost small-btn', onclick: async () => {
+          const ok = await popup(`<h2>🚪 Cerrar sesión</h2><p>¿Seguro que quieres salir de tu cuenta?<br><small>Para volver a entrar necesitarás tu correo y tu contraseña.</small></p>`,
+            { cls: 'small', buttons: [{ label: 'Cancelar', value: false, cls: 'btn-ghost' }, { label: 'Sí, cerrar sesión', value: true }] });
+          if (!ok) return; // se queda en Configuración
+          S.isAdmin = false; setTestMode(false);
+          root.closest('.popup-back')?.remove();
+          await store.signOut();
+        } }, '🚪 Cerrar sesión')),
       (() => {
         const ta = el('textarea', { rows: 3 }, S.config.missedMsg || MISSED_DEFAULT);
         return el('div', { class: 'card' }, el('h3', {}, '🧌 Aviso de día olvidado'),
-          el('p', { class: 'muted' }, 'Sale al pulsar el duende verde que aparece en la franja cuando alguien no ha abierto un día. Escribe {dia} donde quieras que salga el número del día.'),
+          el('p', { class: 'muted' }, 'Solo funciona en diciembre: si una persona deja pasar un día sin abrir su casilla, en su franja de figuras sale un duende verde 🧌 en ese día. Al tocarlo aparece este mensaje. No tiene nada que ver con las actividades 1 y 2. Escribe {dia} donde quieras que salga el número del día.'),
           ta, el('button', { class: 'btn small-btn', style: 'margin-top:8px', onclick: async () => { await store.saveConfig({ missedMsg: ta.value.trim() }); S.config.missedMsg = ta.value.trim(); toast('💾 Guardado'); } }, '💾 Guardar aviso'));
       })());
+    // los «Guardar» de cada apartado se esconden: lo guarda todo el botón fijo de arriba
+    root.querySelectorAll('.card button').forEach(b => { if (/^💾|^Guardar/.test(b.textContent.trim())) { b.dataset.pin = '1'; b.style.display = 'none'; } });
   },
 };
 

@@ -248,14 +248,38 @@ function distantBells(at, secs = 5) {
     o.connect(g); g.connect(far); o.start(at + .4 + d); o.stop(at + 3.2 + d);
   }));
 }
-// Día 25: ¡Ho, ho, ho! de Papá Noel + campanillas a lo lejos
-let hohoAudio;
+// Día 25: ¡Ho, ho, ho! de Papá Noel con cascabeles sonando a la vez.
+// La risa se reproduce con el mismo sistema de sonido que el resto (así suena siempre, también en iPhone),
+// un poco más grave y con más cuerpo para que suene a Papá Noel.
+let hohoBuf = null, hohoLoading = null;
+function loadHoho() {
+  if (hohoBuf) return Promise.resolve(hohoBuf);
+  if (!hohoLoading) hohoLoading = fetch('hohoho.mp3?v=2').then(r => r.arrayBuffer())
+    .then(ab => new Promise((res, rej) => ac().decodeAudioData(ab, res, rej))).then(b => (hohoBuf = b)).catch(e => { hohoLoading = null; throw e; });
+  return hohoLoading;
+}
+setTimeout(() => loadHoho().catch(() => {}), 3000); // se prepara con tiempo
+function jingleShake(at, secs = 3.6, vol = .06) {
+  // cascabeles de trineo al ritmo (como si alguien los agitara mientras Papá Noel se ríe)
+  for (let tt = 0; tt < secs; tt += .2) sleighBells(at + tt, 3, vol * (tt % .8 < .2 ? 1.4 : 1));
+}
 export function hohoho() {
   try {
-    distantBells(ac().currentTime + .05, 5);
-    hohoAudio = hohoAudio || new Audio('hohoho.mp3?v=2');
-    hohoAudio.currentTime = 0; hohoAudio.volume = 1;
-    hohoAudio.play().catch(() => speak('', 'es', { hoho: true }));
+    unlockAudio();
+    const c = ac(), at = c.currentTime + .08;
+    jingleShake(at, 3.8);
+    distantBells(at, 5);
+    loadHoho().then(buf => {
+      const src = c.createBufferSource(); src.buffer = buf; src.playbackRate.value = .86; // más grave, voz de Papá Noel
+      const body = c.createBiquadFilter(); body.type = 'lowshelf'; body.frequency.value = 220; body.gain.value = 7;
+      const air = c.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 5000; air.gain.value = -4;
+      const g = c.createGain(); g.gain.value = 1.5;
+      src.connect(body); body.connect(air); air.connect(g); g.connect(c.destination);
+      src.start(Math.max(c.currentTime, at + .15));
+    }).catch(() => {
+      // si no se puede cargar el archivo: se intenta con el reproductor normal
+      const a = new Audio('hohoho.mp3?v=2'); a.play().catch(() => {});
+    });
   } catch {}
 }
 // ¡Enhorabuena!: fanfarria de trompetas + aplausos

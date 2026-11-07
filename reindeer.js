@@ -1,8 +1,8 @@
 // Día 4: busca los 5 renos con gafas negras entre ~1000 renos
-import { t } from './i18n.js?v=17.0';
-import { el, popup, starBurst } from './fx.js?v=17.0';
-import { chime, pop, wrong } from './sound.js?v=17.0';
-import { figure } from './app.js?v=17.0';
+import { t } from './i18n.js?v=17.2';
+import { el, popup, starBurst } from './fx.js?v=17.2';
+import { chime, pop, wrong } from './sound.js?v=17.2';
+import { figure } from './app.js?v=17.2';
 
 const W = 1600, H = 1100, COLS = 40, ROWS = 25;
 

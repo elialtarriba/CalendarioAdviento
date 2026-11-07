@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=17.0';
-import { t, tx, setLang, getLang } from './i18n.js?v=17.0';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.0';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong } from './sound.js?v=17.0';
-import { typeRich, gallery } from './richact.js?v=17.0';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.0';
+import { initStore, store, DEMO } from './store.js?v=17.2';
+import { t, tx, setLang, getLang } from './i18n.js?v=17.2';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.2';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong } from './sound.js?v=17.2';
+import { typeRich, gallery } from './richact.js?v=17.2';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.2';
 
-export const APP_VERSION = 'V17.0';
+export const APP_VERSION = 'V17.2';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -19,7 +19,10 @@ export function madridToday() {
   const g = k => +p.find(x => x.type === k).value;
   return { y: g('year'), m: g('month'), d: g('day') };
 }
-export const testMode = () => S.isAdmin && sessionStorage.getItem('adv_test') === '1';
+// modo prueba: se recuerda en este aparato hasta que la administradora lo desactive
+const testKey = () => 'adv_test_' + (S.user?.uid || '');
+export const testMode = () => { try { return localStorage.getItem(testKey()) === '1'; } catch { return false; } };
+export const setTestMode = on => { try { on ? localStorage.setItem(testKey(), '1') : localStorage.removeItem(testKey()); } catch {} };
 function canOpen(n) {
   if (testMode()) return true;
   const { y, m, d } = madridToday(); const Y = S.config.year;
@@ -131,8 +134,8 @@ async function boot() {
     S.card = card;
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=17.0').catch(() => {});
-    import('./surprise.js?v=17.0').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./admin.js?v=17.2').catch(() => {});
+    import('./surprise.js?v=17.2').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -294,7 +297,7 @@ export function renderHome() {
         el('span', { class: 'ver-tag' }, APP_VERSION),
         el('div', { class: 'top-actions' },
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.0')).openAdmin() }, '🔒')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.2')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -445,7 +448,7 @@ async function openDoor(n, door) {
   finishBtn.onclick = ctx.finish; cancelBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=17.0`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=17.2`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -675,7 +678,7 @@ function openUserSettings() {
   paper.onchange = upd; upd();
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.0').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.2').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('label', {}, t('paper'), paper), preview, el('label', { class: 'after-preview' }, t('portada'), port),
