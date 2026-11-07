@@ -1,6 +1,15 @@
 // Guía de la app (para la administradora): pantalla completa, índice, dibujos y zoom con dos dedos
-import { el } from './fx.js?v=17.3';
-import { getLang } from './i18n.js?v=17.3';
+import { el } from './fx.js?v=17.6';
+import { getLang } from './i18n.js?v=17.6';
+import { PORTADAS, PAPERS } from './defaults.js?v=17.6';
+import { figure } from './app.js?v=17.6';
+// una ventanita del calendario (recortada del tema «Cosas Navidad»), como las de la portada
+function doorCrop(d = 1, cls = '') {
+  const v = PORTADAS[0].variants.find(x => /movil/.test(x.img)) || PORTADAS[0].variants[0];
+  const [cx, cy, w, h] = v.spots[d], L0 = cx - w / 2, T0 = cy - h / 2;
+  return el('span', { class: 'hg-door-crop ' + cls, style: `background-image:url(${v.img});background-size:${v.w / w * 100}% ${v.h / h * 100}%;background-position:${L0 / (v.w - w) * 100}% ${T0 / (v.h - h) * 100}%` });
+}
+const FIG_IMG = { galleta: 'galleta.png', arbol: 'arbol.png', gnomo: 'gnomo.png' };
 let LANG = 'es';
 const L = (es, ca, en) => ({ es, ca, en })[LANG] ?? es;
 
@@ -136,7 +145,7 @@ const SECTIONS = [
   ] },
   { id: 'tips', ico: '🛠️', title: 'Consejos y problemas', color: '#475569', body: () => [
     el('div', { class: 'hg-list' },
-      el('div', {}, el('span', {}, '🔢'), el('div', {}, B('Versión'), el('small', {}, 'En la cabecera, abajo a la izquierda y en letra pequeña, se ve la versión (por ejemplo V17.3). Si después de subir cambios no la ves, recarga la página.'))),
+      el('div', {}, el('span', {}, '🔢'), el('div', {}, B('Versión'), el('small', {}, 'En la cabecera, abajo a la izquierda y en letra pequeña, se ve la versión (por ejemplo V17.5). Si después de subir cambios no la ves, recarga la página.'))),
       el('div', {}, el('span', {}, '⬆️'), el('div', {}, B('Subir cambios'), el('small', {}, 'Sube a GitHub todos los .js, index.html y styles.css a la vez, para que no se mezclen versiones.'))),
       el('div', {}, el('span', {}, '🔊'), el('div', {}, B('Sonido en iPhone'), el('small', {}, 'Apple no deja sonar nada hasta tocar la pantalla. Si deja de sonar, toca la pantalla otra vez: se recupera solo.'))),
       el('div', {}, el('span', {}, '↺'), el('div', {}, B('Empezar de cero'), el('small', {}, 'Usuarios → Configurar → Reiniciar todo, para borrar los días de prueba.'))),
@@ -197,9 +206,9 @@ function openGuide(SECTIONS, { bar: barTitle, sub, ui = UI.es, langs = null, onL
     el('h2', { class: 'hg-index-t' }, ui.index),
     el('p', { class: 'hg-hint' }, ui.hint),
     el('div', { class: 'hg-index' }, ...SECTIONS.map((s, i) => el('button', { class: 'hg-index-item no-delay', style: `--c:${s.color}`, onclick: () => go(s.id) },
-      el('span', { class: 'hg-index-ico' }, s.ico), el('span', {}, el('small', {}, `${i + 1}.`), ' ', s.title)))));
+      el('span', { class: 'hg-index-ico' }, typeof s.ico === 'function' ? s.ico() : s.ico), el('span', {}, el('small', {}, `${i + 1}.`), ' ', s.title)))));
   SECTIONS.forEach((s, i) => content.append(el('section', { class: 'hg-sec', id: 'hg-' + s.id, style: `--c:${s.color}` },
-    el('h2', {}, el('span', { class: 'hg-sec-ico' }, s.ico), el('span', {}, el('small', {}, `${i + 1}`), s.title)),
+    el('h2', {}, el('span', { class: 'hg-sec-ico' }, typeof s.ico === 'function' ? s.ico() : s.ico), el('span', {}, el('small', {}, `${i + 1}`), s.title)),
     ...s.body(),
     el('button', { class: 'hg-back no-delay', onclick: () => scroll.scrollTo({ top: 0, behavior: 'smooth' }) }, ui.back))));
 
@@ -226,6 +235,17 @@ const THEMES = [['regalos', 'Cosas Navidad'], ['galletas', 'Galletas'], ['toysho
 const item = (ico, title, txt) => el('div', {}, el('span', {}, ico), el('div', {}, B(title), el('small', {}, txt)));
 const card = (img, title, txt) => el('div', { class: 'hg-card' }, img, B(title), el('small', {}, txt));
 const troll = () => el('div', { class: 'hg-troll' }, '🧌');
+// apartado que se abre al tocarlo
+function acc(ico, title, content) {
+  const panel = el('div', { class: 'hg-acc-panel' });
+  const head = el('button', { class: 'hg-acc-head no-delay', onclick: () => {
+    const open = !wrap.classList.contains('open');
+    if (open && !panel.childElementCount) panel.append(...content());
+    wrap.classList.toggle('open', open);
+  } }, el('span', { class: 'hg-acc-ico' }, ico), el('b', {}, title), el('span', { class: 'hg-acc-arrow' }, '›'));
+  const wrap = el('div', { class: 'hg-acc-item' }, head, panel);
+  return wrap;
+}
 
 function userSections() {
   const FIN = L('Finalizar', 'Finalitzar', 'Finish');
@@ -250,31 +270,44 @@ function userSections() {
     steps(el('span', {}, L('Pulsa la ', 'Prem la ', 'Tap the '), B(L('barra roja', 'barra vermella', 'red bar')), L(' de arriba: «🔍 Pulsa aquí para ver el calendario a pantalla completa».', ' de dalt: «🔍 Prem aquí per veure el calendari a pantalla completa».', ' at the top: “🔍 Tap here to see the calendar full screen”.')),
       el('span', {}, L('Toca ', 'Toca ', 'Tap '), B(L('la imagen del calendario', 'la imatge del calendari', 'the calendar picture')), L(' en cualquier sitio que no sea un número (los bordes, el fondo, los dibujos).', ' a qualsevol lloc que no sigui un número (les vores, el fons, els dibuixos).', ' anywhere that is not a number (the edges, the background, the drawings).')),
       el('span', {}, L('Toca la ', 'Toca la ', 'Tap the '), B(L('cinta que se mueve', 'cinta que es mou', 'moving banner')), '.')),
-    mock(L('Pantalla completa', 'Pantalla completa', 'Full screen'), el('div', { class: 'hg-board big' }, ...Array.from({ length: 10 }, (_, i) => el('span', { class: 'hg-door' }, i + 1))), el('div', { class: 'hg-exit' }, L('✕ Salir', '✕ Sortir', '✕ Exit'))),
+    mock(L('Pantalla completa', 'Pantalla completa', 'Full screen'), el('div', { class: 'hg-full' }, el('img', { src: 'tema-regalos-movil.jpg', alt: '' }), el('span', { class: 'hg-exit' }, L('✕ Salir', '✕ Sortir', '✕ Exit')))),
     P(L('Para volver a la vista normal, pulsa ', 'Per tornar a la vista normal, prem ', 'To go back to the normal view, tap '), btn(L('✕ Salir', '✕ Sortir', '✕ Exit')), '.'),
     tip(L('En pantalla completa también puedes abrir las casillas tocando su número.', 'A pantalla completa també pots obrir les caselles tocant-ne el número.', 'In full screen you can also open the boxes by tapping their number.')),
   ] },
-  { id: 'u-open', ico: '🚪', color: '#c2410c', title: L('Abrir la casilla del día', 'Obrir la casella del dia', 'Opening today’s box'), body: () => [
+  { id: 'u-open', ico: () => doorCrop(1, 'ico'), color: '#c2410c', title: L('Abrir la casilla del día', 'Obrir la casella del dia', 'Opening today’s box'), body: () => [
+    el('div', { class: 'hg-doors' }, doorCrop(1), doorCrop(2, 'lit'), doorCrop(3)),
     steps(el('span', {}, L('Toca el ', 'Toca el ', 'Tap the '), B(L('número', 'número', 'number')), L(' de la casilla de hoy.', ' de la casella d’avui.', ' of today’s box.')),
-      el('span', {}, L('La puerta ', 'La porta ', 'The door '), B(L('se ilumina', 's’il·lumina', 'lights up')), L(', suena una melodía y se abre.', ', sona una melodia i s’obre.', ', a tune plays and it opens.')),
+      el('span', {}, L('La ventanita ', 'La finestreta ', 'The little window '), B(L('se ilumina', 's’il·lumina', 'lights up')), L(', suena una melodía y se abre.', ', sona una melodia i s’obre.', ', a tune plays and it opens.')),
       el('span', {}, L('Aparece una ', 'Apareix una ', 'A '), B(L('nota', 'nota', 'note')), L(' con el reto del día. ¡Léela con calma!', ' amb el repte del dia. Llegeix-la amb calma!', ' appears with the day’s challenge. Read it calmly!')),
       el('span', {}, L('Haz el reto y pulsa ', 'Fes el repte i prem ', 'Do the challenge and tap '), btn(FIN, 'red'), '.')),
     P(L('Si no puedes hacerlo en ese momento, pulsa ', 'Si no ho pots fer en aquell moment, prem ', 'If you can’t do it right then, tap '), btn(L('Cancelar (lo haré luego)', 'Cancel·lar (ho faré després)', 'Cancel (I’ll do it later)')), L(' y vuelve más tarde.', ' i torna més tard.', ' and come back later.')),
     warn(L('Cada reto se responde ', 'Cada repte es respon ', 'Each challenge can be answered '), B(L('una sola vez', 'una sola vegada', 'only once')), L('. Si vuelves a abrir la casilla, verás lo que contestaste.', '. Si tornes a obrir la casella, veuràs el que vas contestar.', '. If you open the box again, you’ll see what you answered.')),
     tip(L('Si te dejas un día, lo puedes hacer al día siguiente… ¡pero mejor no dejarlo pasar mucho!', 'Si et deixes un dia, el pots fer l’endemà… però millor no deixar-ho passar gaire!', 'If you miss a day, you can do it the next day… but better not to leave it too long!')),
   ] },
-  { id: 'u-fig', ico: '🧑‍🎄', color: '#7c3aed', title: L('Tu figura y tus actividades', 'La teva figura i les teves activitats', 'Your figure and your activities'), body: () => [
-    P(L('Cada persona tiene una figura. La elige la organizadora:', 'Cada persona té una figura. La tria l’organitzadora:', 'Everyone has a figure. The organiser chooses it:')),
-    row(card(fig('galleta.png'), L('Galleta', 'Galeta', 'Gingerbread'), L('Haces el reto de cada casilla.', 'Fas el repte de cada casella.', 'You do each box’s challenge.')),
-      card(fig('arbol.png'), L('Árbol', 'Arbre', 'Tree'), L('Reto + una actividad extra (Actividad 1).', 'Repte + una activitat extra (Activitat 1).', 'Challenge + an extra activity (Activity 1).')),
-      card(fig('gnomo.png'), L('Gnomo', 'Gnom', 'Gnome'), L('Reto + una actividad extra (Actividad 2).', 'Repte + una activitat extra (Activitat 2).', 'Challenge + an extra activity (Activity 2).'))),
-    P(L('Si tienes árbol o gnomo, al terminar el reto ', 'Si tens arbre o gnom, en acabar el repte ', 'If you have a tree or a gnome, when you finish the challenge '), B(L('la nota se arruga como un papel', 'la nota s’arruga com un paper', 'the note crumples like paper')), L(' y aparece tu actividad. Cuando la hagas, pulsa ', ' i apareix la teva activitat. Quan la facis, prem ', ' and your activity appears. When you’ve done it, tap '), btn(FIN, 'red'), '.'),
-    tip(L('Si dejas la actividad para luego, al volver a abrir esa casilla te la recordará.', 'Si deixes l’activitat per a després, quan tornis a obrir aquella casella te la recordarà.', 'If you leave the activity for later, it will remind you when you open that box again.')),
-  ] },
+  (() => {
+    const f = figure();
+    if (f === 'galleta') return { id: 'u-fig', ico: () => fig('galleta.png'), color: '#7c3aed', title: L('Tu figura: la galleta', 'La teva figura: la galeta', 'Your figure: the gingerbread'), body: () => [
+      row(card(fig('galleta.png', 'glow'), L('Galleta de jengibre', 'Galeta de gingebre', 'Gingerbread'), L('¡Esta eres tú!', 'Aquesta ets tu!', 'This is you!'))),
+      P(L('Tu figura es la ', 'La teva figura és la ', 'Your figure is the '), B(L('galleta de jengibre', 'galeta de gingebre', 'gingerbread')), L('. En cada casilla haces el reto del día y, cuando lo terminas, pulsas ', '. A cada casella fas el repte del dia i, quan l’acabes, prems ', '. In each box you do the day’s challenge and, when you finish, you tap '), btn(FIN, 'red'), '.'),
+      P(L('Cuando lo haces bien, ', 'Quan ho fas bé, ', 'When you get it right, '), B(L('tu galleta se ilumina', 'la teva galeta s’il·lumina', 'your gingerbread lights up')), L(' en la franja de arriba.', ' a la franja de dalt.', ' in the row at the top.')),
+      tip(L('Cuantas más galletas iluminadas, más cerca estás de los premios. 🍪', 'Com més galetes il·luminades, més a prop ets dels premis. 🍪', 'The more gingerbreads lit up, the closer you are to the prizes. 🍪')),
+    ] };
+    const A = f === 'arbol' ? L('Actividad 1', 'Activitat 1', 'Activity 1') : L('Actividad 2', 'Activitat 2', 'Activity 2');
+    const name = f === 'arbol' ? L('el árbol de Navidad', 'l’arbre de Nadal', 'the Christmas tree') : L('el gnomo', 'el gnom', 'the gnome');
+    return { id: 'u-fig', ico: () => fig(FIG_IMG[f]), color: '#7c3aed', title: f === 'arbol' ? L('Tu figura: el árbol', 'La teva figura: l’arbre', 'Your figure: the tree') : L('Tu figura: el gnomo', 'La teva figura: el gnom', 'Your figure: the gnome'), body: () => [
+      row(card(fig(FIG_IMG[f], 'glow'), f === 'arbol' ? L('Árbol de Navidad', 'Arbre de Nadal', 'Christmas tree') : L('Gnomo', 'Gnom', 'Gnome'), L('¡Este eres tú!', 'Aquest ets tu!', 'This is you!'))),
+      P(L('Tu figura es ', 'La teva figura és ', 'Your figure is '), B(name), L('. En cada casilla haces el reto del día y, además, tienes una actividad extra: la ', '. A cada casella fas el repte del dia i, a més, tens una activitat extra: l’', '. In each box you do the day’s challenge and you also have an extra activity: '), B(A), '.'),
+      steps(el('span', {}, L('Haz el reto y pulsa ', 'Fes el repte i prem ', 'Do the challenge and tap '), btn(FIN, 'red'), '.'),
+        el('span', {}, B(L('La nota se arruga como un papel', 'La nota s’arruga com un paper', 'The note crumples like paper')), L(' y se hace una bola.', ' i es fa una bola.', ' into a ball.')),
+        el('span', {}, L('Aparece tu ', 'Apareix la teva ', 'Your '), B(A), L('. Cuando la hagas, pulsa ', '. Quan la facis, prem ', ' appears. When you’ve done it, tap '), btn(FIN, 'red'), '.')),
+      tip(L('Si dejas la actividad para luego, al volver a abrir esa casilla te la recordará.', 'Si deixes l’activitat per a després, quan tornis a obrir aquella casella te la recordarà.', 'If you leave the activity for later, it will remind you when you open that box again.')),
+      warn(L('Haz también la actividad: si no, tu figura no se ilumina del todo.', 'Fes també l’activitat: si no, la teva figura no s’il·lumina del tot.', 'Do the activity too: otherwise your figure won’t fully light up.')),
+    ] };
+  })(),
   { id: 'u-strip', ico: '✨', color: '#a16207', title: L('La franja de figuras', 'La franja de figures', 'The row of figures'), body: () => [
     P(L('Arriba tienes una figura por cada día. Así sabes cómo vas:', 'A dalt tens una figura per cada dia. Així saps com vas:', 'At the top there is one figure per day, so you know how you’re doing:')),
-    row(card(fig('gnomo.png', 'glow'), L('Iluminada', 'Il·luminada', 'Lit up'), L('¡Bien hecho!', 'Ben fet!', 'Well done!')),
-      card(fig('gnomo.png', 'gray'), L('En gris', 'En gris', 'Grey'), L('Sin hacer todavía, o esperando que lo revisen (⏳).', 'Encara sense fer, o esperant que el revisin (⏳).', 'Not done yet, or waiting to be checked (⏳).')),
+    row(card(fig(FIG_IMG[figure()], 'glow'), L('Iluminada', 'Il·luminada', 'Lit up'), L('¡Bien hecho!', 'Ben fet!', 'Well done!')),
+      card(fig(FIG_IMG[figure()], 'gray'), L('En gris', 'En gris', 'Grey'), L('Sin hacer todavía, o esperando que lo revisen (⏳).', 'Encara sense fer, o esperant que el revisin (⏳).', 'Not done yet, or waiting to be checked (⏳).')),
       card(troll(), L('Duende verde', 'Follet verd', 'Green goblin'), L('Esta vez no salió bien, o el día se olvidó.', 'Aquesta vegada no ha sortit bé, o el dia es va oblidar.', 'It didn’t go right this time, or the day was missed.'))),
     P(B(L('Toca cualquier figura', 'Toca qualsevol figura', 'Tap any figure')), L(' para ver el resultado de ese día. Si tocas el duende verde, te explica por qué no salió y te anima a seguir.', ' per veure el resultat d’aquell dia. Si toques el follet verd, t’explica per què no ha sortit i t’anima a continuar.', ' to see that day’s result. If you tap the green goblin, it tells you why it didn’t work out and encourages you to keep going.')),
     tip(L('Algunas respuestas las revisa la organizadora a mano: mientras tanto verás un relojito ⏳.', 'Algunes respostes les revisa l’organitzadora a mà: mentrestant veuràs un rellotget ⏳.', 'Some answers are checked by the organiser by hand: meanwhile you’ll see a little hourglass ⏳.')),
@@ -296,16 +329,17 @@ function userSections() {
     P(L('Algunos días puede salirte un ', 'Alguns dies et pot sortir un ', 'Some days you may get a '), B(L('mensaje sorpresa', 'missatge sorpresa', 'surprise message')), L(' solo para ti, con fotos o un vídeo. Cuando lo hayas visto, pulsa ', ' només per a tu, amb fotos o un vídeo. Quan l’hagis vist, prem ', ' just for you, with photos or a video. When you’ve seen it, tap '), btn(L('🏠 Volver al inicio', '🏠 Tornar a l’inici', '🏠 Back to home'), 'red'), '.'),
   ] },
   { id: 'u-opts', ico: '⚙️', color: '#0f766e', title: L('Mis opciones', 'Les meves opcions', 'My options'), body: () => [
-    P(L('Pulsa ', 'Prem ', 'Tap '), btn('⚙️'), L(' arriba a la derecha. Ahí puedes:', ' a dalt a la dreta. Allà pots:', ' at the top right. There you can:')),
-    el('div', { class: 'hg-list' },
-      item('📖', L('Ver esta guía', 'Veure aquesta guia', 'See this guide'), L('Siempre que la necesites, en castellano, catalán o inglés.', 'Sempre que la necessitis, en castellà, català o anglès.', 'Whenever you need it, in Spanish, Catalan or English.')),
-      item('✏️', L('Tu nombre', 'El teu nom', 'Your name'), L('Es el que sale en el saludo.', 'És el que surt a la salutació.', 'It’s the one shown in the greeting.')),
-      item('🌍', L('Idioma', 'Idioma', 'Language'), 'Español, català, English.'),
-      item('📝', L('Estilo de las notas', 'Estil de les notes', 'Note style'), L('Nórdico, pergamino, bastón de caramelo… con vista previa.', 'Nòrdic, pergamí, bastó de caramel… amb vista prèvia.', 'Nordic, parchment, candy cane… with a preview.')),
-      item('🖼️', L('Diferentes temas', 'Diferents temes', 'Different themes'), L('Cambia el dibujo del calendario.', 'Canvia el dibuix del calendari.', 'Change the calendar picture.')),
-      item('🔑', L('Contraseña', 'Contrasenya', 'Password'), L('Cámbiala cuando quieras.', 'Canvia-la quan vulguis.', 'Change it whenever you like.')),
-      item('🚪', L('Cerrar sesión', 'Tancar la sessió', 'Sign out'), L('Abajo del todo.', 'A baix de tot.', 'At the very bottom.'))),
-    el('div', { class: 'hg-themes' }, ...THEMES.map(([id, n]) => el('figure', {}, el('img', { src: `tema-${id}-movil.jpg`, alt: '' }), el('figcaption', {}, n)))),
+    P(L('Pulsa ', 'Prem ', 'Tap '), btn('⚙️'), L(' arriba a la derecha. Toca cada opción para ver lo que encontrarás:', ' a dalt a la dreta. Toca cada opció per veure què hi trobaràs:', ' at the top right. Tap each option to see what you will find:')),
+    el('div', { class: 'hg-acc' },
+      acc('📖', L('Ver esta guía', 'Veure aquesta guia', 'See this guide'), () => [el('div', { class: 'hg-guide-btn' }, '📖 ', B(L('Cómo funciona el calendario', 'Com funciona el calendari', 'How the calendar works'))), el('small', {}, L('Siempre que la necesites, en castellano, catalán o inglés.', 'Sempre que la necessitis, en castellà, català o anglès.', 'Whenever you need it, in Spanish, Catalan or English.'))]),
+      acc('✏️', L('Tu nombre', 'El teu nom', 'Your name'), () => [el('div', { class: 'hg-field' }, 'Eli'), el('small', {}, L('Sale en el saludo: «¡Buenas tardes, Eli!»', 'Surt a la salutació: «Bona tarda, Eli!»', 'It shows in the greeting: “Good afternoon, Eli!”'))]),
+      acc('🌍', L('Idioma', 'Idioma', 'Language'), () => [el('div', { class: 'hg-chips' }, pill('Español'), pill('Català'), pill('English'))]),
+      acc('📝', L('Estilo de las notas', 'Estil de les notes', 'Note style'), () => [el('small', {}, L('Ves todos los estilos y tocas el que más te guste:', 'Veus tots els estils i toques el que més t’agradi:', 'You see all the styles and tap the one you like:')),
+        el('div', { class: 'hg-papers' }, ...PAPERS.map(p => el('div', {}, el('div', { class: 'note-mini paper paper-' + p.id }, el('b', { class: 'note-day' }, '🎄 1'), el('p', {}, 'Ho, ho, ho!')), el('small', {}, p.name))))]),
+      acc('🖼️', L('Diferentes temas', 'Diferents temes', 'Different themes'), () => [el('small', {}, L('Ves todos los calendarios en pequeño y tocas el que quieras:', 'Veus tots els calendaris en petit i toques el que vulguis:', 'You see all the calendars small and tap the one you want:')),
+        el('div', { class: 'hg-themes' }, ...PORTADAS.map(p => { const v = p.variants.find(x => /movil/.test(x.img)) || p.variants[0]; return el('figure', {}, el('img', { src: v.img, alt: '', loading: 'lazy' }), el('figcaption', {}, p.name)); }))]),
+      acc('🔑', L('Contraseña', 'Contrasenya', 'Password'), () => [el('div', { class: 'hg-pw' }, el('span', {}, '•••••••• 👁️'), btn(L('Cambiar', 'Canviar', 'Change'))), el('small', {}, L('Escribes la actual y la nueva dos veces.', 'Escrius l’actual i la nova dues vegades.', 'You type the current one and the new one twice.'))]),
+      acc('🚪', L('Cerrar sesión', 'Tancar la sessió', 'Sign out'), () => [btn('🚪 ' + L('Cerrar sesión', 'Tancar la sessió', 'Sign out')), el('small', {}, L('Está abajo del todo.', 'És a baix de tot.', 'It is at the very bottom.'))])),
     P(L('Los botones ', 'Els botons ', 'The '), btn(L('Cancelar', 'Cancel·lar', 'Cancel')), L(' y ', ' i ', ' and '), btn(L('Guardar', 'Desar', 'Save'), 'red'), L(' están arriba y no se mueven aunque bajes.', ' són a dalt i no es mouen encara que baixis.', ' buttons are at the top and stay put while you scroll.')),
   ] },
   { id: 'u-help', ico: '🛟', color: '#475569', title: L('Si algo no va', 'Si alguna cosa no va', 'If something isn’t working'), body: () => [

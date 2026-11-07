@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=17.3';
-import { t, tx, setLang, getLang } from './i18n.js?v=17.3';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.3';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong } from './sound.js?v=17.3';
-import { typeRich, gallery } from './richact.js?v=17.3';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.3';
+import { initStore, store, DEMO } from './store.js?v=17.6';
+import { t, tx, setLang, getLang } from './i18n.js?v=17.6';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.6';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=17.6';
+import { typeRich, gallery } from './richact.js?v=17.6';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.6';
 
-export const APP_VERSION = 'V17.3';
+export const APP_VERSION = 'V17.6';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -136,8 +136,8 @@ async function boot() {
     S.card = card;
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=17.3').catch(() => {});
-    import('./surprise.js?v=17.3').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./admin.js?v=17.6').catch(() => {});
+    import('./surprise.js?v=17.6').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -286,6 +286,16 @@ function marqueeGeneral(mq) {
   if (!txt || /en grande|en gran|full screen/i.test(txt)) return t('marqueeDefault', S.config.year || new Date().getFullYear());
   return txt;
 }
+// botón de sonido: verde si suena; rojo si el móvil lo ha cortado (un toque y vuelve)
+function sndBtn() {
+  const on = audioOn();
+  return el('button', { class: 'icon-btn snd-btn no-delay' + (on ? '' : ' off'), title: t(on ? 'soundOn' : 'soundOff'),
+    onclick: () => { unlockAudio(true); setTimeout(() => { chime(); paintSnd(); }, 200); toast(audioOn() ? '🔊 ' + t('soundOn') : '🔊 ' + t('soundBack')); } }, on ? '🔊' : '🔇');
+}
+function paintSnd(on = audioOn()) {
+  document.querySelectorAll('.snd-btn').forEach(b => { b.classList.toggle('off', !on); b.textContent = on ? '🔊' : '🔇'; b.title = t(on ? 'soundOn' : 'soundOff'); });
+}
+onAudioState(paintSnd);
 export function renderHome() {
   document.title = t('appTitle');
   const theme = currentTheme();
@@ -298,8 +308,9 @@ export function renderHome() {
         el('div', { class: 'title-block' }, el('h1', { class: 'title-text' }, t('appTitle')), el('div', { class: 'greeting' }, greeting())),
         el('span', { class: 'ver-tag' }, APP_VERSION),
         el('div', { class: 'top-actions' },
+          sndBtn(),
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.3')).openAdmin() }, '🔒')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.6')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -450,7 +461,7 @@ async function openDoor(n, door) {
   finishBtn.onclick = ctx.finish; cancelBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=17.3`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=17.6`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -489,6 +500,8 @@ async function closeDay(n, layer, note, door) {
     try { await showActivity(n, layer); }
     catch (e) { console.error(e); toast('⚠️ ' + (e.code || e.message), 6000); }
   }
+  // día 25 con la foto hecha: final del calendario con la bola de nieve que cobra vida
+  if (n === 25 && S.card && done) { try { await (await import('./globe.js?v=17.6')).snowGlobe(); } catch (e) { console.error(e); } }
   creak(false);
   layer.classList.add('fade-out');
   await sleep(700);
@@ -675,9 +688,18 @@ async function showActivity(n, layer) {
   layer.append(note);
   crumpleSound();
   let choice = null; const decided = new Promise(r => { btn.onclick = () => r('done'); later.onclick = () => { choice = 'later'; r('later'); }; });
+  // algunos días tienen una actividad especial interactiva (día 23: regalos; día 24: el regalo de Papá Noel)
+  const sp = await import('./acts.js?v=17.6').then(m => m.special(n, key)).catch(() => null);
   await crumpleAnim(note, false);
-  await Promise.race([typeRich(textBox, text, 24), decided]);
-  btn.disabled = false;
+  if (sp) {
+    textBox.classList.add('act-special');
+    note.querySelector('.activity-fig')?.remove(); note.querySelector('.activity-warn')?.remove();
+    if (n === 24) btn.style.display = 'none'; // se termina con «Me lo quedo»
+    sp(textBox).then(v => { btn.disabled = false; if (v === 'keep') btn.onclick(); }).catch(() => { btn.disabled = false; });
+  } else {
+    await Promise.race([typeRich(textBox, text, 24), decided]);
+    btn.disabled = false;
+  }
   const res = choice || await decided;
   if (res === 'done') {
     const stamp = S.answers[n]?.at || true;
@@ -721,17 +743,30 @@ async function remindActivity(n) {
 function openUserSettings() {
   const name = el('input', { type: 'text', value: S.profile.name || '' });
   const lang = el('select', {}, ...[['es', 'Español'], ['ca', 'Català'], ['en', 'English']].map(([v, l]) => el('option', { value: v, selected: v === getLang() }, l)));
-  const paper = el('select', {}, ...PAPERS.map(p => el('option', { value: p.id, selected: p.id === (S.profile.paper || 'nordico') }, p.name)));
-  const port = el('select', {}, ...PORTADAS.map(p => el('option', { value: p.id, selected: p.id === currentTheme().id }, p.name)));
-  const preview = el('div', { class: 'paper-preview' }, el('p', {}, '¡Ho, ho, ho! Así se verán tus notas.'));
-  const upd = () => { PAPERS.forEach(p => preview.classList.remove('paper-' + p.id)); preview.classList.add('paper', 'paper-' + paper.value); };
-  paper.onchange = upd; upd();
+  // estilo de las notas: se ven todos y se toca el que guste
+  const paper = { value: S.profile.paper || 'nordico' };
+  const paperGrid = el('div', { class: 'pick-grid papers' }, ...PAPERS.map(p => {
+    const b = el('button', { type: 'button', class: 'pick-paper no-delay' + (p.id === paper.value ? ' on' : ''), onclick: () => {
+      paper.value = p.id; [...paperGrid.children].forEach(x => x.classList.toggle('on', x === b));
+    } }, el('div', { class: 'note-mini paper paper-' + p.id }, el('b', { class: 'note-day' }, '🎄 1'), el('p', {}, 'Ho, ho, ho!')), el('span', {}, p.name));
+    return b;
+  }));
+  // temas: miniaturas del calendario
+  const port = { value: currentTheme().id };
+  const themeGrid = el('div', { class: 'pick-grid themes' }, ...PORTADAS.map(p => {
+    const v = p.variants.find(x => /movil/.test(x.img)) || p.variants[0];
+    const b = el('button', { type: 'button', class: 'pick-theme no-delay' + (p.id === port.value ? ' on' : ''), onclick: () => {
+      port.value = p.id; [...themeGrid.children].forEach(x => x.classList.toggle('on', x === b));
+    } }, el('img', { src: v.img, alt: '', loading: 'lazy' }), el('span', {}, p.name));
+    return b;
+  }));
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.3').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.6').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
-    el('label', {}, t('paper'), paper), preview, el('label', { class: 'after-preview' }, t('portada'), port),
+    el('div', { class: 'pick-label' }, t('paper')), paperGrid,
+    el('div', { class: 'pick-label' }, t('portada')), themeGrid,
     accountSection());
   popup(box, { top: true, buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: t('save'), value: true }] }).then(async ok => {
     if (!ok) return;

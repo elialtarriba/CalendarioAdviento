@@ -1,8 +1,8 @@
 // Mensajes sorpresa: la administradora prepara un popup para una persona y un día concretos
-import { el, popup, toast, confetti } from './fx.js?v=17.3';
-import { store } from './store.js?v=17.3';
-import { shrink, ytId, lightbox } from './richact.js?v=17.3';
-import { chime } from './sound.js?v=17.3';
+import { el, popup, toast, confetti } from './fx.js?v=17.6';
+import { store } from './store.js?v=17.6';
+import { shrink, ytId, lightbox } from './richact.js?v=17.6';
+import { chime } from './sound.js?v=17.6';
 
 export const todayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 

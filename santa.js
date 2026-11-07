@@ -1,9 +1,9 @@
 // Día 25: tu cara en Papá Noel + felicitación con letras, confeti y luces
-import { t, getLang } from './i18n.js?v=17.3';
-import { el, sleep, confetti, popup, toast } from './fx.js?v=17.3';
-import { chime, jingle, speak, hohoho } from './sound.js?v=17.3';
-import { S } from './app.js?v=17.3';
-import { store } from './store.js?v=17.3';
+import { t, getLang } from './i18n.js?v=17.6';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=17.6';
+import { chime, jingle, speak, hohoho } from './sound.js?v=17.6';
+import { S } from './app.js?v=17.6';
+import { store } from './store.js?v=17.6';
 
 const W = 882, H = 1192, FACE = { x: 458, y: 500, rx: 215, ry: 185 };
 const BULBS = ['#ff3b3b', '#ffd23b', '#3bff6a', '#3bb6ff', '#ff7af0'];
@@ -53,6 +53,18 @@ function drawSanta(c, st) {
 }
 
 export function render(body, ctx) {
+  // al pulsar «Finalizar» con la foto hecha: se ve la foto en un marco antes de salir
+  const fin = ctx.finishBtn.onclick;
+  ctx.finishBtn.onclick = async () => {
+    const img = S.card;
+    if (img) await popup(el('div', { class: 'sf-pop' },
+      el('div', { class: 'sf-lights' }, ...Array.from({ length: 14 }, (_, i) => el('i', { style: `--i:${i}` }))),
+      el('h2', {}, '🎄 ' + t('merry') + (S.profile?.name ? ', ' + S.profile.name : '') + ' 🎄'),
+      el('div', { class: 'sf-frame' }, el('img', { src: img, alt: '' }))),
+      { cls: 'small sf-popup', buttons: [{ label: t('exitFull'), value: true }] });
+    fin();
+  };
+
   const cv = el('canvas', { width: W, height: H });
   const c = cv.getContext('2d');
   const letters = el('div', { class: 'santa-letters' });

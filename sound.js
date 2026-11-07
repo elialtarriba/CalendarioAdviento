@@ -4,34 +4,50 @@ let ctx;
 // así suena aunque el botón de silencio esté puesto. Tiene que ser ANTES de crear el sonido:
 // si se cambia después, el iPhone corta el sonido de golpe.
 try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch {}
+// --- estado del sonido (para el botón 🔊 de la portada)
+const listeners = new Set();
+export const audioOn = () => !!ctx && ctx.state === 'running';
+export const onAudioState = cb => { listeners.add(cb); cb(audioOn()); return () => listeners.delete(cb); };
+const notify = () => listeners.forEach(cb => { try { cb(audioOn()); } catch {} });
+let freshAt = 0;
+function newCtx() {
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  freshAt = performance.now();
+  ctx.onstatechange = notify;
+  if (ctx.state !== 'running') ctx.resume().catch(() => {});
+  setTimeout(notify, 300);
+  return ctx;
+}
 const ac = () => {
-  if (!ctx || ctx.state === 'closed') ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!ctx || ctx.state === 'closed') newCtx();
   if (ctx.state !== 'running') ctx.resume().catch(() => {}); // «suspended» o «interrupted» (iPhone)
   return ctx;
 };
 // iPhones antiguos (sin audioSession): un audio silencioso en bucle hace lo mismo
 let silentEl = null;
 const SILENT = 'data:audio/mp4;base64,AAAAHGZ0eXBNNEEgAAACAE00QSBpc29taXNvMgAAAAhmcmVlAAAAG21kYXQhAAOgQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
-let checking = false;
-// se llama en cada toque: si el sonido se ha cortado (llamada, bloqueo, voz…), lo recupera
-export const unlockAudio = () => {
+// Se llama en cada toque. El iPhone a veces «congela» el sonido (llamada, bloqueo, la voz, un vídeo…)
+// y ya no lo devuelve: entonces se crea un sonido nuevo en ese mismo toque, que es cuando el iPhone lo permite.
+export const unlockAudio = (force = false) => {
   try {
+    try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch {}
+    if (ctx && ctx.state !== 'running' && ctx.state !== 'closed' && (force === true || performance.now() - freshAt > 1500)) {
+      try { ctx.close(); } catch {}
+      ctx = null;
+    }
     const c = ac();
     if (!navigator.audioSession) {
       if (!silentEl) { silentEl = new Audio(SILENT); silentEl.setAttribute('playsinline', ''); silentEl.loop = true; silentEl.volume = .01; }
       if (silentEl.paused) silentEl.play().catch(() => {});
     }
     const b = c.createBuffer(1, 1, 22050), src = c.createBufferSource(); src.buffer = b; src.connect(c.destination); src.start(0);
-    // si tras intentarlo sigue sin funcionar, se crea un sonido nuevo para el siguiente toque
-    if (c.state !== 'running' && !checking) {
-      checking = true;
-      setTimeout(() => { checking = false; if (ctx === c && c.state !== 'running' && c.state !== 'suspended') { try { c.close(); } catch {} ctx = null; } }, 600);
-    }
+    setTimeout(notify, 250);
   } catch {}
 };
-['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { capture: true, passive: true }));
+['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, () => unlockAudio(), { capture: true, passive: true }));
+setInterval(notify, 2000); // por si el iPhone lo corta sin avisar
 // al volver a la app (después de bloquear el móvil o cambiar de app)
-const wake = () => { if (document.visibilityState === 'visible' && ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); };
+const wake = () => { if (document.visibilityState === 'visible' && ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); setTimeout(notify, 400); };
 document.addEventListener('visibilitychange', wake); window.addEventListener('pageshow', wake); window.addEventListener('focus', wake);
 
 function noiseBuffer(c, secs) {
@@ -376,4 +392,17 @@ export function christmasSong() {
       setTimeout(() => master.disconnect(), (fade + .2) * 1000);
     },
   };
+}
+
+// pito de tren (para la bola de nieve del día 25)
+export function whistle() {
+  try {
+    const c = ac(), at = c.currentTime + .02;
+    [[784, .5], [988, .35]].forEach(([f, v]) => {
+      const o = c.createOscillator(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+      o.type = 'triangle'; o.frequency.value = f; lfo.frequency.value = 7; lg.gain.value = 6; lfo.connect(lg); lg.connect(o.frequency);
+      g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.08 * v, at + .08); g.gain.setValueAtTime(.08 * v, at + .5); g.gain.linearRampToValueAtTime(0, at + .9);
+      o.connect(g); g.connect(c.destination); o.start(at); lfo.start(at); o.stop(at + 1); lfo.stop(at + 1);
+    });
+  } catch {}
 }
