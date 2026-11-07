@@ -1,8 +1,8 @@
 // Día 4: busca los 5 renos con gafas negras entre ~1000 renos
-import { t } from './i18n.js?v=17.9';
-import { el, popup, starBurst } from './fx.js?v=17.9';
-import { chime, pop, wrong } from './sound.js?v=17.9';
-import { figure } from './app.js?v=17.9';
+import { t, getLang } from './i18n.js?v=17.11';
+import { el, popup, starBurst, toast } from './fx.js?v=17.11';
+import { chime, pop, wrong } from './sound.js?v=17.11';
+import { figure } from './app.js?v=17.11';
 
 const W = 1600, H = 1100, COLS = 40, ROWS = 25;
 
@@ -72,10 +72,32 @@ export function render(body, ctx) {
     deer.filter(d => d.found).forEach(d => {
       const [hx, hy] = headOf(d); c.strokeStyle = '#ffcc00'; c.lineWidth = 4; c.beginPath(); c.arc(hx, hy, 22, 0, 7); c.stroke();
     });
+    // pista: se oscurece todo menos una zona (no muy grande) donde está el próximo reno
+    if (hint && performance.now() < hint.until) {
+      c.save(); c.fillStyle = 'rgba(20,10,30,.55)'; c.beginPath(); c.rect(0, 0, W, H); c.moveTo(hint.x + hint.r, hint.y); c.arc(hint.x, hint.y, hint.r, 0, Math.PI * 2, true); c.closePath(); c.fill('evenodd');
+      const gl = c.createRadialGradient(hint.x, hint.y, hint.r * .75, hint.x, hint.y, hint.r * 1.05); gl.addColorStop(0, 'rgba(255,214,90,0)'); gl.addColorStop(1, 'rgba(255,214,90,.55)');
+      c.fillStyle = gl; c.beginPath(); c.arc(hint.x, hint.y, hint.r * 1.05, 0, 7); c.fill();
+      c.strokeStyle = '#ffd24a'; c.lineWidth = 5; c.setLineDash([14, 10]); c.beginPath(); c.arc(hint.x, hint.y, hint.r, 0, 7); c.stroke(); c.restore();
+    }
   };
+  let hint = null;
   draw(); ready.then(draw);
 
   const counter = el('div', {}, t('d4count', 0));
+  const L3 = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
+  // cuando faltan 3 renos (o menos): botón de pista
+  const hintBtn = el('button', { class: 'btn small-btn btn-green no-delay d4-hint', style: 'display:none', onclick: () => {
+    const left = deer.filter(d => d.target && !d.found); if (!left.length) return;
+    const d = left[Math.floor(Math.random() * left.length)], [hx, hy] = headOf(d);
+    const r = 165, a = Math.random() * Math.PI * 2, off = r * (.25 + Math.random() * .4); // el reno no queda en el centro justo
+    hint = { x: Math.max(r * .6, Math.min(W - r * .6, hx + Math.cos(a) * off)), y: Math.max(r * .6, Math.min(H - r * .6, hy + Math.sin(a) * off)), r, until: performance.now() + 5000 };
+    // se mueve la vista para que la zona se vea
+    { const vw = scroll.clientWidth, vh = scroll.clientHeight;
+      zoom = Math.max(1, Math.min(zoom, Math.min(vw, vh) * .8 / (2 * r / W * base)));   // que el círculo quepa en la pantalla
+      const w = base * zoom, h = w * H / W; tx = vw / 2 - hint.x / W * w; ty = vh / 2 - hint.y / H * h; apply(); }
+    draw(); chime(); clearTimeout(hintBtn._t); hintBtn._t = setTimeout(draw, 5100);
+  } }, '💡 ' + L3('Pista', 'Pista', 'Hint'));
+  const showHint = () => { hintBtn.style.display = !finished && found >= 2 && found < 5 ? '' : 'none'; };
   // zoom y desplazamiento propios: un dedo arrastra, dos dedos pellizcan, toque = pulsar reno
   const scroll = el('div', { class: 'reindeer-scroll' }, cv);
   let zoom = 1, tx = 0, ty = 0, base = 0;
@@ -91,7 +113,7 @@ export function render(body, ctx) {
     el('span', {}, t('zoomHelp')),
     el('button', { onclick: () => zoomAt(zoom * 1.5, ...center()) }, '+'));
   body.append(el('h2', { class: 'q-title' }, t('d4title')), el('p', { class: 'game-help' }, t('d4help')),
-    el('div', { class: 'game-stats' }, counter), zoomBar, scroll);
+    el('div', { class: 'game-stats' }, counter, hintBtn), zoomBar, scroll);
   requestAnimationFrame(() => { base = scroll.clientWidth || 800; zoomAt(Math.max(1, 1000 / base), ...center()); });
   const pts = new Map(); let g0 = null, moved = 0;
   const local = (x, y) => { const r = scroll.getBoundingClientRect(); return [x - r.left, y - r.top]; };
@@ -126,7 +148,8 @@ export function render(body, ctx) {
     const hit = deer.find(d => { if (!d.target || d.found) return false; const [hx, hy] = headOf(d); return Math.hypot(hx - x, hy - y) < 24; });
     if (hit) {
       hit.found = true; found++; draw(); pop(); starBurst(e.clientX, e.clientY);
-      counter.textContent = t('d4count', found);
+      counter.textContent = t('d4count', found); hint = null; showHint();
+      if (found === 2) setTimeout(() => toast('💡 ' + L3('Si te cuesta encontrarlos, pulsa «Pista».', 'Si et costa trobar-los, prem «Pista».', 'If you can’t find them, tap “Hint”.'), 3500), 900);
       if (found === 5) {
         finished = true; chime();
         ctx.submit({ answer: '5/5', status: 'correct' });

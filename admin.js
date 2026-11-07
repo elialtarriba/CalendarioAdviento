@@ -1,11 +1,11 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store } from './store.js?v=17.9';
-import { t, tx } from './i18n.js?v=17.9';
-import { el, popup, toast, esc } from './fx.js?v=17.9';
-import { S, renderHome, loadDay, testMode, setTestMode } from './app.js?v=17.9';
-import { openActEditor, plain } from './richact.js?v=17.9';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=17.9';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.9';
+import { store } from './store.js?v=17.11';
+import { t, tx } from './i18n.js?v=17.11';
+import { el, popup, toast, esc } from './fx.js?v=17.11';
+import { S, renderHome, loadDay, testMode, setTestMode } from './app.js?v=17.11';
+import { openActEditor, plain, shrink } from './richact.js?v=17.11';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=17.11';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.11';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -71,9 +71,9 @@ function showPanel() {
   const special = el('button', { class: 'sp-special no-delay', onclick: () => {
     [...bar.children].forEach(b => b.classList.remove('active'));
     content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
-    import('./surprise.js?v=17.9').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
+    import('./surprise.js?v=17.11').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
   } }, el('span', { class: 'sp-special-ico' }, '💌'), el('span', {}, el('b', {}, 'Mensajes sorpresa'), el('small', {}, 'Un popup para quien tú quieras, el día que quieras')));
-  const guide = el('button', { class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.9').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+  const guide = el('button', { class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.11').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
     el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos')));
   const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), special, guide, bar, content);
   // los botones de guardar y de volver se quedan siempre a la vista al hacer scroll
@@ -248,7 +248,26 @@ const VIEWS = {
         const tabs = el('div', { class: 'pz-tabs' }), panes = el('div');
         [['galleta', 'Galleta'], ['arbol', 'Árbol'], ['gnomo', 'Gnomo']].forEach(([fg, name], i) => {
           F[fg] = Object.fromEntries(['p10', 'p15', 'p20', 'p25'].map(k => [k, el('textarea', { rows: 2, placeholder: pr[k] || '' }, (pf[fg]?.[k] ?? pr[k]) || '')]));
-          const pane = el('div', { class: 'pz-pane', style: i ? 'display:none' : '' }, ...Object.entries(F[fg]).map(([k, ta]) => el('label', {}, LBL[k], ta)));
+          // lo que sale en el popup «Pulsa para conseguir el regalo»: un mensaje y una foto (opcional)
+          ['m10', 'm15', 'm20', 'm25'].forEach(k => { F[fg][k] = el('textarea', { rows: 3, placeholder: 'Ej.: ¡Enhorabuena! Busca debajo del árbol un sobre con tu nombre 🎄' }, pf[fg]?.[k] || ''); });
+          const goalBox = g => {
+            const thumb = el('div', { class: 'pz-photo-row' });
+            const fileIn = el('input', { type: 'file', accept: 'image/*', style: 'display:none' });
+            const draw = src => thumb.replaceChildren(
+              src ? el('img', { src, alt: '' }) : el('small', { class: 'muted' }, 'Sin foto (no saldrá ningún marco)'),
+              el('button', { type: 'button', class: 'btn small-btn no-delay', onclick: () => fileIn.click() }, src ? '📷 Cambiar foto' : '📷 Añadir foto'),
+              src ? el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay', onclick: async () => { await store.savePrizePhoto(fg, g, ''); draw(''); toast('🗑️ Foto quitada'); } }, '✕ Quitar') : null, fileIn);
+            fileIn.onchange = async () => {
+              const f = fileIn.files[0]; fileIn.value = ''; if (!f) return;
+              try { const src = await shrink(f, 1000, 380000); await store.savePrizePhoto(fg, g, src); draw(src); toast('💾 Foto guardada'); } catch (e) { toast('⚠️ ' + (e.message || 'No se ha podido guardar la foto')); }
+            };
+            draw(''); store.getPrizePhoto(fg, g).then(draw).catch(() => {});
+            return el('div', { class: 'pz-goal' }, el('b', {}, '🎁 ' + LBL['p' + g]),
+              el('label', {}, 'Premio (lo que se gana)', F[fg]['p' + g]),
+              el('label', {}, 'Mensaje del popup «Pulsa para conseguir el regalo»', F[fg]['m' + g]),
+              el('label', {}, 'Foto (opcional): sale pequeña con marco; al pulsarla se hace grande'), thumb);
+          };
+          const pane = el('div', { class: 'pz-pane', style: i ? 'display:none' : '' }, ...[10, 15, 20, 25].map(goalBox));
           const tb = el('button', { type: 'button', class: 'pz-tab no-delay' + (i ? '' : ' on'), onclick: () => {
             [...tabs.children].forEach(b => b.classList.remove('on')); tb.classList.add('on');
             [...panes.children].forEach(p => p.style.display = 'none'); pane.style.display = '';
@@ -256,7 +275,7 @@ const VIEWS = {
           tabs.append(tb); panes.append(pane);
         });
         return el('div', { class: 'card' }, el('h3', {}, '🏆 Premios'),
-          el('p', { class: 'muted' }, 'Cada figura tiene sus propios premios. Elige la figura y escribe lo que se gana en cada casilla. Lo que veas aquí es lo que verá cada persona según su figura.'),
+          el('p', { class: 'muted' }, 'Cada figura tiene sus propios premios. Elige la figura y escribe lo que se gana en cada casilla. Cuando alguien consigue un premio, le sale el botón «🎁 Pulsa para conseguir el regalo»: se abre una caja de regalo y aparece el premio, tu mensaje y la foto (si pones una). Las fotos se guardan al momento; los textos, con «Guardar premios».'),
           tabs, panes,
           el('button', { class: 'btn', onclick: async () => {
             const prizesFig = Object.fromEntries(Object.entries(F).map(([fg, fs]) => [fg, Object.fromEntries(Object.entries(fs).map(([k, f]) => [k, f.value.trim()]))]));

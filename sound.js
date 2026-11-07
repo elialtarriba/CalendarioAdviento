@@ -6,12 +6,23 @@ let ctx;
 try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch {}
 // --- estado del sonido (para el botón 🔊 de la portada)
 const listeners = new Set();
-export const audioOn = () => !!ctx && ctx.state === 'running';
+// el iPhone a veces deja el sonido «encendido» pero mudo (el reloj del sonido se para): eso cuenta como apagado
+let stuck = false, lastT = -1, lastCheck = 0;
+export const audioOn = () => !!ctx && ctx.state === 'running' && !stuck;
 export const onAudioState = cb => { listeners.add(cb); cb(audioOn()); return () => listeners.delete(cb); };
 const notify = () => listeners.forEach(cb => { try { cb(audioOn()); } catch {} });
+function health() {
+  if (ctx && ctx.state === 'running') {
+    const now = performance.now();
+    if (lastCheck && now - lastCheck > 1500 && ctx.currentTime === lastT) stuck = true;
+    lastT = ctx.currentTime; lastCheck = now;
+  } else { lastCheck = 0; }
+  notify();
+}
 let freshAt = 0;
 function newCtx() {
   ctx = new (window.AudioContext || window.webkitAudioContext)();
+  stuck = false; lastCheck = 0; lastT = -1;
   freshAt = performance.now();
   ctx.onstatechange = notify;
   if (ctx.state !== 'running') ctx.resume().catch(() => {});
@@ -31,7 +42,9 @@ const SILENT = 'data:audio/mp4;base64,AAAAHGZ0eXBNNEEgAAACAE00QSBpc29taXNvMgAAAA
 export const unlockAudio = (force = false) => {
   try {
     try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch {}
-    if (ctx && ctx.state !== 'running' && ctx.state !== 'closed' && (force === true || performance.now() - freshAt > 1500)) {
+    // botón de sonido (force) o sonido mudo/parado → sonido nuevo en este mismo toque
+    const broken = ctx && ctx.state !== 'closed' && (stuck || (ctx.state !== 'running' && performance.now() - freshAt > 1500));
+    if (ctx && (force === true || broken)) {
       try { ctx.close(); } catch {}
       ctx = null;
     }
@@ -45,7 +58,7 @@ export const unlockAudio = (force = false) => {
   } catch {}
 };
 ['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, () => unlockAudio(), { capture: true, passive: true }));
-setInterval(notify, 2000); // por si el iPhone lo corta sin avisar
+setInterval(health, 1000); // por si el iPhone lo corta sin avisar
 // al volver a la app (después de bloquear el móvil o cambiar de app)
 const wake = () => { if (document.visibilityState === 'visible' && ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); setTimeout(notify, 400); };
 document.addEventListener('visibilitychange', wake); window.addEventListener('pageshow', wake); window.addEventListener('focus', wake);

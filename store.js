@@ -1,5 +1,5 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js?v=17.9';
+import { firebaseConfig } from './firebase-config.js?v=17.11';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {
@@ -67,6 +67,9 @@ async function firebaseApi() {
     deleteMedia: (n, id) => F.deleteDoc(d('content', String(n), 'media', id)),
     getConfig: () => get('config', 'public'),
     saveConfig: data => F.setDoc(d('config', 'public'), data, { merge: true }),
+    // foto de cada premio (una por figura y casilla), en su propio documento para no llenar config/public
+    getPrizePhoto: async (fig, g) => { try { const x = await get('config', `prize-${fig}-${g}`); return x?.src || ''; } catch { return ''; } },
+    savePrizePhoto: (fig, g, src) => F.setDoc(d('config', `prize-${fig}-${g}`), { src: src || '' }),
 
     adminSetup: async (uid, pw) => {
       const h = await hashPw(pw);
@@ -179,6 +182,8 @@ function demoApi() {
     deleteMedia: async (n, id) => { const m = ld('media', {}); m[n] = (m[n] || []).filter(x => x.id !== id); sv('media', m); },
     getConfig: async () => ld('config', null),
     saveConfig: async data => sv('config', { ...ld('config', {}), ...data }),
+    getPrizePhoto: async (fig, g) => ld('prizePhotos', {})[`${fig}-${g}`] || '',
+    savePrizePhoto: async (fig, g, src) => { const p = ld('prizePhotos', {}); p[`${fig}-${g}`] = src || ''; sv('prizePhotos', p); },
     adminSetup: async (uid, pw) => { sv('adminHash', await hashPw(pw)); sv('config', { ...ld('config', {}), adminConfigured: true }); },
     adminLogin: async (uid, pw) => ld('adminHash', null) === await hashPw(pw),
     adminChangePw: async (uid, pw) => sv('adminHash', await hashPw(pw)),

@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=17.9';
-import { t, tx, setLang, getLang } from './i18n.js?v=17.9';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.9';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=17.9';
-import { typeRich, gallery } from './richact.js?v=17.9';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.9';
+import { initStore, store, DEMO } from './store.js?v=17.11';
+import { t, tx, setLang, getLang } from './i18n.js?v=17.11';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.11';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=17.11';
+import { typeRich, gallery, lightbox } from './richact.js?v=17.11';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.11';
 
-export const APP_VERSION = 'V17.9';
+export const APP_VERSION = 'V17.11';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -136,8 +136,8 @@ async function boot() {
     S.card = card;
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=17.9').catch(() => {});
-    import('./surprise.js?v=17.9').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./admin.js?v=17.11').catch(() => {});
+    import('./surprise.js?v=17.11').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -226,6 +226,67 @@ function prizeDetail(g) {
     <p>${t('failsLeft', Math.max(0, 3 - p.bad))}</p>
     ${p.state === 'won' ? `<p class="prize-text">${esc(prizeText(g))}</p>` : ''}`);
 }
+// confeti que brilla: cae de arriba abajo y cada pieza se enciende un momento (como lucecitas)
+function glowConfetti(parent) {
+  const cv = el('canvas', { class: 'glow-confetti' }); parent.append(cv);
+  const g = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1);
+  let W = 0, H = 0; const size = () => { W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; }; size();
+  const COLS = ['#ffd24a', '#ff4d6d', '#ffffff', '#7cf29a', '#5ab0ff', '#f2c14e', '#ff9ad5'];
+  const P = []; let raf, t0 = performance.now(), stopped = false, last = t0;
+  const add = n => { for (let i = 0; i < n; i++) P.push({ x: Math.random() * W, y: -20 - Math.random() * H * .9 + (P.length < 200 ? H * .35 : 0), vy: 2.6 + Math.random() * 3.2, vx: (Math.random() - .5) * .8, w: 5 + Math.random() * 7, h: 3 + Math.random() * 6,
+    rot: Math.random() * 7, vr: (Math.random() - .5) * .2, c: COLS[i % COLS.length], sw: Math.random() * 7, lit: Math.random() * 4000, star: Math.random() < .25 }); };
+  add(380);
+  const f = now => {
+    const el2 = now - t0, dt = Math.min(3, (now - last) / 16.7); last = now;
+    if (!stopped && el2 < 7000 && P.length < 800) add(9);          // sigue cayendo un buen rato
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+    for (let i = P.length - 1; i >= 0; i--) {
+      const p = P[i]; p.y += p.vy * dt; p.x += (p.vx + Math.sin(now / 400 + p.sw) * .6) * dt; p.rot += p.vr * dt;
+      if (p.y > H + 30) { P.splice(i, 1); continue; }
+      // cada pieza se ilumina un instante (en momentos distintos) mientras baja
+      const k = ((now + p.lit) % 2600) / 2600, glow = k < .18 ? Math.sin(k / .18 * Math.PI) : 0;
+      g.save(); g.translate(p.x, p.y); g.rotate(p.rot);
+      if (glow > 0) { g.shadowColor = p.c; g.shadowBlur = 18 * glow; g.globalCompositeOperation = 'lighter'; }
+      g.globalAlpha = .75 + .25 * glow; g.fillStyle = glow > .5 ? '#fff' : p.c;
+      if (p.star) { const r = p.w * (.8 + glow * .6); g.beginPath(); for (let j = 0; j < 10; j++) { const a = j * Math.PI / 5, rr = j % 2 ? r * .45 : r; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); g.fill(); }
+      else g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      g.restore();
+    }
+    if (P.length || !stopped && el2 < 6000) raf = requestAnimationFrame(f); else cv.remove();
+  };
+  raf = requestAnimationFrame(f);
+  return () => { stopped = true; cancelAnimationFrame(raf); cv.remove(); };
+}
+// el regalo: una caja que se abre y dentro el premio (texto, mensaje y foto que pone el administrador)
+async function revealPrize(g) {
+  const fig = figure(), pf = S.config.prizesFig?.[fig] || {};
+  const msg = (pf['m' + g] || '').trim(), photoP = store.getPrizePhoto(fig, g).catch(() => '');
+  const box = el('div', { class: 'pzr' },
+    el('div', { class: 'pzr-deco' }, ...['ilu-12.webp', 'ilu-5.webp', 'ilu-12.webp'].map((s, i) => el('img', { src: s, alt: '', class: 'pzr-d' + i }))),
+    el('div', { class: 'pzr-gift' }, el('img', { src: 'ilu-gr.webp', alt: '' }), el('div', { class: 'pzr-rays' })),
+    el('p', { class: 'pzr-hint' }, L3('Toca el regalo para abrirlo', 'Toca el regal per obrir-lo', 'Tap the present to open it')));
+  const back = el('div', { class: 'popup-back pzr-back' }, el('div', { class: 'popup small pzr-pop' }, box));
+  document.body.append(back);
+  // al entrar: muchísimo confeti que se va iluminando pieza a pieza mientras cae, con música de Navidad
+  let music = null; try { unlockAudio(); music = christmasSong(); } catch {}
+  const stopFx = glowConfetti(back);
+  const gift = box.querySelector('.pzr-gift');
+  await new Promise(r => { gift.onclick = r; setTimeout(r, 9000); });
+  gift.onclick = null; box.querySelector('.pzr-hint').textContent = '✨';
+  try { const { jingle } = await import('./sound.js?v=17.11'); jingle(1); } catch {}
+  gift.classList.add('shake'); await sleep(900); gift.classList.add('open'); chime(); confetti(220);
+  await sleep(700);
+  const photo = await photoP;
+  const content = el('div', { class: 'pzr-content' },
+    el('div', { class: 'pzr-kicker' }, '🏆 ' + t('dayRange', g)),
+    el('h2', {}, L3('¡Tu regalo!', 'El teu regal!', 'Your present!')),
+    prizeText(g) ? el('p', { class: 'pzr-prize' }, prizeText(g)) : null,
+    msg ? el('p', { class: 'pzr-msg' }, msg) : null,
+    photo ? el('button', { class: 'pzr-photo no-delay', onclick: () => lightbox([{ kind: 'img', src: photo }], 0) }, el('img', { src: photo, alt: '' }), el('small', {}, '🔍 ' + L3('Toca para verla en grande', 'Toca per veure-la en gran', 'Tap to enlarge'))) : null,
+    el('button', { class: 'btn btn-big no-delay pzr-ok', onclick: () => { try { music?.stop(2); } catch {} stopFx(); back.classList.add('out'); setTimeout(() => back.remove(), 300); } }, '🎄 ' + L3('¡Gracias, Papá Noel!', 'Gràcies, Pare Noel!', 'Thank you, Santa!')));
+  box.querySelector('.pzr-hint').remove(); gift.after(content);
+  try { hohoho(); } catch {}
+}
 // al pulsar una figura de la franja: resultado del día o ánimo para hacerlo
 async function dayInfo(d) {
   const fig = figure(), a = S.answers[d];
@@ -271,12 +332,16 @@ function showPrizes() {
     el('p', { class: 'muted' }, t('prizeTap')),
     ...GOALS.map(g => {
       const p = prizeState(g);
-      return el('button', { class: 'prize-row2 ' + p.state, onclick: () => prizeDetail(g) },
+      const row = el('button', { class: 'prize-row2 ' + p.state, onclick: () => prizeDetail(g) },
         el('span', { class: 'pr-ico' }, { won: '🏆', lost: '💔', play: '🎁' }[p.state]),
         el('span', { class: 'pr-txt' }, el('b', {}, t('dayRange', g)),
           prizeText(g) ? el('span', { class: 'pr-prize' }, prizeText(g)) : null,
           el('small', {}, `✅ ${p.ok} · ❌ ${p.bad}`)),
         el('span', { class: 'pr-go' }, '›'));
+      if (p.state !== 'won') return row;
+      // regalo conseguido: botón para abrirlo
+      return el('div', { class: 'prize-wrap won' }, row,
+        el('button', { class: 'prize-claim no-delay', onclick: () => revealPrize(g) }, el('img', { src: 'ilu-gr.webp', alt: '' }), el('span', {}, L3('Pulsa para conseguir el regalo', 'Prem per aconseguir el regal', 'Tap to get your present')), '✨'));
     }));
   popup(box);
 }
@@ -310,7 +375,7 @@ export function renderHome() {
         el('div', { class: 'top-actions' },
           sndBtn(),
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.9')).openAdmin() }, '🔒')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.11')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -470,7 +535,7 @@ async function openDoor(n, door) {
   cancelBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=17.9`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=17.11`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -494,7 +559,10 @@ function checkPrize() {
   const g = GOALS.find(x => !seen[x] && prizeState(x).state === 'won');
   if (!g) return;
   seen[g] = 1; try { localStorage.setItem(key, JSON.stringify(seen)); } catch {}
-  setTimeout(() => { confetti(250); chime(); popup(`<h2>🏆 ${t('prize')}!</h2><p>${t('dayRange', g)}</p><p class="prize-text">${esc(prizeText(g))}</p>`); }, 1800);
+  setTimeout(async () => { confetti(250); chime();
+    const go = await popup(el('div', {}, el('h2', {}, `🏆 ${t('prize')}!`), el('p', {}, t('dayRange', g)), el('p', { class: 'prize-text' }, prizeText(g))),
+      { buttons: [{ label: '🎁 ' + L3('Pulsa para conseguir el regalo', 'Prem per aconseguir el regal', 'Tap to get your present'), value: true }, { label: t('close'), value: false, cls: 'btn-ghost' }] });
+    if (go) revealPrize(g); }, 1800);
 }
 
 // ------------------------------------------------------------------ cerrar el día
@@ -521,14 +589,16 @@ async function closeDay(n, layer, note, door) {
   const fig = figure();
   const done = !!S.answers[n];
   speechSynthesis?.cancel?.();
-  if (fig !== 'galleta' && done) {
-    // la actividad tiene que salir siempre
+  if (fig !== 'galleta' && done && actPending(n)) {
+    // la actividad sale siempre que esté pendiente (y solo una vez: la de tu figura)
     await crumpleAway(note);
     const res = await runActivity(n, layer);
     if (res === 'done') fullView = true; // al acabar: el calendario en grande
   }
   // día 25 con la foto hecha: final del calendario con la bola de nieve que cobra vida
-  if (n === 25 && S.card && done) { try { await (await import('./globe.js?v=17.9')).snowGlobe(); } catch (e) { console.error(e); } }
+  if (n === 25 && S.card && done) { try { await (await import('./globe.js?v=17.11')).snowGlobe(); } catch (e) { console.error(e); } }
+  // al acabar el día 25: el resumen de todo el mes
+  if (n === 25 && done) { try { await (await import('./summary.js?v=17.11')).monthSummary(); fullView = true; } catch (e) { console.error(e); } }
   creak(false);
   layer.classList.add('fade-out');
   await sleep(700);
@@ -698,13 +768,13 @@ async function showActivity(n, layer, simple = false) {
   const key = fig === 'arbol' ? 'act1' : 'act2';
   const over = null; // ya no hay actividades por persona: todos ven las del día
   const text = (over && over.trim()) || tx(content[key]);
-  const note = el('div', { class: 'note activity-note' });
+  const note = el('div', { class: 'note activity-note', style: 'opacity:0' }); // invisible hasta que empieza la animación (sin parpadeos)
   applyPaper(note);
   const textBox = el('div', { class: 'activity-text rich' });
   const media = (await store.getMedia(n).catch(() => [])).filter(m => m.act === key);
   const gal = gallery(media);
-  const btn = el('button', { class: 'btn btn-finish', disabled: true }, t('finish'));
-  const later = el('button', { class: 'btn btn-cancel' }, t('cancelLater'));
+  const btn = el('button', { class: 'btn btn-finish no-delay', disabled: true }, t('finish'));
+  const later = el('button', { class: 'btn btn-cancel no-delay' }, t('cancelLater'));
   note.append(
     el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, `${t(fig === 'arbol' ? 'activity1' : 'activity2')} · ${t('dayN', n)}`)),
     el('div', { class: 'note-body activity-body' },
@@ -716,7 +786,7 @@ async function showActivity(n, layer, simple = false) {
   crumpleSound();
   let choice = null; const decided = new Promise(r => { btn.onclick = () => r('done'); later.onclick = () => { choice = 'later'; r('later'); }; });
   // algunos días tienen una actividad especial interactiva (día 23: regalos; día 24: el regalo de Papá Noel)
-  const sp = await import('./acts.js?v=17.9').then(m => m.special(n, key)).catch(() => null);
+  const sp = await import('./acts.js?v=17.11').then(m => m.special(n, key)).catch(() => null);
   if (!simple) await withTimeout(crumpleAnim(note, false), 3500);
   // la nota tiene que verse siempre, pase lo que pase con la animación
   clearCrumples(); note.style.visibility = ''; note.style.opacity = '';
@@ -764,7 +834,12 @@ async function remindActivity(n) {
   note.animate([{ transform: 'scale(.2)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
   chime();
   const r = await new Promise(res => { go.onclick = () => res('go'); later.onclick = () => res('later'); });
-  if (r === 'go') { await crumpleAway(note); const res = await runActivity(n, layer); if (res === 'done') fullView = true; }
+  if (r === 'go') {
+    await crumpleAway(note); const res = await runActivity(n, layer);
+    if (res === 'done') fullView = true;
+    if (res === 'done' && n === 25 && S.card) { try { await (await import('./globe.js?v=17.11')).snowGlobe(); } catch (e) { console.error(e); } }
+    if (res === 'done' && n === 25) { try { await (await import('./summary.js?v=17.11')).monthSummary(); } catch (e) { console.error(e); } }
+  }
   creak(false); layer.classList.add('fade-out'); await sleep(700); layer.remove(); renderHome();
 }
 
@@ -791,7 +866,7 @@ function openUserSettings() {
   }));
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.9').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.11').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('div', { class: 'pick-label' }, t('paper')), paperGrid,

@@ -1,11 +1,11 @@
 // Actividades especiales (interactivas) de algunos días
 //  · Día 23: tres regalos que no se compran, debajo de un árbol con luces → eliges a quién se los das
 //  · Día 24: el regalo que Papá Noel ha dejado para ti → lazo, luz, bolas con regalos imaginarios
-import { el, sleep, confetti, popup, toast } from './fx.js?v=17.9';
-import { getLang } from './i18n.js?v=17.9';
-import { chime, pop, jingle, hohoho } from './sound.js?v=17.9';
-import { S } from './app.js?v=17.9';
-import { store } from './store.js?v=17.9';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=17.11';
+import { getLang } from './i18n.js?v=17.11';
+import { chime, pop, jingle, hohoho, christmasSong, unlockAudio } from './sound.js?v=17.11';
+import { S } from './app.js?v=17.11';
+import { store } from './store.js?v=17.11';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const img = (src, cls = '') => el('img', { src, class: 'ilu ' + cls, alt: '', draggable: 'false' });
@@ -81,13 +81,79 @@ function gifts23(box, key) {
       S.profile.gifts23 = g23; store.saveProfile(S.user.uid, { gifts23: g23 }).catch(() => {});
       draw();
       if (next === 3) {
-        status.replaceChildren(el('b', {}, L('¡Qué regalos tan bonitos! 💝 Ahora solo falta darlos de verdad.', 'Quins regals més bonics! 💝 Ara només falta donar-los de veritat.', 'What lovely gifts! 💝 Now you just need to give them for real.')));
+        status.replaceChildren(el('b', {}, L('¡Qué regalos tan bonitos! 💝 Ahora solo falta darlos de verdad.', 'Quins regals més bonics! 💝 Ara només falta donar-los de veritat.', 'What lovely gifts! 💝 Now you just need to give them for real.')), shareBtn());
         resolve();
       }
     };
+    const shareBtn = () => el('button', { type: 'button', class: 'btn btn-big no-delay g23-share', onclick: () => shareGifts(G, chosen) }, '📲 ' + L('Enviar al grupo', 'Enviar al grup', 'Send to the group'));
     draw();
-    if (next === 3) resolve();
+    if (next === 3) { status.replaceChildren(shareBtn()); resolve(); }
   });
+}
+
+// ---- la foto bonita con los regalos y los nombres, para enviar por WhatsApp
+const SHORT23 = () => ({ hug: ['🤗', L('Un abrazo sin prisas', 'Una abraçada sense presses', 'A hug with no rush')],
+  thanks: ['💌', L('Un «gracias» pendiente', 'Un «gràcies» pendent', 'A long-due “thank you”')], kitchen: ['🍽️', L('«Recojo yo la cocina»', '«Ja recullo jo la cuina»', '“I’ll tidy the kitchen”')] });
+async function giftsImage(G, chosen) {
+  const W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+  try { await Promise.all(['700 80px "Mountains of Christmas"', '700 36px Montserrat', '800 40px Montserrat'].map(f => document.fonts.load(f))); } catch {}
+  const [tree, ...gifts] = await Promise.all([TREE, ...GIFT_PICS].map(src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; })));
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0b1a3a'); bg.addColorStop(.55, '#24407a'); bg.addColorStop(1, '#3a2030');
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 90; i++) { g.globalAlpha = .3 + (i % 5) * .12; g.fillStyle = '#fff'; g.beginPath(); g.arc((i * 137.5) % W, (i * 71.3) % 740, 1.5 + (i % 3), 0, 7); g.fill(); } g.globalAlpha = 1;
+  const glow = g.createRadialGradient(W / 2, 470, 20, W / 2, 470, 420); glow.addColorStop(0, 'rgba(255,214,120,.45)'); glow.addColorStop(1, 'rgba(255,214,120,0)'); g.fillStyle = glow; g.fillRect(0, 0, W, H);
+  // marco dorado
+  g.strokeStyle = '#d4a017'; g.lineWidth = 10; g.strokeRect(22, 22, W - 44, H - 44); g.strokeStyle = 'rgba(255,240,180,.6)'; g.lineWidth = 2; g.strokeRect(38, 38, W - 76, H - 76);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const gold = y => { const q = g.createLinearGradient(0, y - 40, 0, y + 40); q.addColorStop(0, '#fff6c2'); q.addColorStop(.5, '#f2c14e'); q.addColorStop(1, '#b8860b'); return q; };
+  g.font = '700 74px "Mountains of Christmas", cursive'; g.fillStyle = gold(105); g.shadowColor = '#000a'; g.shadowBlur = 12;
+  g.fillText(L('Regalos que no se compran', 'Regals que no es compren', 'Gifts money can’t buy'), W / 2, 105); g.shadowBlur = 0;
+  if (tree) { const h = 520, w = h * tree.width / tree.height; g.drawImage(tree, W / 2 - w / 2, 170, w, h); }
+  const S = SHORT23(), cw = 316, gap = 26, x0 = (W - 3 * cw - 2 * gap) / 2, y0 = 720, ch = 520;
+  G.forEach((it, k) => {
+    const x = x0 + k * (cw + gap);
+    g.fillStyle = '#fff8ec'; g.strokeStyle = '#d4a017'; g.lineWidth = 5;
+    g.beginPath(); g.roundRect ? g.roundRect(x, y0, cw, ch, 26) : g.rect(x, y0, cw, ch); g.fill(); g.stroke();
+    const im = gifts[k]; if (im) { const h = 190, w = Math.min(cw - 60, h * im.width / im.height); const hh = w * im.height / im.width; g.drawImage(im, x + cw / 2 - w / 2, y0 + 24 + (h - hh) / 2, w, hh); }
+    const [emo, title] = S[it.id];
+    g.fillStyle = '#7a1020'; g.font = '800 33px Montserrat, sans-serif';
+    const words = (emo + ' ' + title).split(' '); const lines = []; let line = '';
+    words.forEach(wd => { const tl = line ? line + ' ' + wd : wd; if (g.measureText(tl).width > cw - 36) { lines.push(line); line = wd; } else line = tl; }); lines.push(line);
+    lines.slice(0, 3).forEach((ln, j) => g.fillText(ln, x + cw / 2, y0 + 262 + j * 42));
+    g.fillStyle = '#9a7a3a'; g.font = '600 28px Montserrat, sans-serif'; g.fillText(L('para', 'per a', 'for'), x + cw / 2, y0 + 400);
+    g.fillStyle = '#b3122e'; g.font = '700 50px "Mountains of Christmas", cursive';
+    let nm = chosen[it.id] || '—'; while (g.measureText(nm).width > cw - 30 && nm.length > 3) nm = nm.slice(0, -2) + '…';
+    g.fillText(nm, x + cw / 2, y0 + 455);
+  });
+  g.fillStyle = '#fff3d0'; g.font = '600 30px Montserrat, sans-serif';
+  g.fillText(`🎄 ${L('Calendario de Adviento · Día 23', 'Calendari d’Advent · Dia 23', 'Advent Calendar · Day 23')}${S_name() ? ' · ' + S_name() : ''} 🎄`, W / 2, H - 70);
+  return await new Promise(r => cv.toBlob(r, 'image/png'));
+}
+const S_name = () => (S.profile?.name || '').trim();
+async function shareGifts(G, chosen) {
+  const S3 = SHORT23();
+  const text = '🎁 ' + L('Esta noche regalo algo que no se compra:', 'Aquesta nit regalo una cosa que no es compra:', 'Tonight I’m giving something money can’t buy:') + '\n' +
+    G.map(it => `${S3[it.id][0]} ${S3[it.id][1]} → ${chosen[it.id]}`).join('\n') + (S_name() ? `\n— ${S_name()}` : '');
+  toast('✨ ' + L('Preparando la foto…', 'Preparant la foto…', 'Preparing the picture…'), 1500);
+  const blob = await giftsImage(G, chosen).catch(() => null);
+  const file = blob ? new File([blob], 'regalos-navidad.png', { type: 'image/png' }) : null;
+  const url = blob ? URL.createObjectURL(blob) : null;
+  const canFiles = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));
+  const send = el('button', { type: 'button', class: 'btn btn-big no-delay', onclick: async () => {
+    try {
+      if (canFiles) { await navigator.share({ files: [file], text }); return; }
+    } catch (e) { if (e?.name === 'AbortError') return; }
+    // si el móvil no deja compartir la foto: se guarda la foto y se abre WhatsApp con el texto
+    if (url) { const a = el('a', { href: url, download: 'regalos-navidad.png' }); document.body.append(a); a.click(); a.remove(); }
+    location.href = 'whatsapp://send?text=' + encodeURIComponent(text);
+  } }, '📲 ' + L('Enviar por WhatsApp', 'Enviar per WhatsApp', 'Send by WhatsApp'));
+  await popup(el('div', { class: 'g23-sharebox' },
+    el('h2', {}, L('Tu foto para el grupo', 'La teva foto per al grup', 'Your picture for the group')),
+    url ? el('img', { class: 'g23-shareimg', src: url, alt: '' }) : el('p', {}, '⚠️'),
+    el('p', { class: 'muted' }, canFiles ? L('Pulsa el botón y elige WhatsApp y el grupo.', 'Prem el botó i tria WhatsApp i el grup.', 'Tap the button and choose WhatsApp and the group.')
+      : L('Se guardará la foto y se abrirá WhatsApp.', 'Es guardarà la foto i s’obrirà WhatsApp.', 'The picture will be saved and WhatsApp will open.')), send),
+    { cls: 'small g23-sharepop', buttons: [{ label: L('Cerrar', 'Tancar', 'Close'), value: false, cls: 'btn-ghost' }] });
+  if (url) setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 // ================================================================ DÍA 24
@@ -269,7 +335,10 @@ function cinema() {
     };
     raf = requestAnimationFrame(frame);
 
-    const end = done => { if (ended) return; ended = true; cancelAnimationFrame(raf); removeEventListener('resize', size); wrap.classList.add('out'); setTimeout(() => wrap.remove(), 600); resolveCine(done); };
+    // música de Navidad durante toda la escena (si el móvil corta el sonido, vuelve al tocar)
+    let music = null; const startMusic = () => { try { if (!music?.playing) { music?.stop(0); unlockAudio(); music = christmasSong(); } } catch {} };
+    startMusic(); wrap.addEventListener('pointerdown', () => setTimeout(startMusic, 60));
+    const end = done => { if (ended) return; ended = true; try { music?.stop(2); } catch {} cancelAnimationFrame(raf); removeEventListener('resize', size); wrap.classList.add('out'); setTimeout(() => wrap.remove(), 600); resolveCine(done); };
     close.onclick = () => end(seen >= 10);
     keep.onclick = () => end('keep');
 
@@ -289,7 +358,7 @@ function cinema() {
       hint.textContent = ''; dots.classList.add('hide');
       go('dive'); await sleep(2300);
       go('light'); chime(); await sleep(1800);
-      hint.textContent = L('Arrastra las bolas por la pantalla y tócalas para descubrir tu regalo', 'Arrossega les boles per la pantalla i toca-les per descobrir el teu regal', 'Drag the baubles around and tap them to discover your gift');
+      hint.textContent = L('Ábrelas en orden, de la 1 a la 10. Puedes arrastrarlas por la pantalla.', 'Obre-les en ordre, de l’1 a la 10. Les pots arrossegar per la pantalla.', 'Open them in order, from 1 to 10. You can drag them around the screen.');
       // salen las bolas de la luz
       const G = GIFTS24();
       const pos = Array.from({ length: 10 }, (_, i) => { const a = -Math.PI / 2 + i * Math.PI * 2 / 10; return [50 + Math.cos(a) * 36, 47 + Math.sin(a) * 28]; });
@@ -307,15 +376,24 @@ function cinema() {
         const drop = e => { if (!drag) return; const d = drag; drag = null; b.classList.remove('dragging'); if (d.moved) { pop(); b.classList.add('moved'); } else if (e.type === 'pointerup') b.open(); };
         b.addEventListener('pointerup', drop); b.addEventListener('pointercancel', drop);
         b.open = async () => {
-          if (b.classList.contains('busy')) return; b.classList.add('busy');
+          if (b.classList.contains('busy')) return;
+          // se abren en orden, de la 1 a la 10
+          if (!b.classList.contains('seen') && i !== seen) {
+            const nb = balls.children[seen]; nb?.classList.remove('nudge'); void nb?.offsetWidth; nb?.classList.add('nudge');
+            b.classList.remove('locked'); void b.offsetWidth; b.classList.add('locked');
+            toast(L(`Primero abre la bola número ${seen + 1} ✨`, `Primer obre la bola número ${seen + 1} ✨`, `Open bauble number ${seen + 1} first ✨`));
+            return;
+          }
+          b.classList.add('busy');
           chime(); flash(b);
           await sleep(1000);
           await popup(el('div', { class: 'p24-card' }, orn(BALL_PICS[i], 'p24-card-ball'), el('h2', {}, title), el('p', { class: 'p24-quote' }, txt)),
             { cls: 'small p24-pop', buttons: [{ label: L('¡Qué bien!', 'Que bé!', 'Lovely!'), value: true }] });
           b.classList.remove('busy');
-          if (!b.classList.contains('seen')) { b.classList.add('seen'); seen++; }
+          if (!b.classList.contains('seen')) { b.classList.add('seen'); seen++; balls.querySelectorAll('.cine-ball').forEach((x, k) => x.classList.toggle('next', k === seen)); }
           if (seen === 10) { confetti(260); hohoho(); hint.textContent = L('¡Todos los regalos son tuyos!', 'Tots els regals són teus!', 'All the gifts are yours!'); keep.classList.add('show'); }
         };
+        if (i === 0) b.classList.add('next');
         balls.append(b);
       });
     }
