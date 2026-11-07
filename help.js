@@ -1,6 +1,6 @@
 // Guía de la app (para la administradora): pantalla completa, índice, dibujos y zoom con dos dedos
-import { el } from './fx.js?v=17.2';
-import { getLang } from './i18n.js?v=17.2';
+import { el } from './fx.js?v=17.3';
+import { getLang } from './i18n.js?v=17.3';
 let LANG = 'es';
 const L = (es, ca, en) => ({ es, ca, en })[LANG] ?? es;
 
@@ -125,7 +125,7 @@ const SECTIONS = [
   { id: 'general', ico: '🏆', title: 'Premios y ajustes', color: '#b45309', body: () => [
     P('Arriba tienes un solo botón fijo, ', btn('💾 Guardar todo', 'red'), ', que guarda todos los apartados a la vez.'),
     el('div', { class: 'hg-list' },
-      el('div', {}, el('span', {}, '🏆'), el('div', {}, B('Premios'), el('small', {}, 'Lo que se gana en los días 10, 15, 20 y 25. Se gana si como mucho has fallado o dejado sin hacer 3 días hasta esa fecha.'))),
+      el('div', {}, el('span', {}, '🏆'), el('div', {}, B('Premios'), el('small', {}, 'Lo que se gana en las casillas 10, 15, 20 y 25, distinto para galleta, árbol y gnomo (una pestaña para cada figura). Se gana si como mucho se han fallado o dejado sin hacer 3 días hasta esa casilla.'))),
       el('div', {}, el('span', {}, '📣'), el('div', {}, B('Cinta que se mueve'), el('small', {}, 'Texto general en 3 idiomas, color, grosor y velocidad, con vista previa.'))),
       el('div', {}, el('span', {}, '❄️'), el('div', {}, B('Bienvenida con nieve'), el('small', {}, 'Mostrarla o no, segundos que nieva y el título. «👀 Verla ahora» para probarla.'))),
       el('div', {}, el('span', {}, '📅'), el('div', {}, B('Año del calendario'), el('small', {}, 'Las casillas se abren del 1 al 25 de diciembre de ese año.'))),
@@ -136,7 +136,7 @@ const SECTIONS = [
   ] },
   { id: 'tips', ico: '🛠️', title: 'Consejos y problemas', color: '#475569', body: () => [
     el('div', { class: 'hg-list' },
-      el('div', {}, el('span', {}, '🔢'), el('div', {}, B('Versión'), el('small', {}, 'En la cabecera, abajo a la izquierda y en letra pequeña, se ve la versión (por ejemplo V17.2). Si después de subir cambios no la ves, recarga la página.'))),
+      el('div', {}, el('span', {}, '🔢'), el('div', {}, B('Versión'), el('small', {}, 'En la cabecera, abajo a la izquierda y en letra pequeña, se ve la versión (por ejemplo V17.3). Si después de subir cambios no la ves, recarga la página.'))),
       el('div', {}, el('span', {}, '⬆️'), el('div', {}, B('Subir cambios'), el('small', {}, 'Sube a GitHub todos los .js, index.html y styles.css a la vez, para que no se mezclen versiones.'))),
       el('div', {}, el('span', {}, '🔊'), el('div', {}, B('Sonido en iPhone'), el('small', {}, 'Apple no deja sonar nada hasta tocar la pantalla. Si deja de sonar, toca la pantalla otra vez: se recupera solo.'))),
       el('div', {}, el('span', {}, '↺'), el('div', {}, B('Empezar de cero'), el('small', {}, 'Usuarios → Configurar → Reiniciar todo, para borrar los días de prueba.'))),

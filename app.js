@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=17.2';
-import { t, tx, setLang, getLang } from './i18n.js?v=17.2';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.2';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong } from './sound.js?v=17.2';
-import { typeRich, gallery } from './richact.js?v=17.2';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.2';
+import { initStore, store, DEMO } from './store.js?v=17.3';
+import { t, tx, setLang, getLang } from './i18n.js?v=17.3';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.3';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong } from './sound.js?v=17.3';
+import { typeRich, gallery } from './richact.js?v=17.3';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.3';
 
-export const APP_VERSION = 'V17.2';
+export const APP_VERSION = 'V17.3';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -29,6 +29,8 @@ function canOpen(n) {
   return y > Y || (y === Y && m === 12 && d >= n);
 }
 export const figure = () => S.settings?.figure || 'galleta';
+// el premio depende de la figura de cada persona (galleta, árbol o gnomo); si no hay texto propio, el general
+export const prizeText = g => (S.config.prizesFig?.[figure()]?.['p' + g] || '').trim() || S.config.prizes?.['p' + g] || '';
 const correctCount = () => Object.values(S.answers).filter(a => a.status === 'correct').length;
 export async function loadDay(n) {
   const c = await store.getDay(n).catch(() => null);
@@ -134,8 +136,8 @@ async function boot() {
     S.card = card;
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=17.2').catch(() => {});
-    import('./surprise.js?v=17.2').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./admin.js?v=17.3').catch(() => {});
+    import('./surprise.js?v=17.3').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -222,7 +224,7 @@ function prizeDetail(g) {
     <div class="prize-counts"><div>✅<b>${p.ok}</b><small>${t('cntOk')}</small></div><div>❌<b>${p.bad}</b><small>${t('cntBad')}</small></div>
     <div>⏳<b>${p.pend}</b><small>${t('cntPend')}</small></div><div>📅<b>${p.todo}</b><small>${t('cntTodo')}</small></div></div>
     <p>${t('failsLeft', Math.max(0, 3 - p.bad))}</p>
-    ${p.state === 'won' ? `<p class="prize-text">${esc(S.config.prizes['p' + g])}</p>` : ''}`);
+    ${p.state === 'won' ? `<p class="prize-text">${esc(prizeText(g))}</p>` : ''}`);
 }
 // al pulsar una figura de la franja: resultado del día o ánimo para hacerlo
 async function dayInfo(d) {
@@ -272,7 +274,7 @@ function showPrizes() {
       return el('button', { class: 'prize-row2 ' + p.state, onclick: () => prizeDetail(g) },
         el('span', { class: 'pr-ico' }, { won: '🏆', lost: '💔', play: '🎁' }[p.state]),
         el('span', { class: 'pr-txt' }, el('b', {}, t('dayRange', g)),
-          S.config.prizes?.['p' + g] ? el('span', { class: 'pr-prize' }, S.config.prizes['p' + g]) : null,
+          prizeText(g) ? el('span', { class: 'pr-prize' }, prizeText(g)) : null,
           el('small', {}, `✅ ${p.ok} · ❌ ${p.bad}`)),
         el('span', { class: 'pr-go' }, '›'));
     }));
@@ -297,7 +299,7 @@ export function renderHome() {
         el('span', { class: 'ver-tag' }, APP_VERSION),
         el('div', { class: 'top-actions' },
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.2')).openAdmin() }, '🔒')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.3')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -448,7 +450,7 @@ async function openDoor(n, door) {
   finishBtn.onclick = ctx.finish; cancelBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=17.2`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=17.3`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -472,7 +474,7 @@ function checkPrize() {
   const g = GOALS.find(x => !seen[x] && prizeState(x).state === 'won');
   if (!g) return;
   seen[g] = 1; try { localStorage.setItem(key, JSON.stringify(seen)); } catch {}
-  setTimeout(() => { confetti(250); chime(); popup(`<h2>🏆 ${t('prize')}!</h2><p>${t('dayRange', g)}</p><p class="prize-text">${esc(S.config.prizes['p' + g])}</p>`); }, 1800);
+  setTimeout(() => { confetti(250); chime(); popup(`<h2>🏆 ${t('prize')}!</h2><p>${t('dayRange', g)}</p><p class="prize-text">${esc(prizeText(g))}</p>`); }, 1800);
 }
 
 // ------------------------------------------------------------------ cerrar el día
@@ -529,63 +531,110 @@ function creaseTexture() {
 }
 
 // Arrugar como papel de verdad: pliegues con luz y sombra + deformación SVG + bola que se encoge
-// Arrugar como papel de verdad: la nota se parte en facetas (trocitos triangulares de la propia nota),
-// cada faceta se dobla hacia el centro con su propia luz y sombra, y todo se convierte en una bola.
-// Solo usa transformaciones (van por la tarjeta gráfica): fluido también en iPhone.
+// ---------------------------------------------------------------- arrugar el papel
+// Se hace una «foto» de la nota en un lienzo (canvas) y ese dibujo se pliega en facetas con luz y sombra
+// hasta hacerse una bola. Todo en UN solo lienzo: muy ligero, también en iPhone (antes, con muchas copias
+// de la nota, el iPhone se quedaba sin memoria y recargaba la app sin enseñar la actividad).
+function snapshotNote(node, W, H, dpr) {
+  const c = document.createElement('canvas'); c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const x = c.getContext('2d'); x.scale(dpr, dpr);
+  const r = node.getBoundingClientRect(), cs = getComputedStyle(node);
+  const cols = (cs.backgroundImage.match(/rgba?\([^)]*\)|#[0-9a-f]{3,8}/gi) || []);
+  const bw = parseFloat(cs.borderTopWidth) || 0, rad = Math.min(24, parseFloat(cs.borderTopLeftRadius) || 0);
+  const rr = (X, Y, w, h, q) => { x.beginPath(); x.moveTo(X + q, Y); x.arcTo(X + w, Y, X + w, Y + h, q); x.arcTo(X + w, Y + h, X, Y + h, q); x.arcTo(X, Y + h, X, Y, q); x.arcTo(X, Y, X + w, Y, q); x.closePath(); };
+  const inner = (cs.backgroundColor && !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor)) ? cs.backgroundColor : (cols[0] || '#fdfaf3');
+  // marco (rayas de bastón de caramelo si la nota las tiene)
+  if (bw > 0) {
+    rr(0, 0, W, H, rad); x.save(); x.clip();
+    if (/repeating/.test(cs.backgroundImage) && cols.length >= 4) {
+      const rc = [...new Set(cs.backgroundImage.slice(cs.backgroundImage.indexOf('repeating')).match(/rgba?\([^)]*\)|#[0-9a-f]{3,8}/gi) || [])];
+      const a = rc[0] || '#b3122e', b2 = rc[1] || '#ffffff';
+      x.fillStyle = b2; x.fillRect(0, 0, W, H); x.strokeStyle = a; x.lineWidth = 10;
+      for (let i = -H; i < W + H; i += 28) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + H, H); x.stroke(); }
+    } else { x.fillStyle = cs.borderTopColor || '#c99a2e'; x.fillRect(0, 0, W, H); }
+    x.restore();
+  }
+  x.fillStyle = inner; rr(bw, bw, W - 2 * bw, H - 2 * bw, Math.max(0, rad - bw)); x.fill();
+  // botones e imágenes (y lienzos de los juegos) en su sitio
+  node.querySelectorAll('.btn, img, canvas, video').forEach(e => {
+    const q = e.getBoundingClientRect(); if (!q.width || q.bottom < r.top || q.top > r.bottom) return;
+    const X = q.left - r.left, Y = q.top - r.top;
+    try {
+      if (e.matches('.btn')) { const bs = getComputedStyle(e); x.fillStyle = /rgba\(0, 0, 0, 0\)/.test(bs.backgroundColor) ? '#b3122e' : bs.backgroundColor; rr(X, Y, q.width, q.height, Math.min(q.height / 2, 22)); x.fill(); }
+      else if (e.tagName === 'VIDEO') { x.fillStyle = '#111'; x.fillRect(X, Y, q.width, q.height); }
+      else if ((e.tagName === 'IMG' && e.complete && e.naturalWidth) || e.tagName === 'CANVAS') x.drawImage(e, X, Y, q.width, q.height);
+    } catch {}
+  });
+  // texto: cada palabra en su sitio, con su letra y su color
+  const w = document.createTreeWalker(node, NodeFilter.SHOW_TEXT); const rg = document.createRange(); let count = 0;
+  while (w.nextNode() && count < 900) {
+    const tn = w.currentNode, txt = tn.data; if (!txt.trim()) continue;
+    const ps = getComputedStyle(tn.parentElement); if (ps.visibility === 'hidden' || ps.display === 'none') continue;
+    x.font = `${ps.fontStyle} ${ps.fontWeight} ${ps.fontSize} ${ps.fontFamily}`; x.fillStyle = ps.color; x.textBaseline = 'alphabetic';
+    const re = /\S+/g; let m;
+    while ((m = re.exec(txt)) && count < 900) {
+      rg.setStart(tn, m.index); rg.setEnd(tn, m.index + m[0].length);
+      const q = rg.getBoundingClientRect(); if (!q.width || q.bottom < r.top || q.top > r.bottom) continue;
+      x.fillText(m[0], q.left - r.left, q.bottom - r.top - q.height * .22); count++;
+    }
+  }
+  return c;
+}
+
 export async function crumpleAnim(node, out = true) {
   const dur = (out ? 1900 : 1600) * (window.__crumpleSlow || 1);
-  let wrap = null;
+  let cv = null;
   try {
     const r = node.getBoundingClientRect();
     if (!r.width || !r.height) throw new Error('sin tamaño');
-    const W = r.width, H = r.height, COLS = 4, ROWS = 5;
+    const W = r.width, H = r.height, dpr = Math.min(2, window.devicePixelRatio || 1), COLS = 4, ROWS = 5;
+    const paper = snapshotNote(node, W, H, dpr);
     // malla de puntos con un poco de desorden (los bordes se quedan rectos)
     const P = [];
-    for (let y = 0; y <= ROWS; y++) { P[y] = []; for (let x = 0; x <= COLS; x++) {
-      const edgeX = x === 0 || x === COLS, edgeY = y === 0 || y === ROWS;
-      P[y][x] = [x / COLS * W + (edgeX ? 0 : (Math.random() - .5) * W / COLS * .7), y / ROWS * H + (edgeY ? 0 : (Math.random() - .5) * H / ROWS * .7)];
+    for (let y = 0; y <= ROWS; y++) { P[y] = []; for (let xx = 0; xx <= COLS; xx++) {
+      const ex = xx === 0 || xx === COLS, ey = y === 0 || y === ROWS;
+      P[y][xx] = [xx / COLS * W + (ex ? 0 : (Math.random() - .5) * W / COLS * .7), y / ROWS * H + (ey ? 0 : (Math.random() - .5) * H / ROWS * .7)];
     } }
-    const tris = [];
-    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
-      const a = P[y][x], b = P[y][x + 1], c = P[y + 1][x + 1], d = P[y + 1][x];
-      if ((x + y) % 2) tris.push([a, b, c], [a, c, d]); else tris.push([a, b, d], [b, c, d]);
+    const facets = [];
+    for (let y = 0; y < ROWS; y++) for (let xx = 0; xx < COLS; xx++) {
+      const a = P[y][xx], b = P[y][xx + 1], c = P[y + 1][xx + 1], d = P[y + 1][xx];
+      for (const t of ((xx + y) % 2 ? [[a, b, c], [a, c, d]] : [[a, b, d], [b, c, d]])) {
+        const cx = (t[0][0] + t[1][0] + t[2][0]) / 3, cy = (t[0][1] + t[1][1] + t[2][1]) / 3, dark = Math.random() < .6;
+        facets.push({ t, cx, cy, dx: W / 2 - cx, dy: H / 2 - cy, th: Math.random() * Math.PI, phi: (35 + Math.random() * 45) * Math.PI / 180,
+          rot: (Math.random() - .5) * .9, jx: (Math.random() - .5) * 12, jy: (Math.random() - .5) * 12, dark, sh: dark ? .25 + Math.random() * .45 : .12 + Math.random() * .35, z: Math.random() });
+      }
     }
-    wrap = el('div', { class: 'crumple-wrap' });
-    Object.assign(wrap.style, { left: r.left + 'px', top: r.top + 'px', width: W + 'px', height: H + 'px' });
-    const facets = tris.map(t => {
-      const cx = (t[0][0] + t[1][0] + t[2][0]) / 3, cy = (t[0][1] + t[1][1] + t[2][1]) / 3;
-      const clone = node.cloneNode(true);
-      clone.classList.add('crumple-facet');
-      clone.querySelectorAll('iframe, video').forEach(v => v.replaceWith(el('div', { class: 'crumple-media' })));
-      Object.assign(clone.style, { position: 'absolute', left: '0', top: '0', width: W + 'px', height: H + 'px', margin: '0', transform: 'none', animation: 'none', opacity: '1', filter: 'none',
-        clipPath: `polygon(${t.map(p => `${p[0].toFixed(1)}px ${p[1].toFixed(1)}px`).join(',')})`, transformOrigin: `${cx}px ${cy}px` });
-      const dark = Math.random() < .6;
-      const shade = el('div', { class: 'crumple-shade' });
-      shade.style.background = dark ? 'linear-gradient(135deg,#0000,#000)' : 'linear-gradient(135deg,#fff,#fff0)';
-      clone.append(shade);
-      wrap.append(clone);
-      const len = Math.hypot(Math.random() - .5, Math.random() - .5) || 1;
-      return { el: clone, shade, dx: W / 2 - cx, dy: H / 2 - cy, ax: (Math.random() - .5) / len, ay: (Math.random() - .5) / len, ang: 25 + Math.random() * 45,
-        jx: (Math.random() - .5) * 12, jy: (Math.random() - .5) * 12, sh: dark ? .25 + Math.random() * .45 : .15 + Math.random() * .4, z: (Math.random() - .5) * 40 };
-    });
-    document.body.append(wrap);
+    facets.sort((p, q) => p.z - q.z);
+    cv = el('canvas', { class: 'crumple-canvas' });
+    const VW = innerWidth, VH = innerHeight; cv.width = Math.round(VW * dpr); cv.height = Math.round(VH * dpr);
+    document.body.append(cv);
     node.style.visibility = 'hidden';
-    const t0 = performance.now(), spin = (Math.random() < .5 ? -1 : 1) * (20 + Math.random() * 20);
-    const ease = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+    const g = cv.getContext('2d');
+    const t0 = performance.now(), spin = (Math.random() < .5 ? -1 : 1) * (.35 + Math.random() * .35);
+    const ease = v => v < .5 ? 2 * v * v : 1 - Math.pow(-2 * v + 2, 2) / 2;
     await new Promise(done => {
       let finished = false; const end = () => { if (!finished) { finished = true; done(); } };
       const f = now => {
         if (finished) return;
         const p = Math.min(1, (now - t0) / dur);
         const k = out ? ease(p) : 1 - ease(p); // 0 = hoja lisa, 1 = bola de papel
-        // cada faceta se pliega hacia el centro con su giro y su luz
-        const fold = Math.min(1, k * 1.4), pull = Math.max(0, (k - .12) / .88);
+        const fold = Math.min(1, k * 1.4), pull = Math.max(0, (k - .12) / .88), S = 1 - .55 * k;
+        g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, VW, VH);
+        g.globalAlpha = out ? (k > .9 ? 1 - (k - .9) / .1 : 1) : Math.min(1, .3 + p * 4);
         for (const fc of facets) {
-          fc.el.style.transform = `translate3d(${(fc.dx * .9 * pull + fc.jx * fold).toFixed(1)}px,${(fc.dy * .9 * pull + fc.jy * fold).toFixed(1)}px,${(fc.z * fold).toFixed(1)}px) rotate3d(${fc.ax.toFixed(3)},${fc.ay.toFixed(3)},0.25,${(fc.ang * fold).toFixed(1)}deg) scale(${(1 - .45 * pull).toFixed(3)})`;
-          fc.shade.style.opacity = (fc.sh * Math.min(1, k * 1.6)).toFixed(3);
+          g.save();
+          g.translate(r.left + W / 2, r.top + H / 2 + k * 50); g.rotate(spin * k); g.scale(S, S);
+          g.translate(-W / 2 + fc.dx * .9 * pull + fc.jx * fold, -H / 2 + fc.dy * .9 * pull + fc.jy * fold);
+          // pliegue: la faceta gira y se «acorta» en una dirección, como un papel doblado
+          g.translate(fc.cx, fc.cy); g.rotate(fc.rot * fold); g.rotate(fc.th); g.scale(1, Math.max(.15, Math.cos(fc.phi * fold))); g.rotate(-fc.th);
+          const sc = 1 - .45 * pull; g.scale(sc, sc); g.translate(-fc.cx, -fc.cy);
+          g.beginPath(); g.moveTo(...fc.t[0]); g.lineTo(...fc.t[1]); g.lineTo(...fc.t[2]); g.closePath();
+          g.save(); g.clip(); g.drawImage(paper, 0, 0, W, H);
+          g.fillStyle = fc.dark ? `rgba(0,0,0,${(fc.sh * Math.min(1, k * 1.6)).toFixed(3)})` : `rgba(255,255,255,${(fc.sh * Math.min(1, k * 1.6)).toFixed(3)})`;
+          g.fill(); g.restore();
+          if (k > .02) { g.strokeStyle = `rgba(0,0,0,${(.18 * Math.min(1, k * 2)).toFixed(3)})`; g.lineWidth = .8; g.stroke(); }
+          g.restore();
         }
-        wrap.style.transform = `perspective(900px) translateY(${(k * 50).toFixed(1)}px) rotate(${(spin * k).toFixed(1)}deg) scale(${(1 - .55 * k).toFixed(3)})`;
-        wrap.style.opacity = out ? (k > .9 ? (1 - (k - .9) / .1).toFixed(3) : '1') : Math.min(1, .3 + p * 4).toFixed(3);
         if (p < 1) requestAnimationFrame(f); else end();
       };
       requestAnimationFrame(f);
@@ -594,10 +643,11 @@ export async function crumpleAnim(node, out = true) {
   } catch (e) {
     console.warn('arrugado sencillo', e);
     // protección: si algo falla, un arrugado sencillo que funciona en todas partes
+    node.style.visibility = '';
     const kf = [{ transform: 'scale(1) rotate(0)', opacity: 1 }, { transform: 'scale(.25) rotate(35deg)', opacity: 0 }];
     try { await node.animate(out ? kf : kf.slice().reverse(), { duration: 900, easing: 'ease-in-out', fill: out ? 'forwards' : 'none' }).finished; } catch {}
   } finally {
-    wrap?.remove();
+    cv?.remove();
     if (!out) node.style.visibility = '';
   }
 }
@@ -678,7 +728,7 @@ function openUserSettings() {
   paper.onchange = upd; upd();
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.2').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.3').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('label', {}, t('paper'), paper), preview, el('label', { class: 'after-preview' }, t('portada'), port),

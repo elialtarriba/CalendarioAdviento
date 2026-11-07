@@ -1,11 +1,11 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store } from './store.js?v=17.2';
-import { t, tx } from './i18n.js?v=17.2';
-import { el, popup, toast, esc } from './fx.js?v=17.2';
-import { S, renderHome, loadDay, testMode, setTestMode } from './app.js?v=17.2';
-import { openActEditor, plain } from './richact.js?v=17.2';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=17.2';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.2';
+import { store } from './store.js?v=17.3';
+import { t, tx } from './i18n.js?v=17.3';
+import { el, popup, toast, esc } from './fx.js?v=17.3';
+import { S, renderHome, loadDay, testMode, setTestMode } from './app.js?v=17.3';
+import { openActEditor, plain } from './richact.js?v=17.3';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=17.3';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.3';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -71,9 +71,9 @@ function showPanel() {
   const special = el('button', { class: 'sp-special no-delay', onclick: () => {
     [...bar.children].forEach(b => b.classList.remove('active'));
     content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
-    import('./surprise.js?v=17.2').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
+    import('./surprise.js?v=17.3').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
   } }, el('span', { class: 'sp-special-ico' }, '💌'), el('span', {}, el('b', {}, 'Mensajes sorpresa'), el('small', {}, 'Un popup para quien tú quieras, el día que quieras')));
-  const guide = el('button', { class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.2').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+  const guide = el('button', { class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.3').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
     el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos')));
   const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), special, guide, bar, content);
   // los botones de guardar y de volver se quedan siempre a la vista al hacer scroll
@@ -240,13 +240,29 @@ const VIEWS = {
     } }, '💾 Guardar todo');
     root.replaceChildren(
       el('div', { class: 'adm-sticky' }, el('span', { class: 'adm-sticky-t' }, '🏆 Premios y ajustes'), saveAll),
-      el('div', { class: 'card' }, el('h3', {}, '🏆 Premios'),
-        el('label', {}, 'Con 10 aciertos', fields.p10), el('label', {}, 'Con 15 aciertos', fields.p15),
-        el('label', {}, 'Con 20 aciertos', fields.p20), el('label', {}, 'Con las 25 (los 4 premios + extra)', fields.p25),
-        el('button', { class: 'btn', onclick: async () => {
-          const prizes = Object.fromEntries(Object.entries(fields).map(([k, f]) => [k, f.value.trim()]));
-          await store.saveConfig({ prizes }); S.config.prizes = prizes; toast('💾 Premios guardados');
-        } }, '💾 Guardar premios')),
+      (() => {
+        // premios distintos para galleta, árbol y gnomo
+        const pf = S.config.prizesFig || {};
+        const LBL = { p10: 'Al llegar a la casilla 10', p15: 'Al llegar a la casilla 15', p20: 'Al llegar a la casilla 20', p25: 'Al llegar a la casilla 25 (premio final)' };
+        const F = {};
+        const tabs = el('div', { class: 'pz-tabs' }), panes = el('div');
+        [['galleta', 'Galleta'], ['arbol', 'Árbol'], ['gnomo', 'Gnomo']].forEach(([fg, name], i) => {
+          F[fg] = Object.fromEntries(['p10', 'p15', 'p20', 'p25'].map(k => [k, el('textarea', { rows: 2, placeholder: pr[k] || '' }, (pf[fg]?.[k] ?? pr[k]) || '')]));
+          const pane = el('div', { class: 'pz-pane', style: i ? 'display:none' : '' }, ...Object.entries(F[fg]).map(([k, ta]) => el('label', {}, LBL[k], ta)));
+          const tb = el('button', { type: 'button', class: 'pz-tab no-delay' + (i ? '' : ' on'), onclick: () => {
+            [...tabs.children].forEach(b => b.classList.remove('on')); tb.classList.add('on');
+            [...panes.children].forEach(p => p.style.display = 'none'); pane.style.display = '';
+          } }, el('img', { src: FIG_IMG[fg], alt: '' }), name);
+          tabs.append(tb); panes.append(pane);
+        });
+        return el('div', { class: 'card' }, el('h3', {}, '🏆 Premios'),
+          el('p', { class: 'muted' }, 'Cada figura tiene sus propios premios. Elige la figura y escribe lo que se gana en cada casilla. Lo que veas aquí es lo que verá cada persona según su figura.'),
+          tabs, panes,
+          el('button', { class: 'btn', onclick: async () => {
+            const prizesFig = Object.fromEntries(Object.entries(F).map(([fg, fs]) => [fg, Object.fromEntries(Object.entries(fs).map(([k, f]) => [k, f.value.trim()]))]));
+            await store.saveConfig({ prizesFig }); S.config.prizesFig = prizesFig; toast('💾 Premios guardados');
+          } }, '💾 Guardar premios'));
+      })(),
       marqueeCard(),
       (() => {
         const sp = { ...SPLASH_DEFAULT, ...(S.config.splash || {}) };
@@ -381,7 +397,11 @@ function userPanel(root, u, answers, set) {
 function marqueeCard() {
   const m = { ...MARQUEE_DEFAULT, ...(S.config.marquee || {}) };
   const show = el('input', { type: 'checkbox', checked: m.show !== false });
-  const texts = Object.fromEntries(['es', 'ca', 'en'].map(l => [l, el('input', { type: 'text', value: (m.text && m.text[l]) || '', placeholder: 'Vacío = ¡Feliz Navidad ' + (S.config.year || '') + ' y próspero Año Nuevo!' })]));
+  const Y = S.config.year || new Date().getFullYear();
+  const DEF = { es: `¡Feliz Navidad ${Y} y próspero Año Nuevo!`, ca: `Bon Nadal ${Y} i feliç Any Nou!`, en: `Merry Christmas ${Y} and a Happy New Year!` };
+  // si no hay texto (o es el antiguo «pulsa para verla en grande»), se muestra la felicitación por defecto
+  const curTxt = l => { const v = (m.text && m.text[l]) || ''; return !v || /en grande|en gran|full screen/i.test(v) ? DEF[l] : v; };
+  const texts = Object.fromEntries(['es', 'ca', 'en'].map(l => [l, el('input', { type: 'text', value: curTxt(l) })]));
   const speed = el('input', { type: 'range', min: 4, max: 40, value: 44 - m.speed }); // derecha = más rápida
   const speedLbl = el('span', {}, '');
   const color = el('select', {}, ...MARQUEE_COLORS.map(([id, name]) => el('option', { value: id, selected: id === m.colorName }, name)));
@@ -390,12 +410,12 @@ function marqueeCard() {
   const prev = el('div', { class: 'marquee', style: 'border-radius:8px;border:1px solid #e3cfa5' }, prevTrack);
   const cur = () => {
     const c = MARQUEE_COLORS.find(x => x[0] === color.value) || MARQUEE_COLORS[0];
-    return { show: show.checked, speed: 44 - speed.value, weight: +weight.value, colorName: c[0], color: c[2], text: { es: texts.es.value.trim(), ca: texts.ca.value.trim(), en: texts.en.value.trim() } };
+    return { show: show.checked, speed: 44 - speed.value, weight: +weight.value, colorName: c[0], color: c[2], text: Object.fromEntries(['es', 'ca', 'en'].map(l => { const v = texts[l].value.trim(); return [l, v === DEF[l] ? '' : v]; })) };
   };
   const upd = () => {
     const v = cur(); speedLbl.textContent = ` (← lenta · rápida →) ahora: ${v.speed <= 8 ? 'muy rápida' : v.speed <= 14 ? 'rápida' : v.speed <= 24 ? 'normal' : 'lenta'}`;
     prevTrack.style.cssText = `animation-duration:${v.speed}s;color:${v.color};font-weight:${v.weight};${v.colorName.startsWith('neon') ? `text-shadow:0 0 6px ${v.color},0 0 14px ${v.color};` : ''}`;
-    prevTrack.replaceChildren(...Array.from({ length: 8 }, () => el('span', {}, (v.text.es || '…') + '\u2003✦\u2003')));
+    prevTrack.replaceChildren(...Array.from({ length: 8 }, () => el('span', {}, (texts.es.value.trim() || '…') + '\u2003✦\u2003')));
   };
   [show, speed, color, weight, ...Object.values(texts)].forEach(x => x.addEventListener('input', upd)); upd();
   return el('div', { class: 'card' }, el('h3', {}, '📣 Marquesina (el texto que se mueve)'),
