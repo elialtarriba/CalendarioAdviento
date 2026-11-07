@@ -1,8 +1,8 @@
 // Guía de la app (para la administradora): pantalla completa, índice, dibujos y zoom con dos dedos
-import { el } from './fx.js?v=17.11';
-import { getLang } from './i18n.js?v=17.11';
-import { PORTADAS, PAPERS } from './defaults.js?v=17.11';
-import { figure } from './app.js?v=17.11';
+import { el } from './fx.js?v=17.12';
+import { getLang } from './i18n.js?v=17.12';
+import { PORTADAS, PAPERS } from './defaults.js?v=17.12';
+import { figure } from './app.js?v=17.12';
 // una ventanita del calendario (recortada del tema «Cosas Navidad»), como las de la portada
 function doorCrop(d = 1, cls = '') {
   const v = PORTADAS[0].variants.find(x => /movil/.test(x.img)) || PORTADAS[0].variants[0];
@@ -122,10 +122,12 @@ const SECTIONS = [
       [1, '🎅', 'Atrapa los 3 gorros', 'Mensaje anónimo, chiste y detector de personas buenas. Textos editables.'],
       [4, '🦌', 'Renos con gafas', 'Buscar los renos que llevan gafas.'],
       [6, '🔍', '5 diferencias + susto', 'Puedes cambiar los segundos del susto.'],
+      [7, '🧩', 'Puzle del tren', '32 piezas que se mueven y se giran. Al acabar, el puzle cobra vida con el vídeo (puzle7.jpg y puzle7.mp4).'],
       [8, '🎄', 'Decorar el árbol', ''],
       [12, '👁️', 'Ojo de lince', 'Qué objeto falta. Lo corriges tú en Respuestas.'],
       [13, '😇', '¿Has sido bueno?', 'La máquina de bondad.'],
       [15, '📜', 'Diploma absurdo', ''],
+      [18, '🧩', 'Puzle de Papá Noel', '35 piezas. Al acabar, cobra vida con su vídeo (puzle18.jpg y puzle18.mp4).'],
       [20, '🎡', 'Ruleta del disparate', 'Tú escribes las misiones de cada casilla y la frase de debajo.'],
       [24, '💃', 'El baile secreto', 'Sale siempre el vídeo baile.mp4 (súbelo a GitHub con los demás archivos). La grabación se comparte por WhatsApp.'],
       [25, '🎅', 'Tu cara en Papá Noel', 'Foto para compartir, guardar o imprimir.'],

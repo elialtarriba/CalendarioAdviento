@@ -1338,3 +1338,29 @@ body.sum-open { overflow: hidden; }
 
 .glow-confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 7; }
 .pzr-back .popup { position: relative; z-index: 6; }
+
+.sum-pdf-holder { position: fixed; left: -2000px; top: 0; width: 680px; padding: 8px; background: #4a0c18; z-index: -1; }
+.sum-pdfpop { text-align: center; } .sum-pdfpop .btn { margin-top: 6px; }
+
+/* ===== V17.12 · puzle 3D (días 7 y 18) ===== */
+.pz3-stage { position: relative; width: 100%; margin: 6px 0 4px; -webkit-user-select: none; user-select: none; }
+.pz3-board { position: absolute; border-radius: 6px; background: repeating-linear-gradient(45deg, #f3e6c8 0 10px, #efdfbd 10px 20px);
+  box-shadow: inset 0 0 0 2px #fff6d6, inset 0 3px 10px #0003, 0 0 0 5px #d4a017, 0 0 0 7px #8a5a12, 0 10px 22px #0005; overflow: hidden; }
+.pz3-full, .pz3-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.2s; pointer-events: none; }
+.pz3-board.done .pz3-full { opacity: 1; }
+.pz3-board.done .pz3-video { opacity: 1; transition-delay: .9s; }
+.pz3-board.done { animation: pz3Glow 2.4s ease-in-out infinite; }
+@keyframes pz3Glow { 50% { box-shadow: inset 0 0 0 2px #fff6d6, 0 0 0 5px #f2c14e, 0 0 0 7px #8a5a12, 0 0 28px 8px #ffd24a; } }
+.pz3-sound { position: absolute; right: 8px; bottom: 8px; z-index: 3; width: 40px; height: 40px; border-radius: 50%; border: 2px solid #f2c14e; background: #0008; color: #fff; font-size: 18px; }
+.pz3-pilebg { position: absolute; left: 0; right: 0; border-radius: 18px; background: radial-gradient(ellipse at 50% 40%, #8a5a3022, transparent 70%), repeating-linear-gradient(90deg, #6b3f1f 0 22px, #5d361a 22px 44px);
+  box-shadow: inset 0 0 0 3px #3e2410, inset 0 8px 18px #0006; opacity: .9; }
+.pz3-piece { position: absolute; left: 0; top: 0; touch-action: none; cursor: grab; filter: drop-shadow(0 3px 2px rgba(0,0,0,.55)); will-change: transform; }
+.pz3-piece.lift { filter: drop-shadow(0 10px 8px rgba(0,0,0,.5)); scale: 1.08; }
+.pz3-piece.turning { transition: transform .25s ease; }
+.pz3-piece.snap { transition: transform .15s ease-out, filter .3s; }
+.pz3-piece.locked { pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+.pz3-piece.gone { opacity: 0; transition: opacity 1s; }
+.pz3-spark { position: absolute; z-index: 2000; width: 70px; height: 70px; margin: -35px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(#fff, #ffe9a8 30%, #ffd24a55 55%, transparent 70%); animation: pz3Spark .7s ease-out forwards; }
+@keyframes pz3Spark { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+.pz3-replay { display: block; margin: 10px auto 0; }

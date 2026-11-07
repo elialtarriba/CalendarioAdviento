@@ -1,14 +1,14 @@
 // Resumen del mes: al terminar el día 25 (con la actividad, si la tiene la figura),
 // una página muy navideña con los 25 días, cada uno en su cuadro: el reto, lo que contestaste
 // y la actividad de tu figura. Se puede guardar en PDF y volver al calendario.
-import { el, sleep, confetti, toast } from './fx.js?v=17.11';
-import { t, tx, getLang } from './i18n.js?v=17.11';
-import { chime } from './sound.js?v=17.11';
-import { S, figure, loadDay } from './app.js?v=17.11';
-import { defaultDay } from './defaults.js?v=17.11';
+import { el, sleep, confetti, toast, popup } from './fx.js?v=17.12';
+import { t, tx, getLang } from './i18n.js?v=17.12';
+import { chime } from './sound.js?v=17.12';
+import { S, figure, loadDay } from './app.js?v=17.12';
+import { defaultDay } from './defaults.js?v=17.12';
 
-const TK = { hats: 'hatsTitle', reindeer: 'd4title', differences: 'd6title', tree: 'd8title', memory: 'd12title', goodcheck: 'd13title', diploma: 'd15title', roulette: 'd20title', dance: 'd24title', santa: 'd25title' };
-const typeTitle = ty => (TK[ty] && t(TK[ty])) || '';
+const TK = { hats: 'hatsTitle', reindeer: 'd4title', differences: 'd6title', tree: 'd8title', memory: 'd12title', goodcheck: 'd13title', diploma: 'd15title', roulette: 'd20title', dance: 'd24title', santa: 'd25title', puzzle: 'puzzleTitle' };
+const typeTitle = ty => ty === 'puzzle' ? L('Haz el puzle y descubre qué imagen esconde', 'Fes el puzle i descobreix quina imatge amaga', 'Do the puzzle') : (TK[ty] && t(TK[ty])) || '';
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const PIC = { 1: 'ilu-gorro.webp', 8: 'ilu-abeto.webp', 13: 'ilu-17.webp', 16: 'ilu-bola-roja.webp', 22: 'ilu-gl.webp', 24: 'ilu-gr.webp', 25: 'ilu-7.webp' };
 const pic = n => PIC[n] || `ilu-${n}.webp`;
@@ -75,10 +75,66 @@ export async function monthSummary() {
     setTimeout(() => { chime(); confetti(160); }, 500);
 
     pdf.onclick = async () => {
-      toast('📄 ' + L('En el menú que se abre, elige «Guardar como PDF» (en iPhone: «Imprimir» y después compartir).', 'Al menú que s’obre, tria «Desa com a PDF» (a l’iPhone: «Imprimeix» i després comparteix).', 'In the menu that opens, choose “Save as PDF” (on iPhone: “Print”, then share).'), 5000);
-      await sleep(300);
-      try { window.print(); } catch {}
+      if (pdf.disabled) return; pdf.disabled = true; const label = pdf.textContent;
+      pdf.textContent = '⏳ ' + L('Preparando el PDF…', 'Preparant el PDF…', 'Preparing the PDF…');
+      let file = null;
+      try { file = await makePdf(page, cards, { year, name: S.profile?.name || '' }); } catch (e) { console.error(e); }
+      pdf.disabled = false; pdf.textContent = label;
+      if (!file) { toast('⚠️ ' + L('No se ha podido crear el PDF', 'No s’ha pogut crear el PDF', 'The PDF could not be created'), 4000); return; }
+      // el móvil solo deja compartir con un toque directo: por eso un segundo botón
+      const url = URL.createObjectURL(file);
+      const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+      const go = el('button', { type: 'button', class: 'btn btn-big btn-green no-delay', onclick: async () => {
+        try { if (canShare) { await navigator.share({ files: [file], title: file.name }); return; } } catch (e) { if (e?.name === 'AbortError') return; }
+        const a = el('a', { href: url, download: file.name, target: '_blank' }); document.body.append(a); a.click(); a.remove();
+      } }, '📄 ' + (canShare ? L('Guardar o compartir el PDF', 'Desar o compartir el PDF', 'Save or share the PDF') : L('Descargar el PDF', 'Descarregar el PDF', 'Download the PDF')));
+      await popup(el('div', { class: 'sum-pdfpop' }, el('h2', {}, '🎄 ' + L('¡Tu PDF está listo!', 'El teu PDF és a punt!', 'Your PDF is ready!')),
+        el('p', {}, canShare ? L('Pulsa el botón y elige «Guardar en Archivos» (o compártelo por WhatsApp o correo).', 'Prem el botó i tria «Desa a Fitxers» (o comparteix-lo per WhatsApp o correu).', 'Tap the button and choose “Save to Files” (or share it).') : L('Pulsa el botón para descargarlo.', 'Prem el botó per descarregar-lo.', 'Tap the button to download it.')), go),
+        { cls: 'small', buttons: [{ label: L('Cerrar', 'Tancar', 'Close'), value: false, cls: 'btn-ghost' }] });
+      setTimeout(() => URL.revokeObjectURL(url), 120000);
     };
     close.onclick = () => { wrap.classList.add('out'); document.body.classList.remove('sum-open'); setTimeout(() => { wrap.remove(); resolve(); }, 500); };
   });
+}
+
+// ---- PDF: cada cuadro se fotografía (html2canvas) y se colocan en hojas A4 con fondo navideño (jsPDF)
+const loadScript = src => new Promise((res, rej) => { if (document.querySelector(`script[data-src="${src}"]`)) return res(); const sc = document.createElement('script'); sc.src = src; sc.dataset.src = src; sc.onload = res; sc.onerror = rej; document.head.append(sc); });
+async function makePdf(page, cards, { year, name }) {
+  await loadScript('lib-html2canvas.js?v=1'); await loadScript('lib-jspdf.js?v=1');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
+  const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight(), M = 28;
+  const bg = () => { doc.setFillColor(74, 12, 24); doc.rect(0, 0, PW, PH, 'F'); doc.setDrawColor(212, 160, 23); doc.setLineWidth(3); doc.rect(12, 12, PW - 24, PH - 24); };
+  // portada dibujada a mano (los textos dorados no salen bien en html2canvas)
+  const cv = document.createElement('canvas'); cv.width = 1200; cv.height = 560; const g = cv.getContext('2d'); g.fillStyle = '#4a0c18'; g.fillRect(0, 0, 1200, 560);
+  try { await document.fonts.ready; } catch {}
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const fig = page.querySelector('.sum-fig'); if (fig?.complete) { const h = 170, w = h * fig.naturalWidth / fig.naturalHeight; g.drawImage(fig, 600 - w / 2, 10, w, h); }
+  const gd = g.createLinearGradient(0, 200, 0, 300); gd.addColorStop(0, '#fff6c2'); gd.addColorStop(.55, '#f2c14e'); gd.addColorStop(1, '#b8860b');
+  g.fillStyle = gd; g.font = '700 110px "Mountains of Christmas", cursive'; g.fillText(L('Mi Navidad', 'El meu Nadal', 'My Christmas') + ' ' + year, 600, 250);
+  g.fillStyle = '#ffe9a8'; g.font = '64px "Great Vibes", cursive'; g.fillText(name, 600, 345);
+  g.fillStyle = '#fff3d0'; g.font = '30px Montserrat, sans-serif'; g.fillText(L('Todo lo que has vivido en tu Calendario de Adviento', 'Tot el que has viscut al teu Calendari d’Advent', 'Everything you lived in your Advent Calendar'), 600, 410);
+  const stats = [...page.querySelectorAll('.sum-stats > div')].map(d => [d.querySelector('b')?.textContent || '', d.querySelector('small')?.textContent || '']);
+  stats.forEach(([b, sm], i) => { const x = 600 + (i - (stats.length - 1) / 2) * 250; g.fillStyle = '#fff8ec'; g.strokeStyle = '#d4a017'; g.lineWidth = 5; g.beginPath(); g.roundRect ? g.roundRect(x - 110, 450, 220, 100, 18) : g.rect(x - 110, 450, 220, 100); g.fill(); g.stroke();
+    g.fillStyle = '#7a1020'; g.font = '700 46px "Playfair Display", serif'; g.fillText(b, x, 485); g.font = '700 22px Montserrat, sans-serif'; g.fillText(sm, x, 527); });
+  bg();
+  let y = M + 10; const cw = PW - 2 * M;
+  const hh = cw * cv.height / cv.width; doc.addImage(cv.toDataURL('image/jpeg', .92), 'JPEG', M, y, cw, hh); y += hh + 14;
+  // los cuadros: sin animación y a tamaño fijo para que salgan nítidos
+  const holder = el('div', { class: 'sum-pdf-holder' }); document.body.append(holder);
+  try {
+    for (const card of cards) {
+      const clone = card.cloneNode(true); clone.style.animation = 'none'; clone.style.width = '640px'; holder.replaceChildren(clone);
+      await Promise.all([...clone.querySelectorAll('img')].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
+      const shot = await window.html2canvas(clone, { scale: 1.6, backgroundColor: null, useCORS: true, logging: false });
+      const h = cw * shot.height / shot.width;
+      if (y + h > PH - M) { doc.addPage(); bg(); y = M + 6; }
+      doc.addImage(shot.toDataURL('image/jpeg', .88), 'JPEG', M, y, cw, h); y += h + 10;
+    }
+  } finally { holder.remove(); }
+  doc.setTextColor(255, 233, 168); doc.setFontSize(16);
+  if (y + 30 > PH - M) { doc.addPage(); bg(); y = M + 20; }
+  doc.text(L('¡Feliz Navidad y próspero Año Nuevo!', 'Bon Nadal i feliç Any Nou!', 'Merry Christmas and a Happy New Year!'), PW / 2, y + 18, { align: 'center' });
+  const blob = doc.output('blob');
+  return new File([blob], `mi-navidad-${year}.pdf`, { type: 'application/pdf' });
 }

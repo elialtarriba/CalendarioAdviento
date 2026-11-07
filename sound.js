@@ -419,3 +419,20 @@ export function whistle() {
     });
   } catch {}
 }
+
+// pieza de puzle que encaja: «clac» de cartón
+export function snapSound() {
+  try {
+    const c = ac(), t = c.currentTime;
+    const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .06);
+    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = 1.2;
+    const g = c.createGain(); g.gain.setValueAtTime(.55, t); g.gain.exponentialRampToValueAtTime(.001, t + .06);
+    s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
+    const o = c.createOscillator(), og = c.createGain(); o.type = 'sine';
+    o.frequency.setValueAtTime(320, t); o.frequency.exponentialRampToValueAtTime(110, t + .09);
+    og.gain.setValueAtTime(.35, t); og.gain.exponentialRampToValueAtTime(.001, t + .12);
+    o.connect(og); og.connect(c.destination); o.start(t); o.stop(t + .13);
+    const s2 = c.createBufferSource(); s2.buffer = noiseBuffer(c, .03); const g2 = c.createGain(); g2.gain.setValueAtTime(.25, t + .035); g2.gain.exponentialRampToValueAtTime(.001, t + .07);
+    const f2 = c.createBiquadFilter(); f2.type = 'highpass'; f2.frequency.value = 3000; s2.connect(f2); f2.connect(g2); g2.connect(c.destination); s2.start(t + .035);
+  } catch {}
+}
