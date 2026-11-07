@@ -1,57 +1,50 @@
 // Día 4: busca los 5 renos con gafas negras entre ~1000 renos
-import { t } from './i18n.js?v=17.6';
-import { el, popup, starBurst } from './fx.js?v=17.6';
-import { chime, pop, wrong } from './sound.js?v=17.6';
-import { figure } from './app.js?v=17.6';
+import { t } from './i18n.js?v=17.9';
+import { el, popup, starBurst } from './fx.js?v=17.9';
+import { chime, pop, wrong } from './sound.js?v=17.9';
+import { figure } from './app.js?v=17.9';
 
 const W = 1600, H = 1100, COLS = 40, ROWS = 25;
 
 function rnd(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
 
+// renos pintados al estilo del calendario (el reno de la casilla 6)
+const SPR = {};
+const sprite = (src, hgt = 160) => new Promise(res => { const i = new Image(); i.onload = () => { const c = document.createElement('canvas'); c.height = hgt; c.width = Math.round(hgt * i.width / i.height); c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); res(c); }; i.onerror = () => res(null); i.src = src; });
+const ready = Promise.all([['deer', 'ilu-6.webp'], ['green', 'ilu-6-verde.webp'], ['blue', 'ilu-6-azul.webp'], ['hat', 'ilu-gorro.webp', 80], ['gift', 'ilu-4.webp', 60]]
+  .map(([k, s, h]) => sprite(s, h).then(c => { SPR[k] = c; })));
+const DW = 40, DH = 42;                               // tamaño del reno en el lienzo
+const EYE_L = [.615, .482], EYE_R = [.835, .446], NOSE = [.82, .558];
+const headOf = d => [d.x + (.72 - .5) * DW * d.s * (d.flip ? -1 : 1), d.y + (.47 - .5) * DH * d.s];
+
 function drawReindeer(x, c, s, flip, acc, r) {
+  const img = acc === 'scarf' ? (r < .5 ? SPR.green : SPR.blue) : SPR.deer;
+  if (!img) return;
   c.save(); c.translate(x[0], x[1]); c.scale(flip ? -s : s, s);
-  // patas
-  c.strokeStyle = '#5a3a1c'; c.lineWidth = 2.2; c.lineCap = 'round';
-  [[-7, 1], [-3, -1], [4, 1], [8, -1]].forEach(([lx, k]) => { c.beginPath(); c.moveTo(lx, 10); c.lineTo(lx + k, 19); c.stroke(); });
-  if (acc === 'ski') { c.strokeStyle = '#d62828'; c.lineWidth = 2; c.beginPath(); c.moveTo(-14, 20); c.lineTo(14, 20); c.stroke(); }
-  // cuerpo
-  c.fillStyle = r < .5 ? '#9a6232' : '#83522a';
-  c.beginPath(); c.ellipse(1, 6, 12, 7.5, 0, 0, 7); c.fill();
-  c.fillStyle = '#f1dcc0'; c.beginPath(); c.ellipse(-3, 9, 6, 3, 0, 0, 7); c.fill();
-  // cola
-  c.fillStyle = '#f5e6d0'; c.beginPath(); c.arc(13, 3, 2.5, 0, 7); c.fill();
-  // cuello y cabeza
-  c.fillStyle = '#8b5a2b'; c.beginPath(); c.ellipse(-9, -1, 4, 7, -.5, 0, 7); c.fill();
-  c.beginPath(); c.arc(-12, -7, 6.2, 0, 7); c.fill();
-  c.fillStyle = '#c99a6b'; c.beginPath(); c.ellipse(-17, -5, 4, 3.2, 0, 0, 7); c.fill();
-  // cuernos
-  c.strokeStyle = '#6b4423'; c.lineWidth = 1.8;
-  c.beginPath(); c.moveTo(-10, -12); c.lineTo(-7, -20); c.moveTo(-8.4, -16); c.lineTo(-4, -18); c.moveTo(-7, -20); c.lineTo(-9, -24);
-  c.moveTo(-13, -12); c.lineTo(-15, -20); c.moveTo(-14.3, -16.5); c.lineTo(-18, -18); c.stroke();
-  // oreja
-  c.fillStyle = '#7a4a22'; c.beginPath(); c.ellipse(-6, -10, 3, 1.6, -.6, 0, 7); c.fill();
-  // ojo y nariz
-  c.fillStyle = '#1a1a1a'; c.beginPath(); c.arc(-13, -8.5, 1.2, 0, 7); c.fill();
-  c.fillStyle = acc === 'rednose' ? '#ff1a1a' : '#2b1a10'; c.beginPath(); c.arc(-20.5, -5.5, acc === 'rednose' ? 2.2 : 1.6, 0, 7); c.fill();
-  // complementos
+  const w = DW, h = DH, X = u => -w / 2 + u * w, Y = v => -h / 2 + v * h;
+  if (acc === 'ski') { c.strokeStyle = '#b3122e'; c.lineWidth = 2.4; c.lineCap = 'round'; c.beginPath(); c.moveTo(X(.05), Y(1)); c.lineTo(X(.95), Y(1)); c.stroke(); }
+  c.drawImage(img, -w / 2, -h / 2, w, h);
+  const [lx, ly] = [X(EYE_L[0]), Y(EYE_L[1])], [rx, ry] = [X(EYE_R[0]), Y(EYE_R[1])];
   if (acc === 'black' || acc === 'redglasses' || acc === 'brownglasses') {
-    c.fillStyle = acc === 'black' ? '#000' : acc === 'redglasses' ? '#e01b1b' : '#5b3a1a';
-    c.beginPath(); c.ellipse(-15.8, -8.5, 2.9, 2.3, 0, 0, 7); c.ellipse(-10.4, -8.5, 2.9, 2.3, 0, 0, 7); c.fill();
-    c.strokeStyle = c.fillStyle; c.lineWidth = 1.3; c.beginPath(); c.moveTo(-13.2, -9); c.lineTo(-12.9, -9); c.moveTo(-7.6, -9); c.lineTo(-5, -10); c.stroke();
-    if (acc === 'black') { c.fillStyle = '#ffffffaa'; c.beginPath(); c.arc(-16.6, -9.3, .8, 0, 7); c.arc(-11.2, -9.3, .8, 0, 7); c.fill(); }
+    const col = acc === 'black' ? '#0b0b0b' : acc === 'redglasses' ? '#d01818' : '#6b3e17';
+    c.fillStyle = col; c.strokeStyle = col; c.lineWidth = 1.1;
+    c.beginPath(); c.ellipse(lx, ly, 3.6, 2.9, -.2, 0, 7); c.fill(); c.beginPath(); c.ellipse(rx, ry, 3.2, 2.7, -.2, 0, 7); c.fill();
+    c.beginPath(); c.moveTo(lx + 3, ly - .8); c.lineTo(rx - 2.8, ry); c.moveTo(lx - 3.4, ly - .5); c.lineTo(X(.47), Y(.43)); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,.75)'; c.beginPath(); c.arc(lx - 1.2, ly - 1, .8, 0, 7); c.arc(rx - 1.1, ry - 1, .7, 0, 7); c.fill();
   } else if (acc === 'specs') {
-    c.strokeStyle = '#333'; c.lineWidth = .9; c.beginPath(); c.arc(-15.8, -8.5, 2.6, 0, 7); c.moveTo(-7.8, -8.5); c.arc(-10.4, -8.5, 2.6, 0, 7); c.stroke();
-  } else if (acc === 'hat') {
-    c.fillStyle = '#d62828'; c.beginPath(); c.moveTo(-18, -11); c.lineTo(-6, -12); c.lineTo(-4, -22); c.closePath(); c.fill();
-    c.fillStyle = '#fff'; c.fillRect(-18.5, -12.5, 13, 2.5); c.beginPath(); c.arc(-4, -22, 2, 0, 7); c.fill();
-  } else if (acc === 'scarf') {
-    c.fillStyle = r < .5 ? '#2a9d62' : '#1d6fd1'; c.fillRect(-12, -2, 7, 3.4); c.fillRect(-8, 0, 2.5, 7);
-  } else if (acc === 'gift') {
-    c.fillStyle = r < .5 ? '#e63946' : '#ffb703'; c.fillRect(-26, 4, 9, 8); c.fillStyle = '#fff'; c.fillRect(-22, 4, 1.6, 8); c.fillRect(-26, 7.3, 9, 1.6);
+    c.strokeStyle = '#2a2a2a'; c.lineWidth = .8; c.beginPath(); c.arc(lx, ly, 3.2, 0, 7); c.moveTo(rx + 2.9, ry); c.arc(rx, ry, 2.9, 0, 7); c.moveTo(lx + 3.2, ly); c.lineTo(rx - 2.9, ry); c.stroke();
+  } else if (acc === 'rednose') {
+    const g = c.createRadialGradient(X(NOSE[0]) - .6, Y(NOSE[1]) - .6, .2, X(NOSE[0]), Y(NOSE[1]), 3.2); g.addColorStop(0, '#ff9a9a'); g.addColorStop(.5, '#ff1a1a'); g.addColorStop(1, '#a00');
+    c.fillStyle = g; c.beginPath(); c.arc(X(NOSE[0]), Y(NOSE[1]), 3, 0, 7); c.fill();
+  } else if (acc === 'hat' && SPR.hat) {
+    const hw = w * .55, hh = hw * SPR.hat.height / SPR.hat.width; c.drawImage(SPR.hat, X(.42), Y(.12), hw, hh);
+  } else if (acc === 'gift' && SPR.gift) {
+    const gw = w * .36, gh = gw * SPR.gift.height / SPR.gift.width; c.drawImage(SPR.gift, X(-.08), Y(1) - gh, gw, gh);
   } else if (acc === 'sleep') {
-    c.save(); c.scale(flip ? -1 : 1, 1); c.fillStyle = '#3a6ea5'; c.font = 'bold 9px sans-serif'; c.fillText('z', flip ? 10 : -26, -18); c.font = 'bold 6px sans-serif'; c.fillText('z', flip ? 15 : -21, -23); c.restore();
+    c.save(); c.scale(flip ? -1 : 1, 1); c.fillStyle = '#3a6ea5'; c.font = 'bold 9px serif'; c.fillText('z', flip ? -X(.98) : X(.95), Y(.12)); c.font = 'bold 6px serif'; c.fillText('z', flip ? -X(1.1) - 3 : X(1.05) + 3, Y(.02)); c.restore();
   } else if (acc === 'ball') {
-    c.fillStyle = '#fff'; c.strokeStyle = '#9bb'; c.lineWidth = .8; c.beginPath(); c.arc(-24, -4, 3.5, 0, 7); c.fill(); c.stroke();
+    const g = c.createRadialGradient(X(.08) - 1, Y(.78) - 1, .3, X(.08), Y(.78), 4); g.addColorStop(0, '#fff'); g.addColorStop(1, '#c9d8ea');
+    c.fillStyle = g; c.beginPath(); c.arc(X(.08), Y(.78), 4, 0, 7); c.fill();
   }
   c.restore();
 }
@@ -77,10 +70,10 @@ export function render(body, ctx) {
     c.fillStyle = '#cfe4f7'; for (let i = 0; i < 500; i++) { c.beginPath(); c.arc((i * 997) % W, (i * 613) % H, 1.5, 0, 7); c.fill(); }
     deer.forEach(d => drawReindeer([d.x, d.y], c, d.s, d.flip, d.acc, d.r));
     deer.filter(d => d.found).forEach(d => {
-      c.strokeStyle = '#ffcc00'; c.lineWidth = 4; c.beginPath(); c.arc(d.x - (d.flip ? -12 : 12) * d.s, d.y - 4, 22, 0, 7); c.stroke();
+      const [hx, hy] = headOf(d); c.strokeStyle = '#ffcc00'; c.lineWidth = 4; c.beginPath(); c.arc(hx, hy, 22, 0, 7); c.stroke();
     });
   };
-  draw();
+  draw(); ready.then(draw);
 
   const counter = el('div', {}, t('d4count', 0));
   // zoom y desplazamiento propios: un dedo arrastra, dos dedos pellizcan, toque = pulsar reno
@@ -130,7 +123,7 @@ export function render(body, ctx) {
     if (finished) return;
     const rect = cv.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width * W, y = (e.clientY - rect.top) / rect.height * H;
-    const hit = deer.find(d => d.target && !d.found && Math.hypot(d.x - (d.flip ? -12 : 12) * d.s - x, d.y - 6 - y) < 26);
+    const hit = deer.find(d => { if (!d.target || d.found) return false; const [hx, hy] = headOf(d); return Math.hypot(hx - x, hy - y) < 24; });
     if (hit) {
       hit.found = true; found++; draw(); pop(); starBurst(e.clientX, e.clientY);
       counter.textContent = t('d4count', found);

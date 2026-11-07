@@ -1,13 +1,16 @@
 // Día 12: mira la imagen; en la siguiente falta un objeto. ¿Cuál?
-import { t } from './i18n.js?v=17.6';
-import { el, sleep, toast } from './fx.js?v=17.6';
-import { chime } from './sound.js?v=17.6';
+import { t } from './i18n.js?v=17.9';
+import { el, sleep, toast } from './fx.js?v=17.9';
+import { chime } from './sound.js?v=17.9';
 
+// dibujos pintados al estilo del calendario
 const OBJ = [
-  ['🎄', 'árbol de Navidad', 'arbre de Nadal', 'Christmas tree'], ['🎅', 'Papá Noel', 'Pare Noel', 'Santa'], ['⛄', 'muñeco de nieve', 'ninot de neu', 'snowman'],
-  ['🦌', 'reno', 'ren', 'reindeer'], ['🔔', 'campana', 'campana', 'bell'], ['🎁', 'regalo', 'regal', 'present'], ['🕯️', 'vela', 'espelma', 'candle'],
-  ['⭐', 'estrella', 'estel', 'star'], ['🧦', 'calcetín', 'mitjó', 'stocking'], ['🍪', 'galleta', 'galeta', 'cookie'], ['🛷', 'trineo', 'trineu', 'sleigh'],
-  ['🧣', 'bufanda', 'bufanda', 'scarf'], ['🍭', 'piruleta', 'piruleta', 'lollipop'], ['❄️', 'copo de nieve', 'floc de neu', 'snowflake'], ['🧤', 'guantes', 'guants', 'gloves'],
+  ['ilu-5.webp', 'árbol de Navidad', 'arbre de Nadal', 'Christmas tree'], ['ilu-3.webp', 'muñeco de nieve', 'ninot de neu', 'snowman'],
+  ['ilu-12.webp', 'campanas', 'campanes', 'bells'], ['ilu-4.webp', 'regalos', 'regals', 'presents'], ['ilu-11.webp', 'calcetín', 'mitjó', 'stocking'],
+  ['ilu-18.webp', 'galleta de estrella', 'galeta d’estrella', 'star cookie'], ['ilu-15.webp', 'trineo', 'trineu', 'sleigh'], ['ilu-14.webp', 'petirrojo', 'pit-roig', 'robin'],
+  ['ilu-9.webp', 'osito', 'osset', 'teddy bear'], ['ilu-2.webp', 'farol rojo', 'fanal vermell', 'red lantern'], ['ilu-21.webp', 'tren', 'tren', 'train'],
+  ['ilu-19.webp', 'caballito de balancín', 'cavallet de balancí', 'rocking horse'], ['ilu-17.webp', 'duende', 'follet', 'elf'],
+  ['ilu-23.webp', 'saco de regalos', 'sac de regals', 'sack of presents'], ['ilu-10.webp', 'casita de jengibre', 'caseta de gingebre', 'gingerbread house'],
 ];
 const POS = [[12, 18], [32, 14], [55, 20], [78, 15], [90, 40], [20, 42], [42, 40], [66, 44], [10, 70], [30, 68], [52, 66], [74, 72], [90, 80], [40, 86], [62, 88]];
 
@@ -15,7 +18,7 @@ export function render(body, ctx) {
   const order = [...OBJ].sort(() => Math.random() - .5);
   const missing = Math.floor(Math.random() * 15);
   const scene = (skip) => el('div', { class: 'memory-scene' }, ...order.map((o, i) => i === skip ? null :
-    el('span', { style: `left:${POS[i][0]}%;top:${POS[i][1]}%;transform:translate(-50%,-50%) rotate(${(i * 37 % 30) - 15}deg)` }, o[0])));
+    el('span', { style: `left:${POS[i][0]}%;top:${POS[i][1]}%;transform:translate(-50%,-50%) rotate(${(i * 37 % 20) - 10}deg)` }, el('img', { src: o[0], class: 'ilu', alt: '', draggable: 'false' }))));
   const timer = el('div', { class: 'memory-timer' });
   const nextBtn = el('button', { class: 'btn btn-green' }, t('next') + ' →');
   const wrap = el('div', {}, el('p', { class: 'game-help' }, '👀 ' + t('d12help')), timer, scene(-1), el('div', { class: 'popup-btns' }, nextBtn));
@@ -36,7 +39,7 @@ export function render(body, ctx) {
     const go = async () => {
       if (!input.value.trim()) { input.focus(); return; }
       send.disabled = true;
-      await ctx.submit({ answer: input.value.trim(), status: 'pending', extra: { missing: `${order[missing][0]} ${order[missing][1]}` } });
+      await ctx.submit({ answer: input.value.trim(), status: 'pending', extra: { missing: order[missing][1] } });
       chime(); toast(t('d12sent'));
       await sleep(1400); ctx.finish();
     };

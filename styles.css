@@ -1165,3 +1165,52 @@ button.strip-fig { border: 0; background: none; padding: 0; font: inherit; curso
 .gd-mini-cookie { vertical-align: middle; }
 
 .g23-scene { background: radial-gradient(ellipse at 50% 35%, #ffd98a33, transparent 55%), radial-gradient(circle at 15% 12%, #fff 0 1.5px, transparent 2.5px), radial-gradient(circle at 82% 20%, #fff 0 1.2px, transparent 2.2px), radial-gradient(circle at 60% 8%, #fff 0 1px, transparent 2px), radial-gradient(circle at 30% 40%, #fff9 0 1.2px, transparent 2px), radial-gradient(circle at 90% 50%, #fff9 0 1px, transparent 2px), linear-gradient(#0b1a3a, #24407a 62%, #eef3fb 63%, #fff); }
+
+/* ===== V17.7 · día 24 en película ===== */
+.p24-teaser { width: min(58%, 220px); aspect-ratio: 499/640; margin: 10px auto; cursor: pointer; filter: drop-shadow(0 12px 18px #0006); animation: giftHop 2.4s ease-in-out infinite; }
+.p24-teaser.opened { animation: none; opacity: .85; }
+.p24-go { animation: goPulse 1.6s ease-in-out infinite; }
+@keyframes goPulse { 50% { transform: scale(1.06); } }
+.cine-wrap { position: fixed; inset: 0; z-index: 190; background: #0c0508; animation: fadeIn .7s; touch-action: none; overflow: hidden; -webkit-user-select: none; user-select: none; }
+.cine-wrap.out { animation: fadeOut .6s forwards; }
+@keyframes fadeOut { to { opacity: 0; } }
+.cine-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.cine-bar { position: absolute; left: 0; right: 0; height: 7vh; background: #000; z-index: 2; pointer-events: none; animation: barIn 1.2s ease-out backwards; }
+.cine-bar.top { top: 0; } .cine-bar.bot { bottom: 0; }
+@keyframes barIn { from { height: 0; } }
+.cine-rec { position: absolute; top: calc(7vh + 10px); left: 14px; z-index: 3; color: #fff; font: 800 12px/1 system-ui, sans-serif; letter-spacing: 2px; opacity: .8; display: flex; align-items: center; gap: 6px; }
+.cine-rec i { width: 9px; height: 9px; border-radius: 50%; background: #ff3b3b; animation: twinkle 1s steps(2) infinite; }
+.cine-x { position: absolute; top: calc(7vh + 6px); right: 10px; z-index: 6; width: 38px; height: 38px; border-radius: 50%; border: 0; background: #0006; color: #fff; font-size: 18px; }
+.cine-hint { position: absolute; left: 0; right: 0; bottom: calc(7vh + 14px); z-index: 5; text-align: center; color: #fff6d6; font-weight: 800; font-size: 17px; text-shadow: 0 2px 6px #000; padding: 0 16px; pointer-events: none; }
+.cine-dots { position: absolute; left: 0; right: 0; bottom: calc(7vh + 48px); z-index: 5; transition: opacity .5s; }
+.cine-dots.hide { opacity: 0; }
+.cine-balls { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.cine-ball { position: absolute; left: var(--x); top: var(--y); width: 70px; height: 82px; margin: -41px 0 0 -35px; padding: 0; border: 0; background: none; pointer-events: auto; cursor: pointer;
+  filter: drop-shadow(0 0 14px #ffe9a8); animation: ballRise 1.6s cubic-bezier(.2,1,.3,1) backwards, ballBob 3s ease-in-out infinite; }
+.cine-ball .orn { width: 70px; height: 82px; }
+@keyframes ballRise { from { left: 50%; top: 50%; transform: scale(.05); opacity: 0; } 30% { opacity: 1; } }
+@keyframes ballBob { 50% { translate: 0 -6px; } }
+.cine-ball.seen { filter: drop-shadow(0 0 6px #ffe9a888) saturate(.7); opacity: .75; }
+.cine-ball.seen::after { content: '✓'; position: absolute; top: 34px; left: 50%; transform: translateX(-50%); color: #fff; font-weight: 900; font-size: 22px; text-shadow: 0 1px 3px #000; }
+.cine-flash { position: absolute; z-index: 6; width: 90px; height: 90px; pointer-events: none; border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 12%, #fff6c8 22%, #ffd24a88 40%, transparent 68%); filter: drop-shadow(0 0 18px #ffe9a8); }
+.cine-flash::before, .cine-flash::after { content: ''; position: absolute; left: 50%; top: 50%; width: 140%; height: 6%; background: linear-gradient(90deg, transparent, #fff, transparent); transform: translate(-50%, -50%); border-radius: 50%; }
+.cine-flash::after { transform: translate(-50%, -50%) rotate(90deg); }
+.cine-trail { position: absolute; z-index: 5; width: 10px; height: 10px; margin: -5px; border-radius: 50%; background: radial-gradient(#fff, #ffe9a8 40%, transparent 70%); pointer-events: none; animation: trailFade .7s ease-out forwards; }
+@keyframes trailFade { to { opacity: 0; transform: scale(.2); } }
+.cine-keep { position: absolute; left: 50%; bottom: calc(7vh + 50px); z-index: 6; transform: translateX(-50%) scale(.6); opacity: 0; pointer-events: none; transition: opacity .8s, transform .8s cubic-bezier(.2,1.4,.4,1); white-space: nowrap; }
+.cine-keep.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) scale(1); }
+
+/* V17.7 · día 12 con dibujos pintados */
+.memory-scene span { width: clamp(46px, 13%, 92px); aspect-ratio: 1; font-size: 0; filter: drop-shadow(0 4px 4px #0005); }
+.memory-scene { background: radial-gradient(ellipse at 50% 40%, #fffdf6, #f6ead0 70%, #ead6aa); box-shadow: inset 0 0 0 4px #d4a017, inset 0 0 30px #c99a2e55; }
+
+/* V17.7 · susto del día 6 con el muñeco pintado */
+.scare-ilu { grid-template-rows: 1fr auto; background: radial-gradient(#3a1020, #000 70%); }
+.scare-ilu img.ilu { width: 92vmin; height: 92vmin; max-height: 78vh; animation: scareShake .15s infinite, scareZoom .5s cubic-bezier(.2,1.6,.4,1); }
+.scare-ilu b { font-family: 'Mountains of Christmas', cursive; font-size: clamp(48px, 14vw, 90px); color: #ffd400; text-shadow: 0 0 20px #ff2d55, 0 4px 0 #000; padding-bottom: 6vh; animation: scareShake .15s infinite; }
+@keyframes scareZoom { from { transform: scale(.2); } }
+
+.cine-ball { touch-action: none; }
+.cine-ball.moved, .cine-ball.dragging { animation: ballBob 3s ease-in-out infinite; }
+.cine-ball.dragging { animation: none; transform: scale(1.18); filter: drop-shadow(0 0 22px #fff3c4); z-index: 2; transition: transform .15s; }

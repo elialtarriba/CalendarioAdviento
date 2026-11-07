@@ -1,7 +1,7 @@
 // Día 8: decorar el árbol arrastrando 25 objetos hasta su sitio
-import { t } from './i18n.js?v=17.6';
-import { el, svgEl, confetti, borderLights } from './fx.js?v=17.6';
-import { chime, pop } from './sound.js?v=17.6';
+import { t } from './i18n.js?v=17.9';
+import { el, svgEl, confetti, borderLights } from './fx.js?v=17.9';
+import { chime, pop } from './sound.js?v=17.9';
 
 const SLOTS = [
   { type: 'star', x: 300, y: 96 },
@@ -10,14 +10,16 @@ const SLOTS = [
   ...[[180, 582], [240, 586], [300, 590], [360, 586], [420, 582], [210, 625], [390, 625]].map(([x, y]) => ({ type: 'gift', x, y })),
 ];
 const BULB = ['#ff3b3b', '#ffd23b', '#3bff6a', '#3bb6ff', '#ff7af0'];
+// adornos pintados al estilo del calendario
+const IMG = (src, w, h) => `<image href="${src}" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`;
+const GIFTS = ['ilu-4.webp', 'ilu-gl.webp', 'ilu-gr.webp', 'ilu-23.webp', 'ilu-9.webp', 'ilu-19.webp', 'ilu-15.webp'];
 function itemSvg(kind, i) {
-  if (kind === 'star') return '<path d="M0 -26 l8 16 18 2 -13 12 4 18 -17 -9 -17 9 4 -18 -13 -12 18 -2z" fill="#ffd400" stroke="#b88a00" stroke-width="2"/>';
-  if (kind === 'bulb') { const c = BULB[i % BULB.length]; return `<rect x="-4" y="-14" width="8" height="6" fill="#777"/><path d="M0 -9 C10 -6 10 8 0 14 C-10 8 -10 -6 0 -9Z" fill="${c}" class="bulb-fill" style="--c:${c}"/>`; }
-  if (kind === 'ball') { const c = ['#e63946', '#3a86ff', '#c9a227'][i % 3]; return `<circle r="12" fill="${c}"/><rect x="-3" y="-15" width="6" height="4" fill="#bbb"/><circle cx="-4" cy="-4" r="3" fill="#fff8"/>`; }
-  if (kind === 'cane') return '<path d="M4 14 V-6 a6 6 0 0 0 -12 0" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M4 14 V-6 a6 6 0 0 0 -12 0" stroke="#e63946" stroke-width="6" fill="none" stroke-dasharray="4 4" stroke-linecap="round"/>';
-  if (kind === 'bell') return '<path d="M-11 8 C-11 -10 11 -10 11 8 Z" fill="#e8b64c" stroke="#9c7520"/><circle cy="10" r="3" fill="#9c7520"/><path d="M-6 -9 q6 -6 12 0" stroke="#e63946" stroke-width="3" fill="none"/>';
-  const c = ['#e63946', '#2a9d8f', '#ffb703', '#3a86ff', '#9b5de5', '#e63946', '#06d6a0'][i % 7], r = ['#ffd166', '#fff', '#e63946', '#ffd166', '#fff', '#2a9d8f', '#ffd166'][i % 7];
-  return `<rect x="-22" y="-18" width="44" height="36" rx="3" fill="${c}"/><rect x="-4" y="-18" width="8" height="36" fill="${r}"/><rect x="-22" y="-3" width="44" height="7" fill="${r}"/><path d="M0 -18 c-10 -14 -18 -4 0 0 c10 -14 18 -4 0 0" fill="${r}"/>`;
+  if (kind === 'star') return IMG('ilu-estrella.webp', 52, 48);
+  if (kind === 'bulb') { const c = BULB[i % BULB.length]; return `<circle r="11" fill="${c}" opacity=".35"/><circle r="6" fill="${c}" class="bulb-fill" style="--c:${c}"/><circle cx="-1.8" cy="-1.8" r="2" fill="#fff" opacity=".8"/>`; }
+  if (kind === 'ball') return IMG(['ilu-bola-roja.webp', 'ilu-bola-oro.webp', 'ilu-bola-roja2.webp'][i % 3], 26, 30);
+  if (kind === 'cane') return IMG('ilu-11.webp', 26, 30);
+  if (kind === 'bell') return IMG('ilu-12.webp', 30, 27);
+  return IMG(GIFTS[i % 7], 48, 46);
 }
 
 export function render(body, ctx) {
@@ -30,10 +32,8 @@ export function render(body, ctx) {
 
   const tree = `
     <defs><radialGradient id="tglow"><stop offset="0" stop-color="#fff6c0" stop-opacity=".8"/><stop offset="1" stop-color="#fff6c0" stop-opacity="0"/></radialGradient></defs>
-    <ellipse cx="300" cy="610" rx="230" ry="40" fill="#ffffff55"/>
-    <rect x="282" y="505" width="36" height="60" fill="#6b3a1a"/>
-    <path d="M300 230 L100 510 H500Z" fill="#1d6b42"/><path d="M300 150 L150 360 H450Z" fill="#228050"/><path d="M300 100 L205 220 H395Z" fill="#279058"/>
-    <path d="M140 470 Q300 520 460 470 M180 330 Q300 370 420 330 M225 200 Q300 230 375 200" stroke="#ffffff33" stroke-width="5" fill="none"/>
+    <ellipse cx="300" cy="606" rx="240" ry="42" fill="#ffffff66"/>
+    <image href="ilu-abeto.webp" x="81" y="100" width="438" height="470" preserveAspectRatio="xMidYMid meet"/>
     <g id="slots">${SLOTS.map(s => s.type === 'gift' ? `<rect x="${s.x - 22}" y="${s.y - 18}" width="44" height="36" rx="4" fill="none" stroke="#ffffff88" stroke-dasharray="4 3"/>`
       : `<circle cx="${s.x}" cy="${s.y}" r="${s.type === 'star' ? 18 : 9}" fill="#ffffff22" stroke="#ffffffaa" stroke-dasharray="3 3"/>`).join('')}</g>
     <g id="items"></g>`;

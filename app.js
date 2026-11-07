@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=17.6';
-import { t, tx, setLang, getLang } from './i18n.js?v=17.6';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.6';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=17.6';
-import { typeRich, gallery } from './richact.js?v=17.6';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.6';
+import { initStore, store, DEMO } from './store.js?v=17.9';
+import { t, tx, setLang, getLang } from './i18n.js?v=17.9';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.9';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=17.9';
+import { typeRich, gallery } from './richact.js?v=17.9';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.9';
 
-export const APP_VERSION = 'V17.6';
+export const APP_VERSION = 'V17.9';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -136,8 +136,8 @@ async function boot() {
     S.card = card;
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=17.6').catch(() => {});
-    import('./surprise.js?v=17.6').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./admin.js?v=17.9').catch(() => {});
+    import('./surprise.js?v=17.9').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -310,7 +310,7 @@ export function renderHome() {
         el('div', { class: 'top-actions' },
           sndBtn(),
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.6')).openAdmin() }, '🔒')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.9')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -458,10 +458,19 @@ async function openDoor(n, door) {
     },
     finish: () => { if (!closed) { closed = true; closeDay(n, layer, note, door); } },
   };
-  finishBtn.onclick = ctx.finish; cancelBtn.onclick = ctx.finish;
+  // Finalizar sin haber hecho el reto: avisar (si no, no sale la actividad y parece que falla)
+  finishBtn.onclick = async () => {
+    if (!S.answers[n] && figure() !== 'galleta' && !closed) {
+      const go = await popup(`<h2>🎄</h2><p style="font-size:18px">${L3('Todavía no has hecho el reto de hoy. Cuando lo hagas, aparecerá tu actividad.', 'Encara no has fet el repte d’avui. Quan el facis, apareixerà la teva activitat.', 'You haven’t done today’s challenge yet. When you do, your activity will appear.')}</p>`,
+        { buttons: [{ label: L3('Hacer el reto', 'Fer el repte', 'Do the challenge'), value: false }, { label: L3('Salir', 'Sortir', 'Leave'), value: true, cls: 'btn-ghost' }] });
+      if (!go) return;
+    }
+    ctx.finish();
+  };
+  cancelBtn.onclick = ctx.finish;
   try {
     if (ctx.prev && !['diploma', 'dance', 'santa', 'roulette'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=17.6`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=17.9`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -489,19 +498,37 @@ function checkPrize() {
 }
 
 // ------------------------------------------------------------------ cerrar el día
+// nunca esperar para siempre a una animación
+const withTimeout = (p, ms) => Promise.race([Promise.resolve(p).catch(e => console.warn(e)), sleep(ms)]);
+const clearCrumples = () => document.querySelectorAll('.crumple-canvas').forEach(c => c.remove());
+const L3 = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
+// arruga la nota y la quita (si algo falla, la quita igualmente)
+async function crumpleAway(note) {
+  try { crumpleSound(); await withTimeout(crumpleAnim(note, true), 4000); } catch (e) { console.warn(e); }
+  clearCrumples(); note.remove();
+}
+// enseña la actividad pase lo que pase: si la versión bonita falla, sale la sencilla
+async function runActivity(n, layer) {
+  layer.querySelectorAll('.note').forEach(x => x.remove());
+  try { return await showActivity(n, layer); }
+  catch (e) {
+    console.error(e); clearCrumples(); layer.querySelectorAll('.note').forEach(x => x.remove());
+    try { return await showActivity(n, layer, true); } catch (e2) { console.error(e2); toast('⚠️ ' + (e2.code || e2.message), 6000); return null; }
+  }
+}
+
 async function closeDay(n, layer, note, door) {
   const fig = figure();
   const done = !!S.answers[n];
   speechSynthesis?.cancel?.();
   if (fig !== 'galleta' && done) {
-    // la actividad tiene que salir siempre: si la animación falla, se sigue igualmente
-    try { crumpleSound(); await crumpleAnim(note, true); } catch (e) { console.error(e); }
-    note.remove();
-    try { await showActivity(n, layer); }
-    catch (e) { console.error(e); toast('⚠️ ' + (e.code || e.message), 6000); }
+    // la actividad tiene que salir siempre
+    await crumpleAway(note);
+    const res = await runActivity(n, layer);
+    if (res === 'done') fullView = true; // al acabar: el calendario en grande
   }
   // día 25 con la foto hecha: final del calendario con la bola de nieve que cobra vida
-  if (n === 25 && S.card && done) { try { await (await import('./globe.js?v=17.6')).snowGlobe(); } catch (e) { console.error(e); } }
+  if (n === 25 && S.card && done) { try { await (await import('./globe.js?v=17.9')).snowGlobe(); } catch (e) { console.error(e); } }
   creak(false);
   layer.classList.add('fade-out');
   await sleep(700);
@@ -665,7 +692,7 @@ export async function crumpleAnim(node, out = true) {
   }
 }
 
-async function showActivity(n, layer) {
+async function showActivity(n, layer, simple = false) {
   const fig = figure();
   const content = await loadDay(n).catch(() => null) || defaultDay(n);
   const key = fig === 'arbol' ? 'act1' : 'act2';
@@ -689,8 +716,10 @@ async function showActivity(n, layer) {
   crumpleSound();
   let choice = null; const decided = new Promise(r => { btn.onclick = () => r('done'); later.onclick = () => { choice = 'later'; r('later'); }; });
   // algunos días tienen una actividad especial interactiva (día 23: regalos; día 24: el regalo de Papá Noel)
-  const sp = await import('./acts.js?v=17.6').then(m => m.special(n, key)).catch(() => null);
-  await crumpleAnim(note, false);
+  const sp = await import('./acts.js?v=17.9').then(m => m.special(n, key)).catch(() => null);
+  if (!simple) await withTimeout(crumpleAnim(note, false), 3500);
+  // la nota tiene que verse siempre, pase lo que pase con la animación
+  clearCrumples(); note.style.visibility = ''; note.style.opacity = '';
   if (sp) {
     textBox.classList.add('act-special');
     note.querySelector('.activity-fig')?.remove(); note.querySelector('.activity-warn')?.remove();
@@ -706,8 +735,8 @@ async function showActivity(n, layer) {
     S.profile.actDone = { ...(S.profile.actDone || {}), [n]: stamp };
     store.saveProfile(S.user.uid, { actDone: { [n]: stamp } }).catch(e => console.warn(e));
   }
-  note.classList.add('fly-away');
-  await sleep(500);
+  // al terminar, el papel se vuelve a arrugar y se hace pequeño
+  await crumpleAway(note);
   return res;
 }
 const actPending = n => {
@@ -735,7 +764,7 @@ async function remindActivity(n) {
   note.animate([{ transform: 'scale(.2)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
   chime();
   const r = await new Promise(res => { go.onclick = () => res('go'); later.onclick = () => res('later'); });
-  if (r === 'go') { crumpleSound(); await crumpleAnim(note, true); note.remove(); await showActivity(n, layer); }
+  if (r === 'go') { await crumpleAway(note); const res = await runActivity(n, layer); if (res === 'done') fullView = true; }
   creak(false); layer.classList.add('fade-out'); await sleep(700); layer.remove(); renderHome();
 }
 
@@ -762,7 +791,7 @@ function openUserSettings() {
   }));
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.6').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.9').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('div', { class: 'pick-label' }, t('paper')), paperGrid,

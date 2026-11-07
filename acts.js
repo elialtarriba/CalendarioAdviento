@@ -1,11 +1,11 @@
 // Actividades especiales (interactivas) de algunos días
 //  · Día 23: tres regalos que no se compran, debajo de un árbol con luces → eliges a quién se los das
 //  · Día 24: el regalo que Papá Noel ha dejado para ti → lazo, luz, bolas con regalos imaginarios
-import { el, sleep, confetti, popup, toast } from './fx.js?v=17.6';
-import { getLang } from './i18n.js?v=17.6';
-import { chime, pop, jingle, hohoho } from './sound.js?v=17.6';
-import { S } from './app.js?v=17.6';
-import { store } from './store.js?v=17.6';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=17.9';
+import { getLang } from './i18n.js?v=17.9';
+import { chime, pop, jingle, hohoho } from './sound.js?v=17.9';
+import { S } from './app.js?v=17.9';
+import { store } from './store.js?v=17.9';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const img = (src, cls = '') => el('img', { src, class: 'ilu ' + cls, alt: '', draggable: 'false' });
@@ -21,7 +21,7 @@ export function special(n, key) {
 // ================================================================ DÍA 23
 const NAMES = {
   act1: ['Yaya', 'Julio Padre', 'Julio Hijo', 'Marian', 'Lorena', 'Santi', 'Txell', 'Agustí', 'Raimon Padre', 'Raimon Hijo', 'Yan', 'Pruna', 'Elisabeth'],
-  act2: ['Raimon Padre', 'Raimon Hijo', 'Yan', 'Pruna', 'Elisabeth Mamá'],
+  act2: ['Raimon Padre', 'Raimon Hijo', 'Yan', 'Pruna', 'Elisabeth Mamá', 'Marc'],
 };
 // Dibujos al estilo del calendario (recortados de la imagen del calendario)
 const TREE = 'ilu-5.webp';
@@ -106,65 +106,233 @@ const GIFTS24 = () => [
   [L('Una caja de carcajadas', 'Una capsa de rialles', 'A box of belly laughs'), L('«Abrir en caso de lunes».', '«Obrir en cas de dilluns».', '“Open in case of Monday.”')],
 ];
 
+// Día 24 en «película»: la cámara filma la caja de lado; con 5 toques al lazo se destapa,
+// la cámara mira por la boca de la caja, sube una luz celestial del fondo y de ella salen
+// las bolas. Al tocar una bola sale un destello que se va volando a lo lejos.
+const easeIO = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const cl = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const loadImg = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
+
 function present24(box) {
   return new Promise(resolve => {
     const head = el('h2', { class: 'p24-title' }, '🎁 ' + L('El regalo que Papá Noel ha dejado para ti', 'El regal que el Pare Noel ha deixat per a tu', 'The present Santa has left for you'));
-    const hint = el('p', { class: 'p24-hint' }, L('«Hay un paquete con tu nombre…» Toca el lazo 5 veces para abrirlo.', '«Hi ha un paquet amb el teu nom…» Toca el llaç 5 vegades per obrir-lo.', '“There’s a parcel with your name on it…” Tap the bow 5 times to open it.'));
-    const dots = el('div', { class: 'p24-dots' }, ...Array.from({ length: 5 }, () => el('i')));
-    const pres = el('div', { class: 'p24-present' }, img(PRESENT, 'p-body'), img(PRESENT, 'p-lid'), el('div', { class: 'p-shine' }));
-    const light = el('div', { class: 'p24-light' });
-    const balls = el('div', { class: 'p24-balls' });
-    const bokeh = el('div', { class: 'p24-bokeh' }, ...Array.from({ length: 18 }, (_, i) => { const b = el('i'); b.style.cssText = `left:${(i * 53) % 100}%;top:${(i * 37) % 100}%;animation-delay:${(i % 6) * .4}s;width:${8 + (i % 4) * 5}px;height:${8 + (i % 4) * 5}px`; return b; }));
-    const stage = el('div', { class: 'p24-stage' }, bokeh, light, balls, pres);
+    const teaser = el('div', { class: 'p24-teaser' }, img(PRESENT));
+    const go = el('button', { class: 'btn btn-big no-delay p24-go' }, '🎬 ' + L('Abrir mi regalo', 'Obrir el meu regal', 'Open my present'));
     const foot = el('div', { class: 'p24-foot' });
-    box.append(head, hint, dots, stage, foot);
-    setTimeout(() => stage.scrollIntoView?.({ behavior: 'smooth', block: 'center' }), 900);
-    let taps = 0, opened = false;
-    pres.addEventListener('click', async () => {
-      if (opened) return;
-      taps++; pop(); dots.children[taps - 1]?.classList.add('on');
-      pres.classList.remove('wiggle'); void pres.offsetWidth; pres.classList.add('wiggle');
-      pres.style.setProperty('--loose', taps / 5);
-      burst(stage, 8 + taps * 3);
-      if (taps < 5) return;
-      opened = true; hint.textContent = '✨';
-      jingle(1);
-      pres.classList.add('untie');         // el lazo se deshace a cámara lenta (brilla y se suelta)
-      for (let k = 0; k < 4; k++) { burst(stage, 14); await sleep(560); }
-      pres.classList.add('open');          // se levanta la tapa
-      await sleep(900);
-      light.classList.add('on'); chime();  // luz celestial
-      await sleep(1200);
-      const G = GIFTS24(); let seen = 0;
-      hint.textContent = L('Toca cada bola para descubrir el regalo', 'Toca cada bola per descobrir el regal', 'Tap each bauble to discover the gift');
-      G.forEach(([title, txt], i) => {
-        const b = el('button', { class: 'p24-ball no-delay', style: `--i:${i};animation-delay:${i * .28}s` }, orn(BALL_PICS[i]), el('span', { class: 'p24-n' }, i + 1));
-        b.onclick = async () => {
-          pop();
-          b.classList.add('seen');
-          await popup(el('div', { class: 'p24-card' }, orn(BALL_PICS[i], 'p24-card-ball'), el('h2', {}, title), el('p', { class: 'p24-quote' }, txt)),
-            { cls: 'small p24-pop', buttons: [{ label: L('¡Qué bien!', 'Que bé!', 'Lovely!'), value: true }] });
-          if (!b.dataset.counted) { b.dataset.counted = '1'; seen++; }
-          if (seen === G.length && !foot.childElementCount) {
-            confetti(260); hohoho();
-            foot.append(el('button', { class: 'btn btn-big no-delay p24-keep', onclick: () => resolve('keep') }, '🎁 ' + L('Me lo quedo. No acepto cambios.', 'M’ho quedo. No accepto canvis.', 'I’m keeping it. No exchanges.')));
-            foot.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
-          }
-        };
-        balls.append(b);
-      });
+    box.append(head, el('p', { class: 'p24-hint' }, L('«Hay un paquete con tu nombre…»', '«Hi ha un paquet amb el teu nom…»', '“There’s a parcel with your name on it…”')), teaser, el('div', { class: 'p24-foot' }, go), foot);
+    let finished = false;
+    const start = () => cinema().then(done => {
+      if (!done) return;
+      if (done === 'keep') return resolve('keep');
+      finished = true; go.remove(); teaser.classList.add('opened');
+      foot.replaceChildren(el('button', { class: 'btn btn-big no-delay p24-keep', onclick: () => resolve('keep') }, '🎁 ' + L('Me lo quedo. No acepto cambios.', 'M’ho quedo. No accepto canvis.', 'I’m keeping it. No exchanges.')));
     });
+    go.onclick = start; teaser.onclick = () => { if (!finished) start(); };
   });
 }
 
-// destellos dorados que salen del lazo
-function burst(stage, n = 12) {
-  const r = stage.getBoundingClientRect(), p = stage.querySelector('.p24-present')?.getBoundingClientRect();
-  if (!p) return;
-  const cx = p.left - r.left + p.width / 2, cy = p.top - r.top + p.height * .2;
-  for (let i = 0; i < n; i++) {
-    const s = el('i', { class: 'p24-spark' }); const a = Math.random() * Math.PI * 2, d = 40 + Math.random() * 90;
-    s.style.cssText = `left:${cx}px;top:${cy}px;--dx:${Math.cos(a) * d}px;--dy:${Math.sin(a) * d - 30}px;animation-delay:${Math.random() * .15}s`;
-    stage.append(s); setTimeout(() => s.remove(), 1300);
-  }
+function cinema() {
+  return new Promise(async resolveCine => {
+    const cv = el('canvas', { class: 'cine-cv' });
+    const hint = el('div', { class: 'cine-hint' }, '👆 ' + L('Toca el lazo 5 veces para abrirlo', 'Toca el llaç 5 vegades per obrir-lo', 'Tap the bow 5 times to open it'));
+    const dots = el('div', { class: 'p24-dots cine-dots' }, ...Array.from({ length: 5 }, () => el('i')));
+    const balls = el('div', { class: 'cine-balls' });
+    const close = el('button', { class: 'cine-x no-delay', 'aria-label': 'cerrar' }, '✕');
+    const keep = el('button', { class: 'btn btn-big no-delay cine-keep' }, '🎁 ' + L('Me lo quedo. No acepto cambios.', 'M’ho quedo. No accepto canvis.', 'I’m keeping it. No exchanges.'));
+    const wrap = el('div', { class: 'cine-wrap' }, cv, el('div', { class: 'cine-bar top' }), el('div', { class: 'cine-bar bot' }), el('div', { class: 'cine-rec' }, el('i'), 'REC'), balls, dots, hint, keep, close);
+    document.body.append(wrap);
+    const g = cv.getContext('2d');
+    let W, H, dpr;
+    const size = () => { dpr = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; };
+    size(); addEventListener('resize', size);
+    const [gift, paper, ribbon] = await Promise.all([loadImg(PRESENT), loadImg('ilu-papel.webp'), loadImg('ilu-cinta.webp')]);
+    const paperPat = paper ? g.createPattern(paper, 'repeat') : '#9c1024';
+    let phase = 'film', phaseAt = performance.now(), taps = 0, loose = 0, lidK = 0, light = 0, raf, ended = false;
+    const t0 = performance.now();
+    const go = p => { phase = p; phaseAt = performance.now(); };
+    const sparks = [];
+    const bokeh = Array.from({ length: 22 }, (_, i) => ({ x: (i * 97.3 % 100) / 100, y: (i * 61.7 % 100) / 100, r: 10 + (i % 5) * 9, p: i }));
+    const motes = Array.from({ length: 70 }, () => ({ a: Math.random() * 7, d: Math.random(), s: .2 + Math.random() * .8 }));
+
+    // caja de lado: dónde está (en pantalla) según la cámara
+    const giftRect = (z = 1, ox = 0, oy = 0) => {
+      const ar = gift ? gift.width / gift.height : 1.1, h = Math.min(H * .4, W * .86 / ar) * z, w = h * ar;
+      return { x: W / 2 - w / 2 + ox, y: H * .58 - h / 2 + oy, w, h };
+    };
+    const drawSide = (t, alpha, z, ox, oy) => {
+      if (!gift) return;
+      const r = giftRect(z, ox, oy);
+      g.save(); g.globalAlpha = alpha;
+      // sombra en el suelo
+      const sh = g.createRadialGradient(r.x + r.w / 2, r.y + r.h * .98, 2, r.x + r.w / 2, r.y + r.h * .98, r.w * .6);
+      sh.addColorStop(0, 'rgba(0,0,0,.55)'); sh.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = sh; g.fillRect(r.x - r.w * .3, r.y + r.h * .8, r.w * 1.6, r.h * .4);
+      // línea donde acaba la tapa (sigue la esquina de la caja)
+      const LID = [[0, .47], [.5, .555], [1, .455]], cut = .55;
+      const lidPath = (above, dx = 0, dy = 0) => { g.beginPath(); const P = LID.map(([u, v]) => [r.x + u * r.w + dx, r.y + v * r.h + dy]);
+        if (above) { g.moveTo(r.x - r.w + dx, r.y - r.h * 2); g.lineTo(r.x + r.w * 2 + dx, r.y - r.h * 2); g.lineTo(r.x + r.w * 2 + dx, P[2][1]); P.slice().reverse().forEach(p => g.lineTo(...p)); g.lineTo(r.x - r.w + dx, P[0][1]); }
+        else { g.moveTo(r.x - r.w, P[0][1]); P.forEach(p => g.lineTo(...p)); g.lineTo(r.x + r.w * 2, P[2][1]); g.lineTo(r.x + r.w * 2, r.y + r.h * 2); g.lineTo(r.x - r.w, r.y + r.h * 2); }
+        g.closePath(); };
+      // caja (parte de abajo)
+      g.save(); lidPath(false); g.clip(); g.drawImage(gift, r.x, r.y, r.w, r.h); g.restore();
+      // luz que se escapa por la rendija
+      const gap = loose * 10 + lidK * r.h * .9;
+      if (loose > 0 || lidK > 0) {
+        const gl = g.createRadialGradient(r.x + r.w / 2, r.y + r.h * cut, 2, r.x + r.w / 2, r.y + r.h * cut, r.w * (.4 + loose * .3 + lidK));
+        gl.addColorStop(0, `rgba(255,248,214,${.5 + .5 * Math.max(loose, lidK)})`); gl.addColorStop(1, 'rgba(255,214,120,0)');
+        g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gl; g.fillRect(r.x - r.w, r.y - r.h, r.w * 3, r.h * 2); g.restore();
+      }
+      // tapa con el lazo
+      g.save();
+      const wob = phase === 'film' ? Math.sin(t * 18) * loose * .03 * Math.max(0, 1 - (performance.now() - lastTap) / 400) : 0;
+      const px = r.x + r.w * .1, py = r.y + r.h * cut;
+      g.translate(px - lidK * r.w * .5, py - gap); g.rotate(-lidK * .55 + wob - loose * .03); g.translate(-px, -py);
+      g.globalAlpha = alpha * (1 - cl((lidK - .55) / .45));
+      lidPath(true); g.clip(); g.drawImage(gift, r.x, r.y, r.w, r.h);
+      g.restore();
+      g.restore();
+      return r;
+    };
+    // vista desde arriba: la boca de la caja
+    const drawInside = (t, alpha, z) => {
+      const A = Math.min(W, H) * .44 * z, B = A * .42, cx = W / 2, cy = H * .5;
+      g.save(); g.globalAlpha = alpha;
+      const quad = (p, fill, shade) => {
+        g.save(); g.beginPath(); p.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.clip();
+        g.fillStyle = fill; g.fillRect(cx - A, cy - A, A * 2, A * 2);
+        g.fillStyle = shade; g.fillRect(cx - A, cy - A, A * 2, A * 2); g.restore();
+      };
+      const sideG = (x0, y0, x1, y1, a0, a1) => { const q = g.createLinearGradient(x0, y0, x1, y1); q.addColorStop(0, `rgba(30,0,6,${a0})`); q.addColorStop(1, `rgba(30,0,6,${a1})`); return q; };
+      quad([[cx - A, cy - A], [cx + A, cy - A], [cx + B, cy - B], [cx - B, cy - B]], paperPat, sideG(0, cy - A, 0, cy - B, .25, .75 - light * .5));
+      quad([[cx - A, cy + A], [cx + A, cy + A], [cx + B, cy + B], [cx - B, cy + B]], paperPat, sideG(0, cy + A, 0, cy + B, .05, .6 - light * .45));
+      quad([[cx - A, cy - A], [cx - A, cy + A], [cx - B, cy + B], [cx - B, cy - B]], paperPat, sideG(cx - A, 0, cx - B, 0, .15, .7 - light * .5));
+      quad([[cx + A, cy - A], [cx + A, cy + A], [cx + B, cy + B], [cx + B, cy - B]], paperPat, sideG(cx + A, 0, cx + B, 0, .35, .8 - light * .5));
+      // fondo
+      { const bq = g.createRadialGradient(cx, cy, 0, cx, cy, B * 1.4); bq.addColorStop(0, `rgb(${60 + light * 195},${14 + light * 220},${16 + light * 150})`); bq.addColorStop(.6, `rgb(${50 + light * 150},${10 + light * 90},${14 + light * 30})`); bq.addColorStop(1, `rgb(${34 + light * 70},${6 + light * 20},${10})`);
+        g.fillStyle = bq; g.fillRect(cx - B, cy - B, B * 2, B * 2); }
+      // borde dorado (cinta)
+      if (ribbon) { const rp = g.createPattern(ribbon, 'repeat'); g.strokeStyle = rp; } else g.strokeStyle = '#d4a017';
+      g.lineWidth = A * .07; g.strokeRect(cx - A, cy - A, A * 2, A * 2);
+      g.strokeStyle = 'rgba(255,240,180,.55)'; g.lineWidth = 1.5; g.strokeRect(cx - A - A * .035, cy - A - A * .035, A * 2.07, A * 2.07);
+      g.restore();
+      return { cx, cy, A, B };
+    };
+    const lightRays = (cx, cy, k, t) => {
+      if (k <= 0) return;
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const R = Math.min(W, H) * (.12 + k * .55);
+      const q = g.createRadialGradient(cx, cy, 0, cx, cy, R); q.addColorStop(0, `rgba(255,252,235,${.85 * Math.min(1, k * 1.5)})`); q.addColorStop(.3, `rgba(255,226,150,${.4 * k})`); q.addColorStop(1, 'rgba(255,190,80,0)');
+      g.fillStyle = q; g.fillRect(0, 0, W, H);
+      g.translate(cx, cy); g.rotate(t * .12); const RR = Math.max(W, H) * (.2 + k * .6);
+      for (let i = 0; i < 18; i++) { g.rotate(Math.PI * 2 / 18); g.fillStyle = `rgba(255,236,170,${.06 * k})`; g.beginPath(); g.moveTo(0, 0); g.lineTo(RR, -RR * .05); g.lineTo(RR, RR * .05); g.fill(); }
+      g.restore();
+      // motas doradas que suben de la luz hacia la cámara
+      g.save(); g.globalCompositeOperation = 'lighter';
+      for (const m of motes) { m.d += .004 * m.s; if (m.d > 1) { m.d = 0; m.a = Math.random() * 7; }
+        const d = m.d * m.d * Math.max(W, H) * .7; g.globalAlpha = k * (1 - m.d); g.fillStyle = '#fff3c0';
+        g.beginPath(); g.arc(cx + Math.cos(m.a) * d, cy + Math.sin(m.a) * d, .6 + m.d * 3.5, 0, 7); g.fill(); }
+      g.restore();
+    };
+
+    let lastTap = 0;
+    const frame = now => {
+      const t = (now - t0) / 1000, pt = (now - phaseAt) / 1000;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // la habitación: oscuro cálido con luces desenfocadas
+      const bg = g.createRadialGradient(W / 2, H * .7, 10, W / 2, H * .6, Math.max(W, H));
+      bg.addColorStop(0, '#5a1a10'); bg.addColorStop(.5, '#2a0e14'); bg.addColorStop(1, '#0c0508'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+      for (const b of bokeh) { g.globalAlpha = .1 + .08 * Math.sin(t * .8 + b.p); g.fillStyle = b.p % 3 ? '#ffcf7a' : '#ff8a6a'; g.beginPath(); g.arc(b.x * W + Math.sin(t * .2 + b.p) * 8, b.y * H, b.r, 0, 7); g.fill(); }
+      g.globalAlpha = 1;
+      // cámara
+      if (phase === 'film') {
+        const z = 1 + .05 * Math.sin(t * .35) + loose * .08, ox = Math.sin(t * .25) * W * .025;
+        drawSide(t, 1, z, ox, 0);
+      } else if (phase === 'open') {
+        lidK = easeIO(cl(pt / 1.3)); drawSide(t, 1, 1.08 + lidK * .1, 0, 0);
+      } else if (phase === 'dive') {
+        const k = easeIO(cl(pt / 2.2));
+        const r = giftRect(1.18 + k * 2.4, 0, k * H * .55);
+        drawSide(t, 1 - cl((k - .35) / .45), 1.18 + k * 2.4, 0, k * H * .55);
+        if (k > .3) drawInside(t, cl((k - .3) / .5), .55 + .45 * k);
+        lightRays(W / 2, H * .5, .12 * k, t);
+      } else {
+        if (phase === 'light') light = easeIO(cl(pt / 2.6));
+        const o = drawInside(t, 1, 1 + light * .08);
+        lightRays(o.cx, o.cy, .12 + light * .88, t);
+      }
+      // destellos de los toques
+      for (let i = sparks.length - 1; i >= 0; i--) { const s = sparks[i]; s.x += s.vx; s.y += s.vy; s.vy += .05; s.life -= .02; if (s.life <= 0) { sparks.splice(i, 1); continue; }
+        g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = s.life; g.fillStyle = '#ffe9a8'; g.translate(s.x, s.y); g.rotate(t * 3); g.fillRect(-s.r * 2, -s.r * .3, s.r * 4, s.r * .6); g.fillRect(-s.r * .3, -s.r * 2, s.r * .6, s.r * 4); g.restore(); }
+      // viñeta de cine
+      const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .35, W / 2, H / 2, Math.max(W, H) * .75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)');
+      g.fillStyle = vg; g.fillRect(0, 0, W, H);
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+
+    const end = done => { if (ended) return; ended = true; cancelAnimationFrame(raf); removeEventListener('resize', size); wrap.classList.add('out'); setTimeout(() => wrap.remove(), 600); resolveCine(done); };
+    close.onclick = () => end(seen >= 10);
+    keep.onclick = () => end('keep');
+
+    // ---- 5 toques al lazo
+    cv.addEventListener('pointerdown', e => {
+      if (phase !== 'film') return;
+      const r = giftRect(); if (e.clientY > r.y + r.h * 1.1 || e.clientY < r.y - r.h * .3) return;
+      taps++; lastTap = performance.now(); pop(); dots.children[taps - 1]?.classList.add('on');
+      loose = taps / 5;
+      for (let i = 0; i < 10 + taps * 4; i++) { const a = Math.random() * 7, v = 2 + Math.random() * 4; sparks.push({ x: e.clientX, y: e.clientY, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 2, life: 1, r: 1.5 + Math.random() * 2.5 }); }
+      if (taps === 5) opening();
+    });
+    let seen = 0;
+    async function opening() {
+      hint.textContent = '✨'; jingle(1);
+      await sleep(500); go('open'); await sleep(1400);
+      hint.textContent = ''; dots.classList.add('hide');
+      go('dive'); await sleep(2300);
+      go('light'); chime(); await sleep(1800);
+      hint.textContent = L('Arrastra las bolas por la pantalla y tócalas para descubrir tu regalo', 'Arrossega les boles per la pantalla i toca-les per descobrir el teu regal', 'Drag the baubles around and tap them to discover your gift');
+      // salen las bolas de la luz
+      const G = GIFTS24();
+      const pos = Array.from({ length: 10 }, (_, i) => { const a = -Math.PI / 2 + i * Math.PI * 2 / 10; return [50 + Math.cos(a) * 36, 47 + Math.sin(a) * 28]; });
+      G.forEach(([title, txt], i) => {
+        const b = el('button', { class: 'cine-ball no-delay', style: `--x:${pos[i][0]}%;--y:${pos[i][1]}%;animation-delay:${i * .35}s` }, orn(BALL_PICS[i]), el('span', { class: 'p24-n' }, i + 1));
+        // se pueden arrastrar por la pantalla; un toque sin mover la abre
+        let drag = null;
+        b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch {} const r = b.getBoundingClientRect(); drag = { x0: e.clientX, y0: e.clientY, bx: r.left + r.width / 2, by: r.top + r.height / 2, moved: false }; });
+        b.addEventListener('pointermove', e => {
+          if (!drag) return; const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+          if (!drag.moved && Math.hypot(dx, dy) < 8) return;
+          if (!drag.moved) { drag.moved = true; b.classList.add('dragging'); }
+          b.style.left = Math.max(30, Math.min(W - 30, drag.bx + dx)) + 'px'; b.style.top = Math.max(50, Math.min(H - 40, drag.by + dy)) + 'px';
+        });
+        const drop = e => { if (!drag) return; const d = drag; drag = null; b.classList.remove('dragging'); if (d.moved) { pop(); b.classList.add('moved'); } else if (e.type === 'pointerup') b.open(); };
+        b.addEventListener('pointerup', drop); b.addEventListener('pointercancel', drop);
+        b.open = async () => {
+          if (b.classList.contains('busy')) return; b.classList.add('busy');
+          chime(); flash(b);
+          await sleep(1000);
+          await popup(el('div', { class: 'p24-card' }, orn(BALL_PICS[i], 'p24-card-ball'), el('h2', {}, title), el('p', { class: 'p24-quote' }, txt)),
+            { cls: 'small p24-pop', buttons: [{ label: L('¡Qué bien!', 'Que bé!', 'Lovely!'), value: true }] });
+          b.classList.remove('busy');
+          if (!b.classList.contains('seen')) { b.classList.add('seen'); seen++; }
+          if (seen === 10) { confetti(260); hohoho(); hint.textContent = L('¡Todos los regalos son tuyos!', 'Tots els regals són teus!', 'All the gifts are yours!'); keep.classList.add('show'); }
+        };
+        balls.append(b);
+      });
+    }
+    // destello que sale de la bola y se va volando a lo lejos
+    function flash(b) {
+      const r = b.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height * .55;
+      const f = el('div', { class: 'cine-flash' }); f.style.left = x + 'px'; f.style.top = y + 'px'; wrap.append(f);
+      const tx = (Math.random() - .5) * W * .5 - (x - W / 2) * .4, ty = -y - H * .1 + Math.random() * H * .15;
+      const anim = f.animate([
+        { transform: 'translate(-50%,-50%) scale(.2)', opacity: 0 },
+        { transform: 'translate(-50%,-50%) scale(1.6)', opacity: 1, offset: .18 },
+        { transform: `translate(calc(-50% + ${tx * .45}px), calc(-50% + ${ty * .4}px)) scale(.9) rotate(120deg)`, opacity: 1, offset: .55 },
+        { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(.05) rotate(260deg)`, opacity: 0 },
+      ], { duration: 1500, easing: 'cubic-bezier(.3,.1,.3,1)' });
+      // estela
+      let n = 0; const trail = setInterval(() => { const rr = f.getBoundingClientRect(); const d = el('i', { class: 'cine-trail' }); d.style.left = rr.left + rr.width / 2 + 'px'; d.style.top = rr.top + rr.height / 2 + 'px'; wrap.append(d); setTimeout(() => d.remove(), 700); if (++n > 24) clearInterval(trail); }, 50);
+      anim.onfinish = () => { f.remove(); clearInterval(trail); };
+    }
+  });
 }
