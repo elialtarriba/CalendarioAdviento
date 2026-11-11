@@ -1,7 +1,7 @@
 // Día 12: mira la imagen; en la siguiente falta un objeto. ¿Cuál?
-import { t } from './i18n.js?v=17.13';
-import { el, sleep, toast } from './fx.js?v=17.13';
-import { chime } from './sound.js?v=17.13';
+import { t, getLang } from './i18n.js?v=17.14';
+import { el, sleep, toast } from './fx.js?v=17.14';
+import { chime } from './sound.js?v=17.14';
 
 // dibujos pintados al estilo del calendario
 const OBJ = [
@@ -33,17 +33,54 @@ export function render(body, ctx) {
     if (done) return; done = true; clearInterval(tick);
     const input = el('input', { type: 'text', placeholder: t('d12ph'), maxlength: 60 });
     const send = el('button', { class: 'btn' }, '📨 ' + t('send'));
-    wrap.replaceChildren(el('p', { class: 'game-help' }, '❓ ' + t('d12q')), scene(missing),
+    // mantén pulsada la imagen para ver la de antes; al soltar vuelve la que tiene un objeto menos
+    const holder = el('div', { class: 'memory-hold' }, scene(missing), el('div', { class: 'memory-hint' }, '👆 ' + L3('Mantén pulsado para ver la imagen de antes', 'Mantén premut per veure la imatge d’abans', 'Press and hold to see the picture from before')));
+    const showOld = e => { e.preventDefault(); holder.firstChild.replaceWith(scene(-1)); holder.classList.add('old'); };
+    const showNew = () => { if (!holder.classList.contains('old')) return; holder.firstChild.replaceWith(scene(missing)); holder.classList.remove('old'); };
+    holder.addEventListener('pointerdown', showOld); ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => holder.addEventListener(ev, showNew));
+    holder.addEventListener('contextmenu', e => e.preventDefault());
+    wrap.replaceChildren(el('p', { class: 'game-help' }, '❓ ' + t('d12q')), holder,
       el('p', { class: 'game-help muted' }, t('d12send')), el('div', { class: 'memory-answer' }, input, send));
     input.focus();
     const go = async () => {
       if (!input.value.trim()) { input.focus(); return; }
       send.disabled = true;
-      await ctx.submit({ answer: input.value.trim(), status: 'pending', extra: { missing: order[missing][1] } });
-      chime(); toast(t('d12sent'));
-      await sleep(1400); ctx.finish();
+      const ok = matches(input.value, order[missing].slice(1));
+      await ctx.submit({ answer: input.value.trim(), status: ok ? 'correct' : 'pending', extra: { missing: order[missing][1] } });
+      chime();
+      if (ok) { await flyStar(send); toast('⭐ ' + L3('¡Correcto! Era: ', 'Correcte! Era: ', 'Correct! It was: ') + order[missing][{ es: 1, ca: 2, en: 3 }[getLang()] || 1], 3000); await sleep(800); }
+      else { toast(t('d12sent')); await sleep(1400); }
+      ctx.finish();
     };
     send.onclick = go; input.onkeydown = e => { if (e.key === 'Enter') go(); };
   }
   ctx.finishBtn.addEventListener('click', () => clearInterval(tick));
+}
+
+const L3 = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
+// ¿lo que ha escrito es el objeto que falta? (en cualquier idioma, sin acentos, singular o plural)
+const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9ñç ]/g, ' ');
+const STOP = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'of', 'the', 'a', 'les', 'els', 'd', 'l']);
+function matches(input, names) {
+  const toks = s => norm(s).split(/\s+/).filter(w => w.length >= 3 && !STOP.has(w));
+  const inp = toks(input); if (!inp.length) return false;
+  return names.some(n => { const nt = toks(n); const main = nt[0]; return main && inp.some(w => w.slice(0, 5) === main.slice(0, 5) || (main.length < 5 && w === main)); });
+}
+// una estrella brillante sale del botón y se va volando dando una vuelta por la pantalla
+function flyStar(from) {
+  return new Promise(res => {
+    const r = from.getBoundingClientRect(), x0 = r.left + r.width / 2, y0 = r.top + r.height / 2;
+    const s = el('div', { class: 'fly-star' }, '⭐'); document.body.append(s);
+    const W = innerWidth, H = innerHeight, t0 = performance.now(), D = 2600;
+    const trail = setInterval(() => { const b = s.getBoundingClientRect(); const d = el('i', { class: 'cine-trail', style: `left:${b.left + b.width / 2}px;top:${b.top + b.height / 2}px;z-index:400` }); document.body.append(d); setTimeout(() => d.remove(), 700); }, 45);
+    (function f(now) {
+      const k = Math.min(1, (now - t0) / D), a = -Math.PI / 2 + k * Math.PI * 2.2;
+      const rad = Math.min(W, H) * .32 * Math.sin(Math.min(1, k * 1.3) * Math.PI / 1.0 + .0001);
+      const cx = W / 2, cy = H / 2, x = x0 + (cx + Math.cos(a) * Math.max(rad, 0) - x0) * Math.min(1, k * 3), y = y0 + (cy + Math.sin(a) * Math.max(rad, 0) - y0) * Math.min(1, k * 3);
+      const yy = k > .8 ? y - (k - .8) / .2 * H : y;
+      s.style.transform = `translate(${x - 30}px,${yy - 30}px) rotate(${k * 720}deg) scale(${1 + Math.sin(k * Math.PI) * .8})`;
+      s.style.opacity = k > .9 ? (1 - k) / .1 : 1;
+      if (k < 1) requestAnimationFrame(f); else { clearInterval(trail); s.remove(); res(); }
+    })(t0);
+  });
 }

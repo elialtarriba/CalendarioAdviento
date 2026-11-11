@@ -1,11 +1,11 @@
 // Resumen del mes: al terminar el día 25 (con la actividad, si la tiene la figura),
 // una página muy navideña con los 25 días, cada uno en su cuadro: el reto, lo que contestaste
 // y la actividad de tu figura. Se puede guardar en PDF y volver al calendario.
-import { el, sleep, confetti, toast, popup } from './fx.js?v=17.13';
-import { t, tx, getLang } from './i18n.js?v=17.13';
-import { chime } from './sound.js?v=17.13';
-import { S, figure, loadDay } from './app.js?v=17.13';
-import { defaultDay } from './defaults.js?v=17.13';
+import { el, sleep, confetti, toast, popup } from './fx.js?v=17.14';
+import { t, tx, getLang } from './i18n.js?v=17.14';
+import { chime } from './sound.js?v=17.14';
+import { S, figure, loadDay } from './app.js?v=17.14';
+import { defaultDay } from './defaults.js?v=17.14';
 
 const TK = { hats: 'hatsTitle', reindeer: 'd4title', differences: 'd6title', tree: 'd8title', memory: 'd12title', goodcheck: 'd13title', diploma: 'd15title', roulette: 'd20title', dance: 'd24title', pairs: 'd25title', puzzle: 'puzzleTitle' };
 const typeTitle = ty => ty === 'puzzle' ? L('Haz el puzle y descubre qué imagen esconde', 'Fes el puzle i descobreix quina imatge amaga', 'Do the puzzle') : (TK[ty] && t(TK[ty])) || '';

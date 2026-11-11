@@ -1389,3 +1389,54 @@ body.sum-open { overflow: hidden; }
 .mm-stage.alive .mm-box { background: radial-gradient(#fffdf6, #f6ecd6 75%); box-shadow: 0 0 0 4px #d4a017, 0 0 40px 10px #ffd24a88; }
 .mm-close { position: absolute; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%) scale(.6); opacity: 0; pointer-events: none; transition: opacity .8s, transform .8s cubic-bezier(.2,1.4,.4,1); }
 .mm-close.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) scale(1); }
+
+/* ===== V17.14 · día 13: superpoderes ===== */
+.sp-screen { position: relative; width: min(100%, 520px); min-height: 190px; border-radius: 16px; background: #0b1b10; border: 6px solid #8a8f98; box-shadow: inset 0 0 30px #000, 0 6px 14px #0005;
+  display: grid; place-items: center; padding: 14px; color: #c8ffd6; font-family: 'Courier New', monospace; overflow: visible; }
+.sp-line { display: flex; align-items: center; gap: 10px; font-size: clamp(18px, 4.6vw, 24px); text-shadow: 0 0 8px #48ff7a; text-align: left; }
+.sp-line.blur { filter: blur(.6px); }
+.sp-emo { font-size: 1.5em; }
+.sp-result { text-align: center; animation: sumIn .6s cubic-bezier(.2,1.4,.4,1); text-shadow: 0 0 10px #48ff7a; }
+.sp-result .sp-big { font-size: 56px; line-height: 1; }
+.sp-result b { display: block; font-size: clamp(20px, 5vw, 26px); margin: 6px 0 4px; color: #eaffef; }
+.sp-result p { margin: 0; font-size: clamp(15px, 3.8vw, 18px); color: #b6f5c6; font-family: var(--font-ui); }
+.sp-screen.flash { animation: spFlash .7s ease-out; }
+@keyframes spFlash { 0% { box-shadow: inset 0 0 30px #000, 0 0 0 0 #ffd24a; } 40% { box-shadow: inset 0 0 30px #000, 0 0 40px 14px #ffd24a; } }
+.sp-spark { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px; pointer-events: none; z-index: 3;
+  background: radial-gradient(#fff, #ffe9a8 30%, #f2c14e 50%, transparent 72%); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: sparkFly 1.2s ease-out forwards; }
+
+/* V17.14 · día 12 */
+.memory-hold { position: relative; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: pointer; }
+.memory-hold.old .memory-scene { box-shadow: inset 0 0 0 4px #2f9e5b, 0 0 18px #2f9e5b88; }
+.memory-hint { text-align: center; font-size: 13px; font-weight: 700; color: #7a1020; margin-top: 6px; }
+.memory-hold.old .memory-hint { color: #1f6b45; }
+.fly-star { position: fixed; left: 0; top: 0; z-index: 401; width: 60px; height: 60px; font-size: 50px; line-height: 60px; text-align: center; pointer-events: none; filter: drop-shadow(0 0 12px #ffd24a) drop-shadow(0 0 24px #fff3c4); }
+
+/* V17.14 · miniatura del puzle */
+.pz3-thumb { position: absolute; right: 8px; z-index: 3000; width: 64px; padding: 3px; border: 2px solid #f2c14e; border-radius: 10px; background: #fff8ec; box-shadow: 0 4px 10px #0007; touch-action: none; -webkit-touch-callout: none; }
+.pz3-thumb img { display: block; width: 100%; height: auto; border-radius: 6px; pointer-events: none; }
+.pz3-thumb span { position: absolute; right: -8px; bottom: -8px; width: 24px; height: 24px; border-radius: 50%; background: #b3122e; color: #fff; font-size: 12px; display: grid; place-items: center; border: 2px solid #f2c14e; }
+.pz3-peekbig { position: fixed; inset: 0; z-index: 900; display: grid; place-items: center; background: #000c; opacity: 0; transition: opacity .18s; pointer-events: none; }
+.pz3-peekbig.on { opacity: 1; }
+.pz3-peekbig img { max-width: 92vw; max-height: 82vh; border-radius: 10px; border: 5px solid #f2c14e; box-shadow: 0 10px 30px #000; }
+
+/* V17.14 · casilla a medias (falta la actividad): brilla mucho, para avisar que hay que acabarla */
+.door.half::after { content: ''; position: absolute; inset: -3px; border-radius: 12px; pointer-events: none; z-index: 4;
+  box-shadow: 0 0 0 3px #ffd24a, 0 0 16px 6px #ffcf4acc, inset 0 0 18px 6px #fff3c4cc; animation: halfGlow 1.4s ease-in-out infinite; }
+.door.half::before { content: '✨'; position: absolute; right: -6px; top: -8px; z-index: 5; font-size: clamp(12px, 3vw, 22px); filter: drop-shadow(0 0 4px #ffd24a); animation: halfGlow 1.4s ease-in-out infinite; }
+@keyframes halfGlow { 50% { box-shadow: 0 0 0 4px #fff3c4, 0 0 30px 12px #ffd24a, inset 0 0 26px 10px #fff8dccc; opacity: .85; } }
+.strip-fig.half img { filter: grayscale(1) opacity(.65); }
+.strip-fig.half { box-shadow: 0 0 0 2px #ffd24a, 0 0 10px #ffd24a; border-radius: 10px; animation: halfGlow 1.4s ease-in-out infinite; }
+
+/* V17.14 · guía editable */
+.hg-edit { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff; background: #fff3; color: #fff; font-size: 18px; }
+.hg-content.editing [contenteditable="true"] { outline: 2px dashed #d4a017; outline-offset: 2px; border-radius: 4px; background: #fff8d6aa; min-height: 1em; }
+.hg-add { display: block; margin: 8px 0; border: 2px dashed #d4a017; background: #fffaf0; color: #7a1020; font-weight: 800; border-radius: 12px; padding: 8px 12px; }
+.hg-extra { margin: 8px 0; }
+
+/* V17.14 · idioma y guía en la pantalla de entrada */
+.login-langs { position: relative; z-index: 3; display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+.login-lang { border: 2px solid #c79a42; background: #fff8ec; color: #7a1020; font-weight: 800; border-radius: 999px; padding: 6px 12px; font-size: 14px; }
+.login-lang.on { background: #b3122e; color: #fff; border-color: #f2c14e; }
+.login-guide { margin-top: 6px; }

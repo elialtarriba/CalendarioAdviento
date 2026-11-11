@@ -1,14 +1,14 @@
 // Días 7 y 18: puzle de piezas (como de cartón, con relieve) que se mueven y se giran.
 // Al encajar cada pieza suena un «clac»; al acabar, el puzle cobra vida con el vídeo (con sonido y en bucle).
-import { el, sleep, confetti, toast } from './fx.js?v=17.13';
-import { getLang } from './i18n.js?v=17.13';
-import { snapSound, pop, chime, unlockAudio } from './sound.js?v=17.13';
+import { el, sleep, confetti, toast } from './fx.js?v=17.14';
+import { getLang } from './i18n.js?v=17.14';
+import { snapSound, pop, chime, unlockAudio } from './sound.js?v=17.14';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
-// entre 20 y 40 piezas, casi cuadradas
+// unas 15 piezas, casi cuadradas
 const PUZ = {
-  7: { img: 'puzle7.jpg', video: 'puzle7.mp4', cols: 8, rows: 4 },   // tren: 32 piezas
-  18: { img: 'puzle18.jpg', video: 'puzle18.mp4', cols: 5, rows: 7 }, // Papá Noel: 35 piezas
+  7: { img: 'puzle7.jpg', video: 'puzle7.mp4', cols: 5, rows: 3 },   // tren: 15 piezas
+  18: { img: 'puzle18.jpg', video: 'puzle18.mp4', cols: 3, rows: 5 }, // Papá Noel: 15 piezas
 };
 const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
 
@@ -44,6 +44,14 @@ export async function render(body, ctx) {
   board.append(full, video, soundBtn);
   const pileBg = el('div', { class: 'pz3-pilebg', style: `top:${pileTop}px;height:${pileH}px` });
   stage.append(pileBg, board);
+  // miniatura en una esquina: mantenla pulsada para ver la imagen entera en grande
+  const peek = el('div', { class: 'pz3-peekbig' }, el('img', { src: P.img, alt: '' }));
+  const thumb = el('button', { type: 'button', class: 'pz3-thumb no-delay', style: `top:${pileTop + 8}px` }, el('img', { src: P.img, alt: '' }), el('span', {}, '🔍'));
+  const peekOn = e => { e.preventDefault(); e.stopPropagation(); document.body.append(peek); requestAnimationFrame(() => peek.classList.add('on')); };
+  const peekOff = () => { peek.classList.remove('on'); setTimeout(() => peek.remove(), 200); };
+  thumb.addEventListener('pointerdown', peekOn); ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => thumb.addEventListener(ev, peekOff));
+  thumb.addEventListener('contextmenu', e => e.preventDefault());
+  if (!ctx.prev) stage.append(thumb);
 
   const comeAlive = (withSound = true) => {
     board.classList.add('done');
@@ -156,7 +164,7 @@ export async function render(body, ctx) {
     comeAlive(true); // dentro del toque: así el vídeo puede sonar
     chime(); confetti(260);
     info.textContent = L('¡Lo has conseguido! Mira cómo cobra vida 🎄', 'Ho has aconseguit! Mira com cobra vida 🎄', 'You did it! Watch it come to life 🎄');
-    setTimeout(() => { pieces.forEach(p => p.el.classList.add('gone')); pileBg.remove(); stage.style.height = (by + BH + 16) + 'px'; }, 900);
+    setTimeout(() => { pieces.forEach(p => p.el.classList.add('gone')); pileBg.remove(); thumb.remove(); stage.style.height = (by + BH + 16) + 'px'; }, 900);
     ctx.submit({ answer: '🧩', status: 'correct' });
     const fin = ctx.finishBtn.onclick; ctx.finishBtn.onclick = () => { try { video.pause(); } catch {} fin(); };
   }

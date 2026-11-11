@@ -1,8 +1,10 @@
 // Guía de la app (para la administradora): pantalla completa, índice, dibujos y zoom con dos dedos
-import { el } from './fx.js?v=17.13';
-import { getLang } from './i18n.js?v=17.13';
-import { PORTADAS, PAPERS } from './defaults.js?v=17.13';
-import { figure } from './app.js?v=17.13';
+import { el } from './fx.js?v=17.14';
+import { getLang } from './i18n.js?v=17.14';
+import { PORTADAS, PAPERS } from './defaults.js?v=17.14';
+import { figure, S } from './app.js?v=17.14';
+import { store } from './store.js?v=17.14';
+import { toast } from './fx.js?v=17.14';
 // una ventanita del calendario (recortada del tema «Cosas Navidad»), como las de la portada
 function doorCrop(d = 1, cls = '') {
   const v = PORTADAS[0].variants.find(x => /movil/.test(x.img)) || PORTADAS[0].variants[0];
@@ -122,12 +124,12 @@ const SECTIONS = [
       [1, '🎅', 'Atrapa los 3 gorros', 'Mensaje anónimo, chiste y detector de personas buenas. Textos editables.'],
       [4, '🦌', 'Renos con gafas', 'Buscar los renos que llevan gafas.'],
       [6, '🔍', '5 diferencias + susto', 'Puedes cambiar los segundos del susto.'],
-      [7, '🧩', 'Puzle del tren', '32 piezas que se mueven y se giran. Al acabar, el puzle cobra vida con el vídeo (puzle7.jpg y puzle7.mp4).'],
+      [7, '🧩', 'Puzle del tren', '15 piezas que se mueven y se giran. Al acabar, el puzle cobra vida con el vídeo (puzle7.jpg y puzle7.mp4).'],
       [8, '🎄', 'Decorar el árbol', ''],
       [12, '👁️', 'Ojo de lince', 'Qué objeto falta. Lo corriges tú en Respuestas.'],
       [13, '😇', '¿Has sido bueno?', 'La máquina de bondad.'],
       [15, '📜', 'Diploma absurdo', ''],
-      [18, '🧩', 'Puzle de Papá Noel', '35 piezas. Al acabar, cobra vida con su vídeo (puzle18.jpg y puzle18.mp4).'],
+      [18, '🧩', 'Puzle de Papá Noel', '15 piezas. Al acabar, cobra vida con su vídeo (puzle18.jpg y puzle18.mp4).'],
       [20, '🎡', 'Ruleta del disparate', 'Tú escribes las misiones de cada casilla y la frase de debajo.'],
       [24, '💃', 'El baile secreto', 'Sale siempre el vídeo baile.mp4 (súbelo a GitHub con los demás archivos). La grabación se comparte por WhatsApp.'],
       [25, '🎴', 'Memory navideño', '14 parejas de cartas. Al acabar, la bola de nieve crece y cobra vida (bola25.mp4). Después, la actividad (árbol o gnomo) y el resumen del mes.'],
@@ -230,6 +232,57 @@ function openGuide(SECTIONS, { bar: barTitle, sub, ui = UI.es, langs = null, onL
   const back = el('div', { class: 'hg' }, bar, scroll, reset, toTop);
   document.body.append(back);
   document.addEventListener('keydown', onKey);
+  if (langs) editable(content, SECTIONS, langs, bar);
+}
+
+// ---- la guía de las personas se puede cambiar (solo la administradora): se escribe encima, con la misma letra
+const GK = 'adv_guide_edits';
+const guideEdits = () => { const c = S?.config?.guideEdits; if (c) { try { localStorage.setItem(GK, JSON.stringify(c)); } catch {} return c; } try { return JSON.parse(localStorage.getItem(GK)) || {}; } catch { return {}; } };
+const clean = html => { const t = document.createElement('template'); t.innerHTML = html; t.content.querySelectorAll('*').forEach(n => { if (!/^(B|STRONG|I|EM|BR|SPAN|U)$/.test(n.tagName)) n.replaceWith(...n.childNodes); else [...n.attributes].forEach(a => n.removeAttribute(a.name)); }); return t.innerHTML; };
+function editable(content, SECTIONS, lang, bar) {
+  const E = guideEdits();
+  const slots = [];
+  SECTIONS.forEach(sec0 => {
+    const node = content.querySelector('#hg-' + sec0.id); if (!node) return;
+    const sec = { id: sec0.id === 'u-fig' ? 'u-fig-' + figure() : sec0.id }; // «Tu figura» cambia según la figura
+    const list = [...node.querySelectorAll('*')].filter(e => !e.closest('button') && !e.closest('h2') && [...e.childNodes].some(n => n.nodeType === 3 && n.data.trim()));
+    list.forEach((e, i) => {
+      const k = `${lang}:${sec.id}:${i}`; e.dataset.orig = e.innerHTML;
+      if (E[k] != null) { if (E[k] === '') e.style.display = 'none'; else e.innerHTML = clean(E[k]); }
+      slots.push({ k, e });
+    });
+    const extraBox = el('div', { class: 'hg-extras' }); node.querySelector('.hg-back')?.before(extraBox);
+    (E[`${lang}:${sec.id}:+`] || []).forEach(h => extraBox.append(el('p', { class: 'hg-p hg-extra', html: clean(h) })));
+    slots.push({ extra: true, sec: sec.id, box: extraBox });
+  });
+  if (!S?.isAdmin) return;
+  let on = false;
+  const btn = el('button', { class: 'hg-edit no-delay' }, '✏️');
+  bar.querySelector('.hg-bar-btns')?.prepend(btn);
+  btn.onclick = async () => {
+    if (!on) {
+      on = true; btn.textContent = '💾'; content.classList.add('editing');
+      slots.forEach(s => {
+        if (s.extra) { s.add = el('button', { type: 'button', class: 'hg-add no-delay', onclick: () => { const p = el('p', { class: 'hg-p hg-extra' }); p.contentEditable = 'true'; s.box.append(p); p.focus(); } }, '➕ Añadir texto'); s.box.after(s.add); s.box.querySelectorAll('.hg-extra').forEach(p => p.contentEditable = 'true'); }
+        else { s.e.style.display = ''; s.e.contentEditable = 'true'; }
+      });
+      toast('✏️ Toca cualquier texto para cambiarlo. Para borrar uno, déjalo vacío. Pulsa 💾 para guardar.', 5000);
+      return;
+    }
+    // guardar
+    const all = { ...(S.config.guideEdits || guideEdits()) };
+    Object.keys(all).filter(k => k.startsWith(lang + ':')).forEach(k => delete all[k]);
+    slots.forEach(s => {
+      if (s.extra) { const a = [...s.box.querySelectorAll('.hg-extra')].map(p => p.innerHTML.trim()).filter(h => h.replace(/<[^>]*>|&nbsp;/g, '').trim()); if (a.length) all[`${lang}:${s.sec}:+`] = a.map(clean); s.add?.remove(); s.box.querySelectorAll('.hg-extra').forEach(p => p.contentEditable = 'false'); return; }
+      s.e.contentEditable = 'false';
+      const h = s.e.innerHTML.trim();
+      if (!s.e.textContent.trim()) { all[s.k] = ''; s.e.style.display = 'none'; }
+      else if (h !== s.e.dataset.orig) all[s.k] = clean(h);
+    });
+    try { await store.saveConfig({ guideEdits: all }); S.config.guideEdits = all; try { localStorage.setItem(GK, JSON.stringify(all)); } catch {} toast('💾 Guía guardada para todos'); }
+    catch (e) { toast('⚠️ ' + (e.code || e.message), 5000); }
+    on = false; btn.textContent = '✏️'; content.classList.remove('editing');
+  };
 }
 
 // ================================================================ GUÍA PARA TODAS LAS PERSONAS (es / ca / en)

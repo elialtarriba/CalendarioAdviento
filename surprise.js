@@ -1,8 +1,9 @@
 // Mensajes sorpresa: la administradora prepara un popup para una persona y un día concretos
-import { el, popup, toast, confetti } from './fx.js?v=17.13';
-import { store } from './store.js?v=17.13';
-import { shrink, ytId, lightbox } from './richact.js?v=17.13';
-import { chime } from './sound.js?v=17.13';
+import { el, popup, toast, confetti } from './fx.js?v=17.14';
+import { store } from './store.js?v=17.14';
+import { shrink, ytId, lightbox } from './richact.js?v=17.14';
+import { chime } from './sound.js?v=17.14';
+import { getLang } from './i18n.js?v=17.14';
 
 export const todayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -49,7 +50,7 @@ function renderCard(msg, { onHome, preview } = {}) {
         el('button', { class: 'sp-photo no-delay', onclick: () => !preview && lightbox(items, i) }, el('img', { src, alt: '' })))) : null,
       msg.video ? videoEl(msg.video) : null,
       msg.text ? el('p', { class: 'sp-text' }, msg.text) : null,
-      el('button', { class: 'btn sp-home', onclick: () => onHome && onHome() }, '🏠 Volver al inicio')),
+      el('button', { class: 'btn sp-home', onclick: () => onHome && onHome() }, '🏠 ' + ({ es: 'Volver al inicio', ca: 'Tornar a l’inici', en: 'Back to home' }[getLang()] || 'Volver al inicio'))),
     titleEl(T));
   return card;
 }
@@ -64,8 +65,17 @@ function showCard(msg) {
 
 // al entrar en la app: si hoy hay mensaje para esta persona, se muestra
 export async function showSurprise(uid) {
-  const msg = await store.getSurprise(uid, todayKey()).catch(() => null); // solo los activados con la fecha de hoy
+  let msg = await store.getSurprise(uid, todayKey()).catch(() => null); // solo los activados con la fecha de hoy
   if (!msg || (!msg.text && !msg.photos?.length && !msg.video && !msg.title?.text)) return;
+  // en el idioma de cada persona (traducción automática de lo que se escribe en español)
+  const lang = getLang();
+  if (lang !== 'es') {
+    try {
+      const { tr } = await import('./translate.js?v=17.14');
+      const [text, title] = await Promise.all([tr(msg.text, lang), msg.title?.text ? tr(msg.title.text, lang) : null]);
+      msg = { ...msg, text, title: msg.title ? { ...msg.title, text: title || msg.title.text } : msg.title };
+    } catch {}
+  }
   setTimeout(() => { chime(); confetti(90); }, 300);
   await showCard(msg);
 }
