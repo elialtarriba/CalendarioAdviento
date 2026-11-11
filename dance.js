@@ -1,6 +1,6 @@
 // Día 24: el baile secreto
-import { t } from './i18n.js?v=17.18';
-import { el, sleep, confetti } from './fx.js?v=17.18';
+import { t } from './i18n.js?v=17.19';
+import { el, sleep, confetti } from './fx.js?v=17.19';
 
 export function render(body, ctx) {
   // el vídeo del baile va fijo con la app: es el archivo baile.mp4 (o baile.mov) subido junto a los demás archivos

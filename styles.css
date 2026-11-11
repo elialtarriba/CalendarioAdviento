@@ -1552,3 +1552,10 @@ body.sum-open { overflow: hidden; }
 .ttt-tray.nudge { animation: ballNo .4s; }
 .ttt-later { flex-basis: 100%; max-width: 320px; }
 .ttt-who { max-width: 140px; }
+
+/* V17.19 · botón para entrar desde la nieve */
+.splash-start { position: absolute; left: 0; right: 0; margin: 0 auto; width: fit-content; max-width: calc(100% - 32px); bottom: max(40px, calc(env(safe-area-inset-bottom) + 30px)); z-index: 3;
+  padding: 14px 26px; border-radius: 999px; border: 3px solid #f2c14e; background: linear-gradient(#d2203f, #8c1022); color: #fff; font: 800 19px 'Montserrat', sans-serif;
+  box-shadow: 0 6px 0 #5a0614, 0 10px 22px #0004; animation: startPulse 1.6s ease-in-out infinite; white-space: nowrap; }
+.splash-start.go { transform: translateY(4px) scale(.96); box-shadow: 0 2px 0 #5a0614; animation: none; }
+@keyframes startPulse { 50% { scale: 1.06; box-shadow: 0 6px 0 #5a0614, 0 0 26px 6px #ffd24aaa; } }
