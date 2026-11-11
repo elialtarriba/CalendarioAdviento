@@ -1543,3 +1543,12 @@ body.sum-open { overflow: hidden; }
 
 .ttt-tray { height: 64px; } .ttt-token { width: 54px; height: 54px; margin: -27px 0 0 -27px; }
 .ttt-stage { gap: 10px; }
+
+/* V17.18 · turnos del tres en raya */
+.ttt-turn { text-align: center; margin: 4px 0 0; min-height: 34px; }
+.ttt-turn span { display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px 4px 6px; border-radius: 999px; background: #fff8ec; border: 2px solid #f2c14e; font-weight: 800; color: #7a1020; font-family: 'Fredoka', 'Montserrat', sans-serif; box-shadow: 0 3px 0 #0002; animation: sumIn .5s cubic-bezier(.2,1.4,.4,1); }
+.ttt-turn img { width: 28px; height: 28px; object-fit: contain; }
+.ttt-tray.turn { box-shadow: inset 0 4px 10px #0005, 0 0 0 3px #ffd24a, 0 0 18px 4px #ffd24a; }
+.ttt-tray.nudge { animation: ballNo .4s; }
+.ttt-later { flex-basis: 100%; max-width: 320px; }
+.ttt-who { max-width: 140px; }

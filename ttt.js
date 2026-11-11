@@ -1,8 +1,8 @@
 // Día 17: tres en raya navideño (galleta contra perrito). Cada uno tiene 3 fichas que se arrastran
 // y se pueden volver a mover. Al acabar, cada uno pulsa su dibujo: si ha ganado, baila; si ha perdido, decepción.
-import { el, sleep, confetti, popup, toast } from './fx.js?v=17.17';
-import { getLang } from './i18n.js?v=17.17';
-import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, slideSound, sadTrombone } from './sound.js?v=17.17';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=17.18';
+import { getLang } from './i18n.js?v=17.18';
+import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, slideSound, sadTrombone } from './sound.js?v=17.18';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const P = {
@@ -14,14 +14,25 @@ const LINES = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8],
 export function render(body, ctx) {
   body.append(
     el('h2', { class: 'q-title' }, '🎄 ' + L('Tres en raya navideño', 'Tres en ratlla de Nadal', 'Christmas noughts and crosses')),
-    el('p', { class: 'game-help ttt-help' }, L('Juega al tres en raya con quien más quieras y, cuando terminéis, pulsa tu dibujo para saber si has ganado o perdido, o los dos si es empate 🙂',
-      'Juga al tres en ratlla amb qui més vulguis i, quan acabeu, prem el teu dibuix per saber si has guanyat o perdut, o els dos si és empat 🙂',
-      'Play noughts and crosses with whoever you like and, when you finish, tap your picture to see if you won or lost, or both if it is a draw 🙂')));
+    el('p', { class: 'game-help ttt-help' }, L('Juega al tres en raya con quien más quieras y, cuando terminéis, pulsa tu dibujo para saber si has ganado, perdido o empatado 🙂',
+      'Juga al tres en ratlla amb qui més vulguis i, quan acabeu, prem el teu dibuix per saber si has guanyat, perdut o empatat 🙂',
+      'Play noughts and crosses with whoever you like and, when you finish, tap your picture to see if you won, lost or drew 🙂')));
   const stage = el('div', { class: 'ttt-stage' });
   body.style.webkitUserSelect = body.style.userSelect = 'none';
   const trayR = el('div', { class: 'ttt-tray red' }), trayG = el('div', { class: 'ttt-tray green' });
   const board = el('div', { class: 'ttt-board' }, ...Array.from({ length: 9 }, (_, i) => el('div', { class: 'ttt-cell', 'data-i': i })));
   stage.append(trayR, board, trayG);
+  // ---- turnos: uno cada uno (empieza quien quiera)
+  let turn = null;
+  const trayOf = who => (who === 'r' ? trayR : trayG);
+  const turnTxt = el('p', { class: 'ttt-turn' });
+  const setTurn = who => {
+    turn = who;
+    trayR.classList.toggle('turn', who === 'r'); trayG.classList.toggle('turn', who === 'g');
+    turnTxt.replaceChildren(who ? el('span', {}, el('img', { src: P[who].face, alt: '' }), ' ' + L(`Le toca a ${P[who].name()}`, `Li toca a ${P[who].name()}`, `${P[who].name()}’s turn`))
+      : el('span', {}, '🎲 ' + L('Empieza quien quiera', 'Comença qui vulgui', 'Anyone can start')));
+  };
+  setTurn(null);
   // ---- contador de movimientos de cada jugador (se puede cambiar con − y +)
   const limit = { g: 20, r: 20 }, left = { g: 20, r: 20 }, cnt = {};
   const counter = who => {
@@ -51,9 +62,8 @@ export function render(body, ctx) {
   body.append(el('button', { type: 'button', class: 'ttt-infobtn no-delay', onclick: info }, '🎯 ' + L('¿Qué es el contador de movimientos?', 'Què és el comptador de moviments?', 'What is the move counter?')));
   const res = el('div', { class: 'ttt-results' },
     el('button', { type: 'button', class: 'ttt-who green no-delay', onclick: () => result('g') }, el('img', { src: P.g.face, alt: '' }), el('span', {}, L('Galleta', 'Galeta', 'Gingerbread'))),
-    el('button', { type: 'button', class: 'ttt-who both no-delay', onclick: () => result('both') }, el('span', { class: 'ttt-two' }, el('img', { src: P.g.face, alt: '' }), el('img', { src: P.r.face, alt: '' })), el('span', {}, L('Empate', 'Empat', 'Draw'))),
     el('button', { type: 'button', class: 'ttt-who red no-delay', onclick: () => result('r') }, el('img', { src: P.r.face, alt: '' }), el('span', {}, L('Perrito', 'Gosset', 'Puppy'))));
-  body.append(stage, el('p', { class: 'ttt-ask' }, L('¿Quién ha ganado? Pulsa tu dibujo:', 'Qui ha guanyat? Prem el teu dibuix:', 'Who won? Tap your picture:')), res);
+  body.append(turnTxt, stage, el('p', { class: 'ttt-ask' }, L('¿Quién ha ganado? Pulsa tu dibujo:', 'Qui ha guanyat? Prem el teu dibuix:', 'Who won? Tap your picture:')), res);
 
   // ---- fichas
   const tokens = [];
@@ -78,6 +88,7 @@ export function render(body, ctx) {
     const tEl = e.target.closest('.ttt-token'); if (!tEl) return;
     const o = tokens.find(x => x.el === tEl); e.preventDefault(); unlockAudio();
     try { stage.setPointerCapture(e.pointerId); } catch {}
+    if (turn && o.who !== turn) { toast('⏳ ' + L(`Ahora le toca a ${P[turn].name()}`, `Ara li toca a ${P[turn].name()}`, `It is ${P[turn].name()}’s turn`)); trayOf(turn).classList.remove('nudge'); void trayOf(turn).offsetWidth; trayOf(turn).classList.add('nudge'); return; }
     if (left[o.who] <= 0) { toast('⛔ ' + L('Ya no te quedan movimientos', 'Ja no et queden moviments', 'No moves left')); return; }
     const b = stage.getBoundingClientRect();
     drag = { o, from: o.cell, id: e.pointerId, dx: parseFloat(tEl.style.left) - (e.clientX - b.left), dy: parseFloat(tEl.style.top) - (e.clientY - b.top) };
@@ -96,9 +107,8 @@ export function render(body, ctx) {
     let best = -1, bd = 1e9;
     [...board.children].forEach((c, i) => { const r = rel(c); const d = Math.hypot(r.x + r.w / 2 - x, r.y + r.h / 2 - y); if (d < bd) { bd = d; best = i; } });
     const cellR = rel(board.children[0]);
-    if (best >= 0 && bd < cellR.w * .7 && !tokens.some(t => t !== o && t.cell === best)) { o.cell = best; place(o); snapSound(); if (best !== from) useMove(o.who); }
-    else if (y > rel(trayG).y - 10 || y < rel(trayR).y + rel(trayR).h + 10) { o.cell = -1; place(o); pop(); } // vuelve a su bandeja
-    else place(o);
+    if (best >= 0 && bd < cellR.w * .7 && !tokens.some(t => t !== o && t.cell === best)) { o.cell = best; place(o); snapSound(); if (best !== from) { useMove(o.who); setTurn(o.who === 'g' ? 'r' : 'g'); } }
+    else place(o); // vuelve a donde estaba
     check();
   };
   stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
@@ -120,13 +130,7 @@ export function render(body, ctx) {
   async function result(who) {
     unlockAudio();
     const w = winner();
-    if (who === 'both') {
-      if (w) return popup(`<h2>🤔</h2><p style="font-size:18px">${L(`¡No es empate! Hay tres en raya de ${P[w.who].name()}. Que pulse su dibujo.`, `No és empat! Hi ha tres en ratlla de ${P[w.who].name()}. Que premi el seu dibuix.`, `It is not a draw! ${P[w.who].name()} has three in a row. Tap that picture.`)}</p>`);
-      return show('draw');
-    }
-    if (!w) {
-      return popup(`<h2>🎲</h2><p style="font-size:18px">${L('Todavía no hay tres en raya. Seguid jugando… o, si habéis quedado empate, pulsad el botón de los dos dibujos.', 'Encara no hi ha tres en ratlla. Continueu jugant… o, si heu quedat empat, premeu el botó dels dos dibuixos.', 'No three in a row yet. Keep playing… or, if it is a draw, tap the button with both pictures.')}</p>`);
-    }
+    if (!w) return show('draw'); // sin tres en raya: empate
     show(w.who === who ? 'win' : 'lose', who);
   }
 
@@ -135,7 +139,8 @@ export function render(body, ctx) {
     let music = null, alive = true;
     const again = el('button', { class: 'btn btn-big no-delay' }, '🔄 ' + L('Volver a jugar', 'Tornar a jugar', 'Play again'));
     const out = el('button', { class: 'btn btn-ghost btn-big no-delay' }, '🚪 ' + L('Salir de la partida', 'Sortir de la partida', 'Leave the game'));
-    const btns = el('div', { class: 'ttt-fx-btns' }, again, out);
+    const later = el('button', { class: 'btn btn-ghost no-delay ttt-later' }, '⏳ ' + L('Cancelar (lo haré luego)', 'Cancel·lar (ho faré després)', 'Cancel (I’ll do it later)'));
+    const btns = el('div', { class: 'ttt-fx-btns' }, again, out, later);
     const fx = el('div', { class: 'ttt-fx ' + kind });
     if (kind === 'win') {
       const dancer = el('img', { class: 'ttt-dancer', src: P[who].dance, alt: '' });
@@ -155,8 +160,9 @@ export function render(body, ctx) {
     }
     document.body.append(fx);
     const close = () => { alive = false; fx._stop?.(); try { music?.stop(1); } catch {} fx.classList.add('out'); setTimeout(() => fx.remove(), 400); };
-    again.onclick = () => { close(); tokens.forEach(o => { o.cell = -1; place(o); }); left.g = limit.g; left.r = limit.r; paint('g'); paint('r'); check(); };
+    again.onclick = () => { close(); tokens.forEach(o => { o.cell = -1; place(o); }); left.g = limit.g; left.r = limit.r; paint('g'); paint('r'); setTurn(null); check(); };
     out.onclick = () => { close(); ctx.finish(); };
+    later.onclick = () => { close(); ctx.finish(true); };
     ctx.cleanup = close;
   }
 }

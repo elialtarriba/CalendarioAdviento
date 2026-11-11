@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=17.17';
-import { t, tx, setLang, getLang } from './i18n.js?v=17.17';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.17';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=17.17';
-import { typeRich, gallery, lightbox } from './richact.js?v=17.17';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.17';
+import { initStore, store, DEMO } from './store.js?v=17.18';
+import { t, tx, setLang, getLang } from './i18n.js?v=17.18';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.18';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=17.18';
+import { typeRich, gallery, lightbox } from './richact.js?v=17.18';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.18';
 
-export const APP_VERSION = 'V17.17';
+export const APP_VERSION = 'V17.18';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -45,7 +45,7 @@ export async function loadDay(n) {
   const def = defaultDay(n);
   const day = { ...def, ...(c || {}), type: def.type }; // el tipo de juego de cada día es fijo
   // lo que el administrador escribe en español se traduce solo al idioma elegido (si no lo ha escrito él)
-  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=17.17')).localizeDay(day, def, getLang()); } catch {} }
+  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=17.18')).localizeDay(day, def, getLang()); } catch {} }
   return day;
 }
 export function applyPaper(node) {
@@ -149,8 +149,8 @@ async function boot() {
     if (pick && pick !== S.profile.lang) { S.profile.lang = pick; store.saveProfile(u.uid, { lang: pick }).catch(() => {}); }
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=17.17').catch(() => {});
-    import('./surprise.js?v=17.17').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./admin.js?v=17.18').catch(() => {});
+    import('./surprise.js?v=17.18').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -164,7 +164,7 @@ function renderLogin(mode = 'login') {
   // idioma, antes de entrar
   const langSel = el('div', { class: 'login-langs' }, ...[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([v, l]) =>
     el('button', { type: 'button', class: 'login-lang no-delay' + (v === getLang() ? ' on' : ''), onclick: () => { setLang(v); try { localStorage.setItem('adv_lang_pick', v); } catch {} renderLogin(mode); } }, l)));
-  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=17.17').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
+  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=17.18').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
     '📖 ' + ({ es: 'Cómo funciona', ca: 'Com funciona', en: 'How it works' }[getLang()] || 'Cómo funciona'));
   const submit = async e => {
     e.preventDefault(); errBox.textContent = ''; unlockAudio();
@@ -278,7 +278,7 @@ function glowConfetti(parent) {
 // texto escrito por la administradora: sale en español y se cambia por la traducción al idioma elegido
 function tEl(tag, cls, text) {
   const n = el(tag, { class: cls }, text || '');
-  if (text && getLang() !== 'es') import('./translate.js?v=17.17').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
+  if (text && getLang() !== 'es') import('./translate.js?v=17.18').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
   return n;
 }
 // el regalo: una caja que se abre y dentro el premio (texto, mensaje y foto que pone el administrador)
@@ -297,7 +297,7 @@ async function revealPrize(g) {
   const gift = box.querySelector('.pzr-gift');
   await new Promise(r => { gift.onclick = r; setTimeout(r, 9000); });
   gift.onclick = null; box.querySelector('.pzr-hint').textContent = '✨';
-  try { const { jingle } = await import('./sound.js?v=17.17'); jingle(1); } catch {}
+  try { const { jingle } = await import('./sound.js?v=17.18'); jingle(1); } catch {}
   gift.classList.add('shake'); await sleep(900); gift.classList.add('open'); chime(); confetti(220);
   await sleep(700);
   const photo = await photoP;
@@ -407,7 +407,7 @@ export function renderHome() {
         el('div', { class: 'top-actions' },
           sndBtn(),
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.17')).openAdmin() }, '🔒')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.18')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -568,7 +568,7 @@ async function openDoor(n, door) {
   cancelBtn.onclick = () => { try { ctx.cleanup?.(); } catch {} document.querySelectorAll('.mm-stage, .pz3-peekbig').forEach(x => x.remove()); speechSynthesis?.cancel?.(); document.querySelectorAll('video').forEach(v => { try { v.pause(); } catch {} }); ctx.finish(true); }; // salir sin hacer la actividad: se podrá volver a entrar
   try {
     if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=17.17`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=17.18`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -630,7 +630,7 @@ async function closeDay(n, layer, note, door, later = false) {
   }
   // día 25 con la foto hecha: final del calendario con la bola de nieve que cobra vida
   // al acabar el día 25: el resumen de todo el mes
-  if (!later && n === 25 && done) { try { await (await import('./summary.js?v=17.17')).monthSummary(); fullView = true; } catch (e) { console.error(e); } }
+  if (!later && n === 25 && done) { try { await (await import('./summary.js?v=17.18')).monthSummary(); fullView = true; } catch (e) { console.error(e); } }
   creak(false);
   layer.classList.add('fade-out');
   await sleep(700);
@@ -819,7 +819,7 @@ async function showActivity(n, layer, simple = false) {
   crumpleSound();
   let choice = null; const decided = new Promise(r => { btn.onclick = () => r('done'); later.onclick = () => { choice = 'later'; r('later'); }; });
   // algunos días tienen una actividad especial interactiva (día 23: regalos; día 24: el regalo de Papá Noel)
-  const sp = await import('./acts.js?v=17.17').then(m => m.special(n, key)).catch(() => null);
+  const sp = await import('./acts.js?v=17.18').then(m => m.special(n, key)).catch(() => null);
   if (!simple) await withTimeout(crumpleAnim(note, false), 3500);
   // la nota tiene que verse siempre, pase lo que pase con la animación
   clearCrumples(); note.style.visibility = ''; note.style.opacity = '';
@@ -870,7 +870,7 @@ async function remindActivity(n) {
   if (r === 'go') {
     await crumpleAway(note); const res = await runActivity(n, layer);
     if (res === 'done') fullView = true;
-    if (res === 'done' && n === 25) { try { await (await import('./summary.js?v=17.17')).monthSummary(); } catch (e) { console.error(e); } }
+    if (res === 'done' && n === 25) { try { await (await import('./summary.js?v=17.18')).monthSummary(); } catch (e) { console.error(e); } }
   }
   creak(false); layer.classList.add('fade-out'); await sleep(700); layer.remove(); renderHome();
 }
@@ -898,7 +898,7 @@ function openUserSettings() {
   }));
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.17').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.18').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('div', { class: 'pick-label' }, t('paper')), paperGrid,
