@@ -1364,3 +1364,28 @@ body.sum-open { overflow: hidden; }
   background: radial-gradient(#fff, #ffe9a8 30%, #ffd24a55 55%, transparent 70%); animation: pz3Spark .7s ease-out forwards; }
 @keyframes pz3Spark { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
 .pz3-replay { display: block; margin: 10px auto 0; }
+
+/* ===== V17.13 · día 25: Memory navideño ===== */
+.mm-top { display: flex; justify-content: center; margin: 2px 0 6px; }
+.mm-bola { height: min(110px, 14vh); width: auto; filter: drop-shadow(0 6px 10px #0004); animation: bob 3s ease-in-out infinite; }
+.mm-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0 auto 8px; transition: opacity .8s, transform .8s; }
+.mm-grid.gone { opacity: 0; transform: scale(.92); pointer-events: none; }
+.mm-card { width: var(--cw); height: calc(var(--cw) * 4 / 3); padding: 0; border: 0; background: none; perspective: 600px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.mm-inner { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .45s cubic-bezier(.3,.9,.4,1); }
+.mm-card.up .mm-inner { transform: rotateY(180deg); }
+.mm-back, .mm-face { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; border-radius: 7px; -webkit-backface-visibility: hidden; backface-visibility: hidden;
+  box-shadow: 0 2px 5px #0004, inset 0 0 0 1px #0001; background: #fff; }
+.mm-face { transform: rotateY(180deg); object-fit: cover; border: 2px solid #c9a24a; box-sizing: border-box; }
+.mm-card.match .mm-face { border-color: #f2c14e; box-shadow: 0 0 10px 2px #ffd24acc; }
+.mm-card.match { animation: mmMatch .6s ease-out; }
+@keyframes mmMatch { 40% { transform: scale(1.12); } }
+.mm-stage { position: fixed; inset: 0; z-index: 170; display: grid; place-items: center; }
+.mm-stage.out { animation: fadeOut .5s forwards; }
+.mm-box { position: relative; width: min(88vw, 62vh * .89); aspect-ratio: 880 / 1072; border-radius: 26px; overflow: hidden; }
+.mm-big { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity 1.4s; }
+.mm-big.fade { opacity: 0; }
+.mm-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 1.4s; background: transparent; }
+.mm-stage.alive .mm-video { opacity: 1; }
+.mm-stage.alive .mm-box { background: radial-gradient(#fffdf6, #f6ecd6 75%); box-shadow: 0 0 0 4px #d4a017, 0 0 40px 10px #ffd24a88; }
+.mm-close { position: absolute; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%) scale(.6); opacity: 0; pointer-events: none; transition: opacity .8s, transform .8s cubic-bezier(.2,1.4,.4,1); }
+.mm-close.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) scale(1); }

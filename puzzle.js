@@ -1,8 +1,8 @@
 // Días 7 y 18: puzle de piezas (como de cartón, con relieve) que se mueven y se giran.
 // Al encajar cada pieza suena un «clac»; al acabar, el puzle cobra vida con el vídeo (con sonido y en bucle).
-import { el, sleep, confetti, toast } from './fx.js?v=17.12';
-import { getLang } from './i18n.js?v=17.12';
-import { snapSound, pop, chime, unlockAudio } from './sound.js?v=17.12';
+import { el, sleep, confetti, toast } from './fx.js?v=17.13';
+import { getLang } from './i18n.js?v=17.13';
+import { snapSound, pop, chime, unlockAudio } from './sound.js?v=17.13';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 // entre 20 y 40 piezas, casi cuadradas

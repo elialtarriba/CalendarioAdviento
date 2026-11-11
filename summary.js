@@ -1,16 +1,16 @@
 // Resumen del mes: al terminar el día 25 (con la actividad, si la tiene la figura),
 // una página muy navideña con los 25 días, cada uno en su cuadro: el reto, lo que contestaste
 // y la actividad de tu figura. Se puede guardar en PDF y volver al calendario.
-import { el, sleep, confetti, toast, popup } from './fx.js?v=17.12';
-import { t, tx, getLang } from './i18n.js?v=17.12';
-import { chime } from './sound.js?v=17.12';
-import { S, figure, loadDay } from './app.js?v=17.12';
-import { defaultDay } from './defaults.js?v=17.12';
+import { el, sleep, confetti, toast, popup } from './fx.js?v=17.13';
+import { t, tx, getLang } from './i18n.js?v=17.13';
+import { chime } from './sound.js?v=17.13';
+import { S, figure, loadDay } from './app.js?v=17.13';
+import { defaultDay } from './defaults.js?v=17.13';
 
-const TK = { hats: 'hatsTitle', reindeer: 'd4title', differences: 'd6title', tree: 'd8title', memory: 'd12title', goodcheck: 'd13title', diploma: 'd15title', roulette: 'd20title', dance: 'd24title', santa: 'd25title', puzzle: 'puzzleTitle' };
+const TK = { hats: 'hatsTitle', reindeer: 'd4title', differences: 'd6title', tree: 'd8title', memory: 'd12title', goodcheck: 'd13title', diploma: 'd15title', roulette: 'd20title', dance: 'd24title', pairs: 'd25title', puzzle: 'puzzleTitle' };
 const typeTitle = ty => ty === 'puzzle' ? L('Haz el puzle y descubre qué imagen esconde', 'Fes el puzle i descobreix quina imatge amaga', 'Do the puzzle') : (TK[ty] && t(TK[ty])) || '';
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
-const PIC = { 1: 'ilu-gorro.webp', 8: 'ilu-abeto.webp', 13: 'ilu-17.webp', 16: 'ilu-bola-roja.webp', 22: 'ilu-gl.webp', 24: 'ilu-gr.webp', 25: 'ilu-7.webp' };
+const PIC = { 25: 'bola25.webp', 1: 'ilu-gorro.webp', 8: 'ilu-abeto.webp', 13: 'ilu-17.webp', 16: 'ilu-bola-roja.webp', 22: 'ilu-gl.webp', 24: 'ilu-gr.webp' };
 const pic = n => PIC[n] || `ilu-${n}.webp`;
 const FIG_IMG = { galleta: 'galleta.png', arbol: 'arbol.png', gnomo: 'gnomo.png' };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -40,7 +40,6 @@ export async function monthSummary() {
         extra.push(el('div', { class: 'sum-gifts' }, ...[['hug', '🤗', L('Abrazo', 'Abraçada', 'Hug')], ['thanks', '💌', L('Gracias', 'Gràcies', 'Thank you')], ['kitchen', '🍽️', L('Cocina', 'Cuina', 'Kitchen')]]
           .filter(([k]) => g[k]).map(([k, e, w]) => el('span', {}, `${e} ${w} → `, el('b', {}, g[k])))));
       }
-      if (n === 25 && S.card) extra.push(el('img', { class: 'sum-card-photo', src: S.card, alt: '' }));
       return el('article', { class: `sum-card st-${st}`, style: `--d:${(i % 6) * .08}s` },
         el('div', { class: 'sum-pic' }, el('img', { src: pic(n), alt: '', loading: 'lazy' }), el('b', { class: 'sum-n' }, n)),
         el('div', { class: 'sum-body' },

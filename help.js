@@ -1,8 +1,8 @@
 // Guía de la app (para la administradora): pantalla completa, índice, dibujos y zoom con dos dedos
-import { el } from './fx.js?v=17.12';
-import { getLang } from './i18n.js?v=17.12';
-import { PORTADAS, PAPERS } from './defaults.js?v=17.12';
-import { figure } from './app.js?v=17.12';
+import { el } from './fx.js?v=17.13';
+import { getLang } from './i18n.js?v=17.13';
+import { PORTADAS, PAPERS } from './defaults.js?v=17.13';
+import { figure } from './app.js?v=17.13';
 // una ventanita del calendario (recortada del tema «Cosas Navidad»), como las de la portada
 function doorCrop(d = 1, cls = '') {
   const v = PORTADAS[0].variants.find(x => /movil/.test(x.img)) || PORTADAS[0].variants[0];
@@ -130,7 +130,7 @@ const SECTIONS = [
       [18, '🧩', 'Puzle de Papá Noel', '35 piezas. Al acabar, cobra vida con su vídeo (puzle18.jpg y puzle18.mp4).'],
       [20, '🎡', 'Ruleta del disparate', 'Tú escribes las misiones de cada casilla y la frase de debajo.'],
       [24, '💃', 'El baile secreto', 'Sale siempre el vídeo baile.mp4 (súbelo a GitHub con los demás archivos). La grabación se comparte por WhatsApp.'],
-      [25, '🎅', 'Tu cara en Papá Noel', 'Foto para compartir, guardar o imprimir.'],
+      [25, '🎴', 'Memory navideño', '14 parejas de cartas. Al acabar, la bola de nieve crece y cobra vida (bola25.mp4). Después, la actividad (árbol o gnomo) y el resumen del mes.'],
     ].map(([n, e, t, d]) => el('div', { class: 'hg-day' }, el('span', { class: 'hg-day-n' }, n), el('span', { class: 'hg-day-e' }, e), el('div', {}, B(t), d ? el('small', {}, d) : null)))),
   ] },
   { id: 'general', ico: '🏆', title: 'Premios y ajustes', color: '#b45309', body: () => [
