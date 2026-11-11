@@ -436,3 +436,28 @@ export function snapSound() {
     const f2 = c.createBiquadFilter(); f2.type = 'highpass'; f2.frequency.value = 3000; s2.connect(f2); f2.connect(g2); g2.connect(c.destination); s2.start(t + .035);
   } catch {}
 }
+
+// ficha que se arrastra por la madera
+export function slideSound() {
+  try {
+    const c = ac(), t = c.currentTime;
+    const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .18);
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(900, t); f.frequency.linearRampToValueAtTime(500, t + .18);
+    const g = c.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.18, t + .03); g.gain.exponentialRampToValueAtTime(.001, t + .18);
+    s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
+  } catch {}
+}
+// música de decepción: «uooo uooo uooo uoooooo»
+export function sadTrombone() {
+  try {
+    const c = ac(), t0 = c.currentTime + .05;
+    [[466, .45], [440, .45], [415, .45], [392, 1.4]].forEach(([f, d], i) => {
+      const t = t0 + i * .5, o = c.createOscillator(), g = c.createGain(), fl = c.createBiquadFilter();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t);
+      if (i === 3) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = 6; lg.gain.value = 9; l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + d); o.frequency.linearRampToValueAtTime(f * .94, t + d); }
+      fl.type = 'lowpass'; fl.frequency.value = 1300;
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.16, t + .06); g.gain.setValueAtTime(.16, t + d - .12); g.gain.linearRampToValueAtTime(.0001, t + d);
+      o.connect(fl); fl.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + .02);
+    });
+  } catch {}
+}

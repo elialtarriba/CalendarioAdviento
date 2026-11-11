@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=17.15';
-import { t, tx, setLang, getLang } from './i18n.js?v=17.15';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.15';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=17.15';
-import { typeRich, gallery, lightbox } from './richact.js?v=17.15';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.15';
+import { initStore, store, DEMO } from './store.js?v=17.17';
+import { t, tx, setLang, getLang } from './i18n.js?v=17.17';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.17';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=17.17';
+import { typeRich, gallery, lightbox } from './richact.js?v=17.17';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.17';
 
-export const APP_VERSION = 'V17.15';
+export const APP_VERSION = 'V17.17';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -45,7 +45,7 @@ export async function loadDay(n) {
   const def = defaultDay(n);
   const day = { ...def, ...(c || {}), type: def.type }; // el tipo de juego de cada día es fijo
   // lo que el administrador escribe en español se traduce solo al idioma elegido (si no lo ha escrito él)
-  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=17.15')).localizeDay(day, def, getLang()); } catch {} }
+  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=17.17')).localizeDay(day, def, getLang()); } catch {} }
   return day;
 }
 export function applyPaper(node) {
@@ -69,7 +69,7 @@ function splash() {
     const pic = el('div', { class: 'splash-pic' }, el('img', { src: 'arbol.png', alt: '' }));
     const msg = el('div', { class: 'splash-msg' }, pic, title);
     const skip = el('button', { class: 'splash-skip' }, '›');
-    const hint = el('div', { class: 'splash-hint' }, '🔔 Toca la pantalla para oír la música');
+    const hint = el('div', { class: 'splash-hint' }, '🔔 ' + ({ es: 'Toca la pantalla para empezar', ca: 'Toca la pantalla per començar', en: 'Tap the screen to start' }[getLang()] || 'Toca la pantalla para empezar'));
     const box = el('div', { class: 'splash' }, cv, msg, skip, hint);
     document.body.append(box);
     // música desde el primer copo; el iPhone no deja sonar nada hasta que se toca la pantalla
@@ -149,8 +149,8 @@ async function boot() {
     if (pick && pick !== S.profile.lang) { S.profile.lang = pick; store.saveProfile(u.uid, { lang: pick }).catch(() => {}); }
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=17.15').catch(() => {});
-    import('./surprise.js?v=17.15').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./admin.js?v=17.17').catch(() => {});
+    import('./surprise.js?v=17.17').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -164,7 +164,7 @@ function renderLogin(mode = 'login') {
   // idioma, antes de entrar
   const langSel = el('div', { class: 'login-langs' }, ...[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([v, l]) =>
     el('button', { type: 'button', class: 'login-lang no-delay' + (v === getLang() ? ' on' : ''), onclick: () => { setLang(v); try { localStorage.setItem('adv_lang_pick', v); } catch {} renderLogin(mode); } }, l)));
-  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=17.15').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
+  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=17.17').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
     '📖 ' + ({ es: 'Cómo funciona', ca: 'Com funciona', en: 'How it works' }[getLang()] || 'Cómo funciona'));
   const submit = async e => {
     e.preventDefault(); errBox.textContent = ''; unlockAudio();
@@ -278,7 +278,7 @@ function glowConfetti(parent) {
 // texto escrito por la administradora: sale en español y se cambia por la traducción al idioma elegido
 function tEl(tag, cls, text) {
   const n = el(tag, { class: cls }, text || '');
-  if (text && getLang() !== 'es') import('./translate.js?v=17.15').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
+  if (text && getLang() !== 'es') import('./translate.js?v=17.17').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
   return n;
 }
 // el regalo: una caja que se abre y dentro el premio (texto, mensaje y foto que pone el administrador)
@@ -297,7 +297,7 @@ async function revealPrize(g) {
   const gift = box.querySelector('.pzr-gift');
   await new Promise(r => { gift.onclick = r; setTimeout(r, 9000); });
   gift.onclick = null; box.querySelector('.pzr-hint').textContent = '✨';
-  try { const { jingle } = await import('./sound.js?v=17.15'); jingle(1); } catch {}
+  try { const { jingle } = await import('./sound.js?v=17.17'); jingle(1); } catch {}
   gift.classList.add('shake'); await sleep(900); gift.classList.add('open'); chime(); confetti(220);
   await sleep(700);
   const photo = await photoP;
@@ -349,25 +349,33 @@ async function dayInfo(d) {
   if (r) { const door = [...document.querySelectorAll('.door')].find(x => x.getAttribute('aria-label') === t('dayN', d)); if (door) openDoor(d, door); }
 }
 function showPrizes() {
-  const box = el('div', {},
-    el('h2', {}, '🏆 ' + t('prizes')),
-    el('div', { class: 'rules-deco' }, '🎄🎅🎁'),
-    el('p', { class: 'prize-rules' }, t('prizeRules')),
-    el('p', { class: 'muted' }, t('prizeTap')),
-    ...GOALS.map(g => {
-      const p = prizeState(g);
-      const row = el('button', { class: 'prize-row2 ' + p.state, onclick: () => prizeDetail(g) },
-        el('span', { class: 'pr-ico' }, { won: '🏆', lost: '💔', play: '🎁' }[p.state]),
-        el('span', { class: 'pr-txt' }, el('b', {}, t('dayRange', g)),
-          prizeText(g) ? tEl('span', 'pr-prize', prizeText(g)) : null,
-          el('small', {}, `✅ ${p.ok} · ❌ ${p.bad}`)),
-        el('span', { class: 'pr-go' }, '›'));
-      if (p.state !== 'won') return row;
-      // regalo conseguido: botón para abrirlo
-      return el('div', { class: 'prize-wrap won' }, row,
-        el('button', { class: 'prize-claim no-delay', onclick: () => revealPrize(g) }, el('img', { src: 'ilu-gr.webp', alt: '' }), el('span', {}, L3('Pulsa para conseguir el regalo', 'Prem per aconseguir el regal', 'Tap to get your present')), '✨'));
-    }));
-  popup(box);
+  const fig = figure();
+  const rows = GOALS.map((g, i) => {
+    const p = prizeState(g);
+    const chip = { won: ['🏆', L3('¡Conseguido!', 'Aconseguit!', 'Won!')], lost: ['💔', L3('Se ha escapado', 'S’ha escapat', 'Missed')], play: ['🎁', L3('En juego', 'En joc', 'In play')] }[p.state];
+    const left = Math.max(0, 3 - p.bad);
+    const card = el('button', { class: 'pz-card ' + p.state, style: `--d:${i * .08}s`, onclick: () => prizeDetail(g) },
+      el('div', { class: 'pz-num' }, el('small', {}, L3('casilla', 'casella', 'door')), el('b', {}, g)),
+      el('div', { class: 'pz-body' },
+        el('div', { class: 'pz-range' }, t('dayRange', g), el('span', { class: 'pz-chip' }, chip[0] + ' ' + chip[1])),
+        prizeText(g) ? tEl('div', 'pz-prize', prizeText(g)) : null,
+        el('div', { class: 'pz-stats' },
+          el('span', { class: 'ok' }, '✅ ' + p.ok), el('span', { class: 'bad' }, '❌ ' + p.bad),
+          p.state === 'play' ? el('span', { class: 'left' }, '🎯 ' + L3(`te quedan ${left} fallos`, `et queden ${left} errades`, `${left} misses left`)) : null)),
+      el('span', { class: 'pz-go' }, '›'));
+    if (p.state !== 'won') return card;
+    return el('div', { class: 'pz-wrap' }, card,
+      el('button', { class: 'prize-claim no-delay', onclick: () => revealPrize(g) }, el('img', { src: 'ilu-gr.webp', alt: '' }), el('span', {}, L3('Pulsa para conseguir el regalo', 'Prem per aconseguir el regal', 'Tap to get your present')), '✨'));
+  });
+  const box = el('div', { class: 'pz-sheet' },
+    el('div', { class: 'pz-lights' }, ...Array.from({ length: 12 }, (_, i) => el('i', { style: `--i:${i}` }))),
+    el('div', { class: 'pz-hero' },
+      el('img', { class: 'pz-tree', src: 'ilu-arbolito.webp', alt: '' }),
+      el('div', {}, el('h2', { class: 'pz-title' }, t('prizes')), el('p', { class: 'pz-sub' }, L3('¡Mira lo que puedes ganar!', 'Mira què pots guanyar!', 'See what you can win!')))),
+    el('p', { class: 'pz-rules' }, t('prizeRules')),
+    el('p', { class: 'pz-tap' }, '👆 ' + t('prizeTap')),
+    el('div', { class: 'pz-list' }, ...rows));
+  popup(box, { cls: 'pz-pop' });
 }
 // texto general de la cinta (el antiguo «pulsa para verla en grande» se cambia por la felicitación)
 function marqueeGeneral(mq) {
@@ -399,7 +407,7 @@ export function renderHome() {
         el('div', { class: 'top-actions' },
           sndBtn(),
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.15')).openAdmin() }, '🔒')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.17')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -522,7 +530,7 @@ async function openDoor(n, door) {
   const body = el('div', { class: 'note-body' });
   const finishBtn = el('button', { class: 'btn btn-finish' }, t('finish'));
   const cancelBtn = el('button', { class: 'btn btn-cancel' }, t('cancelLater'));
-  note.append(el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, t('dayN', n))), body, el('div', { class: 'note-foot' }, ...(S.answers[n] ? [] : [cancelBtn]), finishBtn));
+  note.append(el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, t('dayN', n))), body, el('div', { class: 'note-foot' }, cancelBtn, finishBtn)); // «lo haré luego» siempre, en todas las casillas
   layer.append(note);
   document.body.append(layer);
   // la nota viene "de lejos": desde la puerta hasta ocupar la pantalla
@@ -542,11 +550,11 @@ async function openDoor(n, door) {
     submit: async data => {
       if (S.answers[n]) return;
       const rec = { answer: data.answer ?? '', status: data.status || 'pending', extra: data.extra ?? null, at: Date.now() };
-      S.answers[n] = { ...rec }; cancelBtn.remove();
+      S.answers[n] = { ...rec };
       try { await store.submitAnswer(S.user.uid, n, rec); } catch (e) { console.error(e); toast('⚠️ ' + e.message); }
       if (rec.status === 'correct') { fanfare(); checkPrize(); }
     },
-    finish: () => { if (!closed) { closed = true; closeDay(n, layer, note, door); } },
+    finish: (later = false) => { if (!closed) { closed = true; closeDay(n, layer, note, door, later); } },
   };
   // Finalizar sin haber hecho el reto: avisar (si no, no sale la actividad y parece que falla)
   finishBtn.onclick = async () => {
@@ -557,10 +565,10 @@ async function openDoor(n, door) {
     }
     ctx.finish();
   };
-  cancelBtn.onclick = ctx.finish;
+  cancelBtn.onclick = () => { try { ctx.cleanup?.(); } catch {} document.querySelectorAll('.mm-stage, .pz3-peekbig').forEach(x => x.remove()); speechSynthesis?.cancel?.(); document.querySelectorAll('video').forEach(v => { try { v.pause(); } catch {} }); ctx.finish(true); }; // salir sin hacer la actividad: se podrá volver a entrar
   try {
-    if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=17.15`)).render(body, ctx);
+    if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt'].includes(content.type)) renderSummary(body, ctx);
+    else (await import(`./${content.type}.js?v=17.17`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -610,11 +618,11 @@ async function runActivity(n, layer) {
   }
 }
 
-async function closeDay(n, layer, note, door) {
+async function closeDay(n, layer, note, door, later = false) {
   const fig = figure();
   const done = !!S.answers[n];
   speechSynthesis?.cancel?.();
-  if (fig !== 'galleta' && done && actPending(n)) {
+  if (!later && fig !== 'galleta' && done && actPending(n)) {
     // la actividad sale siempre que esté pendiente (y solo una vez: la de tu figura)
     await crumpleAway(note);
     const res = await runActivity(n, layer);
@@ -622,7 +630,7 @@ async function closeDay(n, layer, note, door) {
   }
   // día 25 con la foto hecha: final del calendario con la bola de nieve que cobra vida
   // al acabar el día 25: el resumen de todo el mes
-  if (n === 25 && done) { try { await (await import('./summary.js?v=17.15')).monthSummary(); fullView = true; } catch (e) { console.error(e); } }
+  if (!later && n === 25 && done) { try { await (await import('./summary.js?v=17.17')).monthSummary(); fullView = true; } catch (e) { console.error(e); } }
   creak(false);
   layer.classList.add('fade-out');
   await sleep(700);
@@ -811,7 +819,7 @@ async function showActivity(n, layer, simple = false) {
   crumpleSound();
   let choice = null; const decided = new Promise(r => { btn.onclick = () => r('done'); later.onclick = () => { choice = 'later'; r('later'); }; });
   // algunos días tienen una actividad especial interactiva (día 23: regalos; día 24: el regalo de Papá Noel)
-  const sp = await import('./acts.js?v=17.15').then(m => m.special(n, key)).catch(() => null);
+  const sp = await import('./acts.js?v=17.17').then(m => m.special(n, key)).catch(() => null);
   if (!simple) await withTimeout(crumpleAnim(note, false), 3500);
   // la nota tiene que verse siempre, pase lo que pase con la animación
   clearCrumples(); note.style.visibility = ''; note.style.opacity = '';
@@ -862,7 +870,7 @@ async function remindActivity(n) {
   if (r === 'go') {
     await crumpleAway(note); const res = await runActivity(n, layer);
     if (res === 'done') fullView = true;
-    if (res === 'done' && n === 25) { try { await (await import('./summary.js?v=17.15')).monthSummary(); } catch (e) { console.error(e); } }
+    if (res === 'done' && n === 25) { try { await (await import('./summary.js?v=17.17')).monthSummary(); } catch (e) { console.error(e); } }
   }
   creak(false); layer.classList.add('fade-out'); await sleep(700); layer.remove(); renderHome();
 }
@@ -890,7 +898,7 @@ function openUserSettings() {
   }));
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.15').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.17').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('div', { class: 'pick-label' }, t('paper')), paperGrid,

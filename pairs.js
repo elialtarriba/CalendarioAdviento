@@ -1,8 +1,8 @@
 // Día 25: Memory navideño. 14 parejas de cartas; al encontrar todas, la bola de nieve
 // de arriba crece hasta el centro de la pantalla y se convierte en el vídeo (cobra vida, en bucle).
-import { el, sleep, confetti } from './fx.js?v=17.15';
-import { getLang } from './i18n.js?v=17.15';
-import { pop, chime, fanfare, christmasSong, unlockAudio } from './sound.js?v=17.15';
+import { el, sleep, confetti } from './fx.js?v=17.17';
+import { getLang } from './i18n.js?v=17.17';
+import { pop, chime, fanfare, christmasSong, unlockAudio } from './sound.js?v=17.17';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const FACES = Array.from({ length: 14 }, (_, i) => `mem-${String(i + 1).padStart(2, '0')}.webp`);
@@ -93,7 +93,8 @@ export function render(body, ctx) {
       try { music?.stop(2); } catch {}
       stage.classList.add('out'); setTimeout(() => { stage.remove(); bola.style.visibility = ''; }, 500);
     };
+    ctx.cleanup = () => { try { music?.stop(1); video.pause(); stage.remove(); } catch {} };
     const fin = ctx.finishBtn.onclick;
-    ctx.finishBtn.onclick = () => { try { music?.stop(1); video.pause(); stage.remove(); } catch {} fin(); };
+    ctx.finishBtn.onclick = () => { ctx.cleanup(); fin(); };
   }
 }

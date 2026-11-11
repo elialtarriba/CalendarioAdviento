@@ -1,10 +1,10 @@
 // Guía de la app (para la administradora): pantalla completa, índice, dibujos y zoom con dos dedos
-import { el } from './fx.js?v=17.15';
-import { getLang } from './i18n.js?v=17.15';
-import { PORTADAS, PAPERS } from './defaults.js?v=17.15';
-import { figure, S } from './app.js?v=17.15';
-import { store } from './store.js?v=17.15';
-import { toast } from './fx.js?v=17.15';
+import { el } from './fx.js?v=17.17';
+import { getLang } from './i18n.js?v=17.17';
+import { PORTADAS, PAPERS } from './defaults.js?v=17.17';
+import { figure, S } from './app.js?v=17.17';
+import { store } from './store.js?v=17.17';
+import { toast } from './fx.js?v=17.17';
 // una ventanita del calendario (recortada del tema «Cosas Navidad»), como las de la portada
 function doorCrop(d = 1, cls = '') {
   const v = PORTADAS[0].variants.find(x => /movil/.test(x.img)) || PORTADAS[0].variants[0];
@@ -129,6 +129,7 @@ const SECTIONS = [
       [12, '👁️', 'Ojo de lince', 'Qué objeto falta. Lo corriges tú en Respuestas.'],
       [13, '😇', '¿Has sido bueno?', 'La máquina de bondad.'],
       [15, '📜', 'Diploma absurdo', ''],
+      [17, '⭕', 'Tres en raya navideño', 'Galleta (fichas verdes) contra Perrito (fichas rojas). Al acabar, cada uno pulsa su dibujo: el ganador baila, el que pierde… lluvia y carbón; o empate.'],
       [18, '🧩', 'Puzle de Papá Noel', '15 piezas. Al acabar, cobra vida con su vídeo (puzle18.jpg y puzle18.mp4).'],
       [20, '🎡', 'Ruleta del disparate', 'Tú escribes las misiones de cada casilla y la frase de debajo.'],
       [24, '💃', 'El baile secreto', 'Sale siempre el vídeo baile.mp4 (súbelo a GitHub con los demás archivos). La grabación se comparte por WhatsApp.'],
