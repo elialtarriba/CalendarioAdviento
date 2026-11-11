@@ -1422,10 +1422,10 @@ body.sum-open { overflow: hidden; }
 .pz3-peekbig img { max-width: 92vw; max-height: 82vh; border-radius: 10px; border: 5px solid #f2c14e; box-shadow: 0 10px 30px #000; }
 
 /* V17.14 · casilla a medias (falta la actividad): brilla mucho, para avisar que hay que acabarla */
-.door.half::after { content: ''; position: absolute; inset: -3px; border-radius: 12px; pointer-events: none; z-index: 4;
-  box-shadow: 0 0 0 3px #ffd24a, 0 0 16px 6px #ffcf4acc, inset 0 0 18px 6px #fff3c4cc; animation: halfGlow 1.4s ease-in-out infinite; }
-.door.half::before { content: '✨'; position: absolute; right: -6px; top: -8px; z-index: 5; font-size: clamp(12px, 3vw, 22px); filter: drop-shadow(0 0 4px #ffd24a); animation: halfGlow 1.4s ease-in-out infinite; }
-@keyframes halfGlow { 50% { box-shadow: 0 0 0 4px #fff3c4, 0 0 30px 12px #ffd24a, inset 0 0 26px 10px #fff8dccc; opacity: .85; } }
+.door.half { z-index: 3; }
+.door.half .door-panel { animation: halfTile 1.5s ease-in-out infinite; }
+@keyframes halfTile { 0%, 100% { filter: brightness(1.12) drop-shadow(0 0 3px #ffb300) drop-shadow(0 0 8px #ffd24a); } 50% { filter: brightness(1.45) saturate(1.2) drop-shadow(0 0 6px #ffb300) drop-shadow(0 0 18px #ffd24a) drop-shadow(0 0 4px #fff3c4); } }
+@keyframes halfGlow { 50% { box-shadow: 0 0 0 4px #fff3c4, 0 0 30px 12px #ffd24a; opacity: .85; } }
 .strip-fig.half img { filter: grayscale(1) opacity(.65); }
 .strip-fig.half { box-shadow: 0 0 0 2px #ffd24a, 0 0 10px #ffd24a; border-radius: 10px; animation: halfGlow 1.4s ease-in-out infinite; }
 
