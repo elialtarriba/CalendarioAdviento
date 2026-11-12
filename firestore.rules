@@ -71,6 +71,20 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Quién está dentro de la app: cada persona escribe el suyo; solo la administradora principal lo ve y puede echar
+    match /presence/{uid} {
+      allow read: if me(uid) || isOwner();
+      allow list: if isOwner();
+      allow create, update: if me(uid) || isOwner();
+    }
+
+    // Nombres que se escriben al entrar: no se pueden repetir
+    match /names/{key} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if signedIn() && (resource.data.uid == request.auth.uid || isOwner());
+    }
+
     // Tarjeta de Navidad del día 25
     match /cards/{uid} {
       allow read: if me(uid) || isAdmin();

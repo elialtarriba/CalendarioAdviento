@@ -1,5 +1,5 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js?v=17.19';
+import { firebaseConfig } from './firebase-config.js?v=17.20';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {
@@ -26,6 +26,7 @@ async function firebaseApi() {
 
   return {
     onAuth: cb => A.onAuthStateChanged(auth, u => cb(u ? { uid: u.uid, email: u.email } : null)),
+    authReady: async () => { try { await auth.authStateReady(); } catch {} return auth.currentUser ? { uid: auth.currentUser.uid } : null; },
     signIn: (e, p) => A.signInWithEmailAndPassword(auth, e, p),
     signUp: async (e, p, name, lang) => {
       const c = await A.createUserWithEmailAndPassword(auth, e, p);
@@ -67,6 +68,15 @@ async function firebaseApi() {
     deleteMedia: (n, id) => F.deleteDoc(d('content', String(n), 'media', id)),
     getConfig: () => get('config', 'public'),
     saveConfig: data => F.setDoc(d('config', 'public'), data, { merge: true }),
+    // quién está dentro de la app (para la administradora principal)
+    presencePing: (uid, data) => F.setDoc(d('presence', uid), data, { merge: true }),
+    watchPresence: (uid, cb) => F.onSnapshot(d('presence', uid), s => cb(s.exists() ? s.data() : null), () => {}),
+    listPresence: async () => { const qs = await F.getDocs(F.collection(db, 'presence')); const out = []; qs.forEach(x => out.push({ uid: x.id, ...x.data() })); return out; },
+    kickUser: uid => F.setDoc(d('presence', uid), { kick: true, kickAt: Date.now() }, { merge: true }),
+    // nombres únicos: names/{nombre en minúsculas} = { uid, name }
+    getName: key => get('names', key),
+    claimName: (key, uid, name) => F.setDoc(d('names', key), { uid, name, at: Date.now() }),
+    releaseName: key => F.deleteDoc(d('names', key)),
     // foto de cada premio (una por figura y casilla), en su propio documento para no llenar config/public
     getPrizePhoto: async (fig, g) => { try { const x = await get('config', `prize-${fig}-${g}`); return x?.src || ''; } catch { return ''; } },
     savePrizePhoto: (fig, g, src) => F.setDoc(d('config', `prize-${fig}-${g}`), { src: src || '' }),
@@ -132,6 +142,7 @@ function demoApi() {
   const err = code => Object.assign(new Error(code), { code });
   return {
     onAuth: cb => { listener = cb; setTimeout(emit, 0); },
+    authReady: async () => { const c = cur(); return c ? { uid: c.uid } : null; },
     signIn: async (e, p) => {
       const accts = ld('accounts', {}); const a = accts[e.toLowerCase()];
       if (!a || a.pw !== await hashPw(p)) throw err('auth/invalid-credential');
@@ -182,6 +193,13 @@ function demoApi() {
     deleteMedia: async (n, id) => { const m = ld('media', {}); m[n] = (m[n] || []).filter(x => x.id !== id); sv('media', m); },
     getConfig: async () => ld('config', null),
     saveConfig: async data => sv('config', { ...ld('config', {}), ...data }),
+    presencePing: async (uid, data) => { const p = ld('presence', {}); p[uid] = { ...(p[uid] || {}), ...data }; sv('presence', p); },
+    watchPresence: (uid, cb) => { const iv = setInterval(() => cb(ld('presence', {})[uid] || null), 3000); return () => clearInterval(iv); },
+    listPresence: async () => Object.entries(ld('presence', {})).map(([uid, v]) => ({ uid, ...v })),
+    getName: async key => ld('names', {})[key] || null,
+    claimName: async (key, uid, name) => { const n = ld('names', {}); n[key] = { uid, name, at: Date.now() }; sv('names', n); },
+    releaseName: async key => { const n = ld('names', {}); delete n[key]; sv('names', n); },
+    kickUser: async uid => { const p = ld('presence', {}); p[uid] = { ...(p[uid] || {}), kick: true, kickAt: Date.now() }; sv('presence', p); },
     getPrizePhoto: async (fig, g) => ld('prizePhotos', {})[`${fig}-${g}`] || '',
     savePrizePhoto: async (fig, g, src) => { const p = ld('prizePhotos', {}); p[`${fig}-${g}`] = src || ''; sv('prizePhotos', p); },
     adminSetup: async (uid, pw) => { sv('adminHash', await hashPw(pw)); sv('config', { ...ld('config', {}), adminConfigured: true }); },

@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=17.19';
-import { t, tx, setLang, getLang } from './i18n.js?v=17.19';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.19';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=17.19';
-import { typeRich, gallery, lightbox } from './richact.js?v=17.19';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.19';
+import { initStore, store, DEMO } from './store.js?v=17.20';
+import { t, tx, setLang, getLang } from './i18n.js?v=17.20';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=17.20';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=17.20';
+import { typeRich, gallery, lightbox } from './richact.js?v=17.20';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=17.20';
 
-export const APP_VERSION = 'V17.19';
+export const APP_VERSION = 'V17.20';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -45,7 +45,7 @@ export async function loadDay(n) {
   const def = defaultDay(n);
   const day = { ...def, ...(c || {}), type: def.type }; // el tipo de juego de cada día es fijo
   // lo que el administrador escribe en español se traduce solo al idioma elegido (si no lo ha escrito él)
-  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=17.19')).localizeDay(day, def, getLang()); } catch {} }
+  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=17.20')).localizeDay(day, def, getLang()); } catch {} }
   return day;
 }
 export function applyPaper(node) {
@@ -58,7 +58,7 @@ export function applyPaper(node) {
 function splashCfg() {
   try { return { ...SPLASH_DEFAULT, ...(JSON.parse(localStorage.getItem('adv_splash')) || {}) }; } catch { return SPLASH_DEFAULT; }
 }
-function splash() {
+function splash(checkName = async () => true) {
   const cfg = splashCfg();
   let seen = false; try { seen = sessionStorage.getItem('adv_splash_seen') === '1'; sessionStorage.setItem('adv_splash_seen', '1'); } catch {}
   if (cfg.show === false || seen) return Promise.resolve();
@@ -69,16 +69,26 @@ function splash() {
     const pic = el('div', { class: 'splash-pic' }, el('img', { src: 'arbol.png', alt: '' }));
     const msg = el('div', { class: 'splash-msg' }, pic, title);
     // solo se entra pulsando este botón
-    const skip = el('button', { type: 'button', class: 'splash-start' }, '🔔 ' + ({ es: 'Pulsa para empezar', ca: 'Prem per començar', en: 'Tap to start' }[getLang()] || 'Pulsa para empezar'));
+    const skip = el('button', { type: 'button', class: 'splash-start', disabled: true }, '🔔 ' + ({ es: 'Pulsa para empezar', ca: 'Prem per començar', en: 'Tap to start' }[getLang()] || 'Pulsa para empezar'));
     const hint = el('span');
-    const box = el('div', { class: 'splash' }, cv, msg, skip);
+    // primero el nombre (queda guardado en el móvil); el botón se activa cuando hay nombre
+    let saved = ''; try { saved = localStorage.getItem('adv_who') || ''; } catch {}
+    const nameIn = el('input', { type: 'text', class: 'splash-name', maxlength: 30, value: saved, autocomplete: 'given-name',
+      placeholder: ({ es: 'Escribe tu nombre', ca: 'Escriu el teu nom', en: 'Write your name' }[getLang()] || 'Escribe tu nombre') });
+    const nameErr = el('div', { class: 'splash-err' });
+    const upd = () => { skip.disabled = nameIn.value.trim().length < 2; nameErr.textContent = ''; };
+    nameIn.addEventListener('input', upd); upd();
+    nameIn.addEventListener('keydown', e => { if (e.key === 'Enter' && !skip.disabled) skip.click(); });
+    const form = el('div', { class: 'splash-form' }, el('label', {}, '🎅 ' + ({ es: '¿Cómo te llamas?', ca: 'Com et dius?', en: 'What is your name?' }[getLang()] || '¿Cómo te llamas?')), nameIn, nameErr, skip);
+    msg.append(form); // todo en una columna centrada: árbol, título y la tarjeta del nombre
+    const box = el('div', { class: 'splash' }, cv, msg);
     document.body.append(box);
     // música desde el primer copo; el iPhone no deja sonar nada hasta que se toca la pantalla
     let music = null; try { music = christmasSong(); } catch {}
     const checkSound = () => { if (music?.playing) hint.classList.add('hide'); else hint.classList.add('show'); };
     setTimeout(checkSound, 600);
     box.addEventListener('pointerdown', e => {
-      if (e.target === skip) return;
+      if (e.target.closest?.('.splash-form')) { unlockAudio(); return; }
       unlockAudio(); hint.classList.add('hide');
       // si la música no ha arrancado (el sonido se había cortado), se vuelve a empezar
       setTimeout(() => { if (!music?.playing) { music?.stop(0); try { music = christmasSong(); } catch {} } checkSound(); }, 300);
@@ -120,14 +130,34 @@ function splash() {
       box.classList.add('out'); setTimeout(() => { box.remove(); resolve(); }, 700);
       setTimeout(() => music?.stop(4), 7000); // sigue sonando unos segundos con la portada abierta
     }
-    skip.onclick = () => { unlockAudio(); if (!music?.playing) { try { music?.stop(0); music = christmasSong(); } catch {} } skip.classList.add('go'); setTimeout(finish, 350); };
+    skip.onclick = async () => {
+      const name = nameIn.value.trim(); if (name.length < 2) return;
+      unlockAudio(); if (!music?.playing) { try { music?.stop(0); music = christmasSong(); } catch {} }
+      skip.disabled = true; skip.classList.add('go');
+      const ok = await Promise.race([checkName(name), sleep(5000).then(() => true)]).catch(() => true);
+      if (!ok) {
+        skip.classList.remove('go'); skip.disabled = false; nameIn.focus();
+        nameErr.textContent = '⚠️ ' + ({ es: `El nombre «${name}» ya existe. Escoge otro (por ejemplo, con tu apellido).`, ca: `El nom «${name}» ja existeix. Tria’n un altre (per exemple, amb el cognom).`, en: `The name “${name}” already exists. Choose another (for example with your surname).` }[getLang()]);
+        return;
+      }
+      try { localStorage.setItem('adv_who', name); } catch {}
+      setTimeout(finish, 250);
+    };
   });
 }
 
 async function boot() {
   setLang(localStorage.getItem('adv_lang') || 'es');
-  await splash();
-  try { await initStore(); } catch (e) {
+  const storeP = initStore().then(() => null, e => e);
+  // el nombre no se puede repetir (se comprueba si ya ha entrado antes en este móvil)
+  await splash(async name => {
+    if (await storeP) return true;
+    const u = await store.authReady(); if (!u) return true;
+    const { keyOf } = await import('./presence.js?v=17.20');
+    const cur = await store.getName(keyOf(name)).catch(() => null);
+    return !cur || cur.uid === u.uid;
+  });
+  try { const e = await storeP; if (e) throw e; } catch (e) {
     app.innerHTML = `<div class="fatal">No se ha podido conectar con Firebase. Revisa js/firebase-config.js.<br><small>${esc(e.message)}</small></div>`; return;
   }
   store.onAuth(async u => {
@@ -150,8 +180,9 @@ async function boot() {
     if (pick && pick !== S.profile.lang) { S.profile.lang = pick; store.saveProfile(u.uid, { lang: pick }).catch(() => {}); }
     setLang(S.profile.lang || 'es');
     renderHome();
-    import('./admin.js?v=17.19').catch(() => {});
-    import('./surprise.js?v=17.19').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./presence.js?v=17.20').then(m => m.startPresence(S)).catch(e => console.warn(e));
+    import('./admin.js?v=17.20').catch(() => {});
+    import('./surprise.js?v=17.20').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
 }
 
@@ -165,7 +196,7 @@ function renderLogin(mode = 'login') {
   // idioma, antes de entrar
   const langSel = el('div', { class: 'login-langs' }, ...[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([v, l]) =>
     el('button', { type: 'button', class: 'login-lang no-delay' + (v === getLang() ? ' on' : ''), onclick: () => { setLang(v); try { localStorage.setItem('adv_lang_pick', v); } catch {} renderLogin(mode); } }, l)));
-  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=17.19').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
+  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=17.20').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
     '📖 ' + ({ es: 'Cómo funciona', ca: 'Com funciona', en: 'How it works' }[getLang()] || 'Cómo funciona'));
   const submit = async e => {
     e.preventDefault(); errBox.textContent = ''; unlockAudio();
@@ -279,7 +310,7 @@ function glowConfetti(parent) {
 // texto escrito por la administradora: sale en español y se cambia por la traducción al idioma elegido
 function tEl(tag, cls, text) {
   const n = el(tag, { class: cls }, text || '');
-  if (text && getLang() !== 'es') import('./translate.js?v=17.19').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
+  if (text && getLang() !== 'es') import('./translate.js?v=17.20').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
   return n;
 }
 // el regalo: una caja que se abre y dentro el premio (texto, mensaje y foto que pone el administrador)
@@ -298,7 +329,7 @@ async function revealPrize(g) {
   const gift = box.querySelector('.pzr-gift');
   await new Promise(r => { gift.onclick = r; setTimeout(r, 9000); });
   gift.onclick = null; box.querySelector('.pzr-hint').textContent = '✨';
-  try { const { jingle } = await import('./sound.js?v=17.19'); jingle(1); } catch {}
+  try { const { jingle } = await import('./sound.js?v=17.20'); jingle(1); } catch {}
   gift.classList.add('shake'); await sleep(900); gift.classList.add('open'); chime(); confetti(220);
   await sleep(700);
   const photo = await photoP;
@@ -408,7 +439,7 @@ export function renderHome() {
         el('div', { class: 'top-actions' },
           sndBtn(),
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.19')).openAdmin() }, '🔒')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=17.20')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -569,7 +600,7 @@ async function openDoor(n, door) {
   cancelBtn.onclick = () => { try { ctx.cleanup?.(); } catch {} document.querySelectorAll('.mm-stage, .pz3-peekbig').forEach(x => x.remove()); speechSynthesis?.cancel?.(); document.querySelectorAll('video').forEach(v => { try { v.pause(); } catch {} }); ctx.finish(true); }; // salir sin hacer la actividad: se podrá volver a entrar
   try {
     if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=17.19`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=17.20`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -631,7 +662,7 @@ async function closeDay(n, layer, note, door, later = false) {
   }
   // día 25 con la foto hecha: final del calendario con la bola de nieve que cobra vida
   // al acabar el día 25: el resumen de todo el mes
-  if (!later && n === 25 && done) { try { await (await import('./summary.js?v=17.19')).monthSummary(); fullView = true; } catch (e) { console.error(e); } }
+  if (!later && n === 25 && done) { try { await (await import('./summary.js?v=17.20')).monthSummary(); fullView = true; } catch (e) { console.error(e); } }
   creak(false);
   layer.classList.add('fade-out');
   await sleep(700);
@@ -820,7 +851,7 @@ async function showActivity(n, layer, simple = false) {
   crumpleSound();
   let choice = null; const decided = new Promise(r => { btn.onclick = () => r('done'); later.onclick = () => { choice = 'later'; r('later'); }; });
   // algunos días tienen una actividad especial interactiva (día 23: regalos; día 24: el regalo de Papá Noel)
-  const sp = await import('./acts.js?v=17.19').then(m => m.special(n, key)).catch(() => null);
+  const sp = await import('./acts.js?v=17.20').then(m => m.special(n, key)).catch(() => null);
   if (!simple) await withTimeout(crumpleAnim(note, false), 3500);
   // la nota tiene que verse siempre, pase lo que pase con la animación
   clearCrumples(); note.style.visibility = ''; note.style.opacity = '';
@@ -871,7 +902,7 @@ async function remindActivity(n) {
   if (r === 'go') {
     await crumpleAway(note); const res = await runActivity(n, layer);
     if (res === 'done') fullView = true;
-    if (res === 'done' && n === 25) { try { await (await import('./summary.js?v=17.19')).monthSummary(); } catch (e) { console.error(e); } }
+    if (res === 'done' && n === 25) { try { await (await import('./summary.js?v=17.20')).monthSummary(); } catch (e) { console.error(e); } }
   }
   creak(false); layer.classList.add('fade-out'); await sleep(700); layer.remove(); renderHome();
 }
@@ -899,7 +930,7 @@ function openUserSettings() {
   }));
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.19').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=17.20').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('div', { class: 'pick-label' }, t('paper')), paperGrid,
@@ -949,7 +980,7 @@ function accountSection() {
     el('div', { class: 'acc-row' }, el('span', {}, '🔑 ' + t('password')), el('b', { class: 'dots', title: t('pwHidden'), onclick: () => toast(t('pwHidden'), 6000) }, '•••••••• 👁️'),
       el('button', { type: 'button', class: 'btn btn-ghost small-btn', onclick: () => { form.style.display = form.style.display === 'none' ? '' : 'none'; } }, t('changePw'))),
     form,
-    el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: () => { document.querySelector('.popup-back')?.remove(); store.signOut(); } }, '🚪 ' + t('logoutLong')));
+    el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=17.20')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong')));
 }
 
 // modo demo: no se pueden mandar correos, así que se pone una contraseña nueva aquí mismo
