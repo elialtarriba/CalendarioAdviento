@@ -1,9 +1,9 @@
 // Día 22: sopa de letras de animales. Se desliza el dedo en línea recta (horizontal, vertical o en
 // diagonal, en cualquier sentido). Si las letras forman un animal se queda marcado con relieve y suena
 // «encaja»; si no, el marcado desaparece al soltar. Al encontrarlos todos: confeti y ¡enhorabuena!
-import { el, sleep, confetti, popup, toast } from './fx.js?v=17.27';
-import { getLang } from './i18n.js?v=17.27';
-import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, clickSound } from './sound.js?v=17.27';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=18';
+import { getLang } from './i18n.js?v=18';
+import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, clickSound } from './sound.js?v=18';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 // [palabra, fila, columna, paso fila, paso columna, dibujo, nombre bonito]

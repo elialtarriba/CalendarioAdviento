@@ -1,9 +1,9 @@
 // Mensajes sorpresa: la administradora prepara un popup para una persona y un día concretos
-import { el, popup, toast, confetti } from './fx.js?v=17.27';
-import { store } from './store.js?v=17.27';
-import { shrink, ytId, lightbox } from './richact.js?v=17.27';
-import { chime } from './sound.js?v=17.27';
-import { getLang } from './i18n.js?v=17.27';
+import { el, popup, toast, confetti } from './fx.js?v=18';
+import { store } from './store.js?v=18';
+import { shrink, ytId, lightbox } from './richact.js?v=18';
+import { chime } from './sound.js?v=18';
+import { getLang } from './i18n.js?v=18';
 
 export const todayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -71,7 +71,7 @@ export async function showSurprise(uid) {
   const lang = getLang();
   if (lang !== 'es') {
     try {
-      const { tr } = await import('./translate.js?v=17.27');
+      const { tr } = await import('./translate.js?v=18');
       const [text, title] = await Promise.all([tr(msg.text, lang), msg.title?.text ? tr(msg.title.text, lang) : null]);
       msg = { ...msg, text, title: msg.title ? { ...msg.title, text: title || msg.title.text } : msg.title };
     } catch {}

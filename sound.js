@@ -475,3 +475,68 @@ export function oops() {
     });
   } catch {}
 }
+
+// bola que cae dentro de un bote de cristal: «clinc» + golpecito
+export function glassClink() {
+  try {
+    const c = ac(), t = c.currentTime;
+    [[2637, .55, .13], [3951, .38, .07], [5274, .26, .04]].forEach(([f, d, v]) => {
+      const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f * (.97 + Math.random() * .06);
+      g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0005, t + d); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + .02);
+    });
+    const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(90, t + .08);
+    g.gain.setValueAtTime(.22, t); g.gain.exponentialRampToValueAtTime(.001, t + .1); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + .12);
+    const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .03); const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 2500;
+    const gn = c.createGain(); gn.gain.setValueAtTime(.2, t); gn.gain.exponentialRampToValueAtTime(.001, t + .03); s.connect(f); f.connect(gn); gn.connect(c.destination); s.start(t);
+  } catch {}
+}
+
+// troll gruñón: «grrrr» malote
+export function grumble() {
+  try {
+    const c = ac(), t = c.currentTime;
+    const o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter(), l = c.createOscillator(), lg = c.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(140, t); o.frequency.linearRampToValueAtTime(95, t + .55);
+    l.frequency.value = 28; lg.gain.value = 35; l.connect(lg); lg.connect(o.frequency);
+    f.type = 'lowpass'; f.frequency.value = 700; g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.32, t + .05); g.gain.setValueAtTime(.32, t + .4); g.gain.exponentialRampToValueAtTime(.001, t + .6);
+    o.connect(f); f.connect(g); g.connect(c.destination); o.start(t); l.start(t); o.stop(t + .62); l.stop(t + .62);
+  } catch {}
+}
+// explosión pequeña
+export function boom() {
+  try {
+    const c = ac(), t = c.currentTime;
+    const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .5);
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(2200, t); f.frequency.exponentialRampToValueAtTime(120, t + .45);
+    const g = c.createGain(); g.gain.setValueAtTime(.6, t); g.gain.exponentialRampToValueAtTime(.001, t + .5);
+    s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
+    const o = c.createOscillator(), og = c.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(40, t + .3);
+    og.gain.setValueAtTime(.5, t); og.gain.exponentialRampToValueAtTime(.001, t + .35); o.connect(og); og.connect(c.destination); o.start(t); o.stop(t + .36);
+  } catch {}
+}
+// algo cae dentro del saco: «puf» + campanita
+export function sackDrop() {
+  try {
+    const c = ac(), t = c.currentTime;
+    const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .12); const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 600;
+    const g = c.createGain(); g.gain.setValueAtTime(.35, t); g.gain.exponentialRampToValueAtTime(.001, t + .12); s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
+    [1568, 2093].forEach((fr, i) => tone(fr, t + .05 + i * .07, .35, 'triangle', .1));
+  } catch {}
+}
+// felicitación del día 14: «We wish you a merry Christmas» con campanas
+export function wishSong() {
+  const c = ac(), out = c.createGain(); out.gain.value = .9; out.connect(c.destination);
+  const N = { D4: 293.66, E4: 329.63, Fs4: 369.99, G4: 392, A4: 440, B4: 493.88, C5: 523.25, D5: 587.33 };
+  const q = .36, e = q / 2;
+  const mel = [['D4', q], ['G4', q], ['G4', e], ['A4', e], ['G4', e], ['Fs4', e], ['E4', q], ['E4', q], ['E4', q], ['A4', q], ['A4', e], ['B4', e], ['A4', e], ['G4', e],
+    ['Fs4', q], ['D4', q], ['D4', q], ['B4', q], ['B4', e], ['C5', e], ['B4', e], ['A4', e], ['G4', q], ['E4', q], ['D4', e], ['D4', e], ['E4', q], ['A4', q], ['Fs4', q], ['G4', q * 2.5]];
+  let t = c.currentTime + .15;
+  const bell = (f, at, d, v) => { [1, 2.01, 3.02].forEach((m, i) => { const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f * m;
+    g.gain.setValueAtTime(.0001, at); g.gain.linearRampToValueAtTime(v / (i + 1), at + .01); g.gain.exponentialRampToValueAtTime(.0005, at + d + .5); o.connect(g); g.connect(out); o.start(at); o.stop(at + d + .55); }); };
+  for (let rep = 0; rep < 2; rep++) for (const [n, d] of mel) { bell(N[n], t, d, .16); t += d; }
+  // cascabeles de fondo
+  for (let k = 0; k < (t - c.currentTime) / (q / 2); k++) { const at = c.currentTime + .15 + k * q / 2; const s = c.createBufferSource(); s.buffer = noiseBuffer(c, .05);
+    const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 6000; const g = c.createGain(); g.gain.setValueAtTime(k % 2 ? .04 : .07, at); g.gain.exponentialRampToValueAtTime(.001, at + .05);
+    s.connect(f); f.connect(g); g.connect(out); s.start(at); }
+  return { stop: (s = .5) => { try { out.gain.setTargetAtTime(0, c.currentTime, s / 3); } catch {} } };
+}

@@ -1,14 +1,14 @@
 // Resumen del mes: al terminar el día 25 (con la actividad, si la tiene la figura),
 // una página muy navideña con los 25 días, cada uno en su cuadro: el reto, lo que contestaste
 // y la actividad de tu figura. Se puede guardar en PDF y volver al calendario.
-import { el, sleep, confetti, toast, popup } from './fx.js?v=17.20';
-import { t, tx, getLang } from './i18n.js?v=17.20';
-import { chime } from './sound.js?v=17.20';
-import { S, figure, loadDay } from './app.js?v=17.20';
-import { defaultDay } from './defaults.js?v=17.20';
+import { el, sleep, confetti, toast, popup } from './fx.js?v=18';
+import { t, tx, getLang } from './i18n.js?v=18';
+import { chime } from './sound.js?v=18';
+import { S, figure, loadDay } from './app.js?v=18';
+import { defaultDay } from './defaults.js?v=18';
 
 const TK = { hats: 'hatsTitle', reindeer: 'd4title', differences: 'd6title', tree: 'd8title', memory: 'd12title', goodcheck: 'd13title', diploma: 'd15title', roulette: 'd20title', dance: 'd24title', pairs: 'd25title', puzzle: 'puzzleTitle' };
-const typeTitle = ty => ty === 'ttt' ? L('Tres en raya navideño', 'Tres en ratlla de Nadal', 'Christmas noughts and crosses') : ty === 'puzzle' ? L('Haz el puzle y descubre qué imagen esconde', 'Fes el puzle i descobreix quina imatge amaga', 'Do the puzzle') : (TK[ty] && t(TK[ty])) || '';
+const typeTitle = ty => ty === 'simon' ? L('Papá Noel dice', 'El Pare Noel diu', 'Santa says') : ty === 'catch' ? L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents') : ty === 'ballsort' ? L('Ordena las bolas de Navidad', 'Ordena les boles de Nadal', 'Sort the Christmas baubles') : ty === 'slidepuzzle' ? L('Puzle deslizante', 'Puzle lliscant', 'Sliding puzzle') : ty === 'wordsearch' ? L('Sopa de letras de animales', 'Sopa de lletres d’animals', 'Animal word search') : ty === 'crossword' ? L('Crucigrama de Navidad', 'Mots encreuats de Nadal', 'Christmas crossword') : ty === 'ttt' ? L('Tres en raya navideño', 'Tres en ratlla de Nadal', 'Christmas noughts and crosses') : ty === 'puzzle' ? L('Haz el puzle y descubre qué imagen esconde', 'Fes el puzle i descobreix quina imatge amaga', 'Do the puzzle') : (TK[ty] && t(TK[ty])) || '';
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const PIC = { 25: 'bola25.webp', 1: 'ilu-gorro.webp', 8: 'ilu-abeto.webp', 13: 'ilu-17.webp', 16: 'ilu-bola-roja.webp', 22: 'ilu-gl.webp', 24: 'ilu-gr.webp' };
 const pic = n => PIC[n] || `ilu-${n}.webp`;
@@ -16,7 +16,7 @@ const FIG_IMG = { galleta: 'galleta.png', arbol: 'arbol.png', gnomo: 'gnomo.png'
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const plain = html => { const d = document.createElement('div'); d.innerHTML = String(html || ''); return (d.textContent || '').trim(); };
 
-export async function monthSummary() {
+export async function monthSummary(opts = {}) {
   const fig = figure(), key = fig === 'arbol' ? 'act1' : fig === 'gnomo' ? 'act2' : null;
   const year = S.config?.year || new Date().getFullYear();
   const days = await Promise.all(Array.from({ length: 25 }, (_, i) => loadDay(i + 1).catch(() => null).then(c => c || defaultDay(i + 1))));
@@ -55,6 +55,21 @@ export async function monthSummary() {
     const close = el('button', { class: 'btn btn-big no-delay sum-home' }, '🏠 ' + L('Volver al calendario', 'Tornar al calendari', 'Back to the calendar'));
     const pdf = el('button', { class: 'btn btn-big btn-green no-delay sum-pdf' }, '📄 ' + L('Guardar en PDF', 'Desar en PDF', 'Save as PDF'));
     const actions = el('div', { class: 'sum-actions' }, pdf, close);
+    // qué más se puede hacer en la casilla 25
+    let menu = null;
+    if (opts.menu) {
+      const pick = v => () => { wrap.classList.add('out'); document.body.classList.remove('sum-open'); setTimeout(() => { wrap.remove(); resolve(v); }, 500); };
+      const FIGA = { arbol: 'arbol.png', gnomo: 'gnomo.png' };
+      menu = el('section', { class: 'sum-menu' },
+        el('h2', {}, '✨ ' + L('¿Qué quieres hacer ahora?', 'Què vols fer ara?', 'What would you like to do now?')),
+        el('div', { class: 'sum-menu-btns' },
+          el('button', { type: 'button', class: 'sum-opt no-delay', onclick: pick('play') }, el('img', { src: 'bola25.webp', alt: '' }),
+            el('b', {}, L('Volver a jugar', 'Tornar a jugar', 'Play again')), el('small', {}, L('El juego de parejas y la bola que cobra vida', 'El joc de parelles i la bola que cobra vida', 'The pairs game and the snow globe coming to life'))),
+          el('button', { type: 'button', class: 'sum-opt no-delay', onclick: pick('fresh') }, el('img', { src: 'ilu-gl.webp', alt: '' }),
+            el('b', {}, L('Abrir la casilla 25 desde el principio', 'Obrir la casella 25 des del principi', 'Open door 25 from the start')), el('small', {}, opts.menu.act ? L('Como el primer día: juego, bola y tu actividad', 'Com el primer dia: joc, bola i la teva activitat', 'Like the first day: game, globe and your activity') : L('Como el primer día', 'Com el primer dia', 'Like the first day'))),
+          opts.menu.act ? el('button', { type: 'button', class: 'sum-opt no-delay', onclick: pick('act') }, el('img', { src: FIGA[fig] || 'galleta.png', alt: '' }),
+            el('b', {}, L('Hacer mi actividad', 'Fer la meva activitat', 'Do my activity')), el('small', {}, fig === 'arbol' ? t('activity1') : t('activity2'))) : null));
+    }
     const page = el('div', { class: 'sum-page' },
       el('div', { class: 'sum-garland' }),
       el('header', { class: 'sum-head' },
@@ -66,6 +81,7 @@ export async function monthSummary() {
           el('div', {}, el('b', {}, stars), el('small', {}, L('días con ★', 'dies amb ★', 'days with ★'))),
           el('div', {}, el('b', {}, Object.keys(ans).length), el('small', {}, L('retos hechos', 'reptes fets', 'challenges done'))),
           key ? el('div', {}, el('b', {}, acts), el('small', {}, L('actividades', 'activitats', 'activities'))) : null)),
+      menu,
       el('div', { class: 'sum-grid' }, ...cards),
       el('footer', { class: 'sum-foot' }, el('p', {}, '🎄 ' + L('¡Feliz Navidad y próspero Año Nuevo!', 'Bon Nadal i feliç Any Nou!', 'Merry Christmas and a Happy New Year!') + ' 🎄')),
       actions);

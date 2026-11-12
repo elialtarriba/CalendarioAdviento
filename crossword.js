@@ -2,9 +2,9 @@
 // (o se toca la casilla y luego la letra) hasta su sitio. Si la letra es buena encaja con un clic;
 // si no, suena decepción y la ficha vuelve sola al abecedario. Al acabar, las letras vuelan y forman
 // «¡Felicidades! Has completado el crucigrama» con nieve y confeti.
-import { el, sleep, confetti, toast } from './fx.js?v=17.27';
-import { getLang } from './i18n.js?v=17.27';
-import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, clickSound, oops } from './sound.js?v=17.27';
+import { el, sleep, confetti, toast } from './fx.js?v=18';
+import { getLang } from './i18n.js?v=18';
+import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, clickSound, oops } from './sound.js?v=18';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 

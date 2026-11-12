@@ -1,6 +1,6 @@
 // Día 24: el baile secreto
-import { t } from './i18n.js?v=17.27';
-import { el, sleep, confetti } from './fx.js?v=17.27';
+import { t } from './i18n.js?v=18';
+import { el, sleep, confetti } from './fx.js?v=18';
 
 export function render(body, ctx) {
   // el vídeo del baile va fijo con la app: es el archivo baile.mp4 (o baile.mov) subido junto a los demás archivos
@@ -24,5 +24,9 @@ export function render(body, ctx) {
     el('div', { class: 'popup-btns' }, again, share),
     el('p', { class: 'tomorrow' }, '🎄 ' + t('d24tomorrow') + ' 🎄')));
   ctx.finishBtn.addEventListener('click', () => video.pause());
-  if (!ctx.prev) ctx.submit({ answer: '💃', status: 'correct' });
+  // se da por hecho cuando se ha visto un trocito del baile (si te vas sin verlo, puedes volver a entrar)
+  let sent = !!ctx.prev;
+  const mark = () => { if (!sent) { sent = true; ctx.submit({ answer: '💃', status: 'correct' }); } };
+  video.addEventListener('timeupdate', () => { if (video.currentTime > 4) mark(); });
+  video.lastElementChild.addEventListener('error', () => setTimeout(mark, 6000));
 }
