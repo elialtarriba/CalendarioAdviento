@@ -1,8 +1,8 @@
 // Día 4: busca los 5 renos con gafas negras entre ~1000 renos
-import { t, getLang } from './i18n.js?v=17.20';
-import { el, popup, starBurst, toast } from './fx.js?v=17.20';
-import { chime, pop, wrong } from './sound.js?v=17.20';
-import { figure } from './app.js?v=17.20';
+import { t, getLang } from './i18n.js?v=17.27';
+import { el, popup, starBurst, toast } from './fx.js?v=17.27';
+import { chime, pop, wrong } from './sound.js?v=17.27';
+import { figure } from './app.js?v=17.27';
 
 const W = 1600, H = 1100, COLS = 40, ROWS = 25;
 
@@ -153,7 +153,7 @@ export function render(body, ctx) {
       if (found === 5) {
         finished = true; chime();
         ctx.submit({ answer: '5/5', status: 'correct' });
-        setTimeout(async () => { await popup(`<h2>🏆</h2><p class="prize-text">${t('prizeGot')[figure()]}</p>`); ctx.finish(); }, 900);
+        setTimeout(async () => { await popup(ctx.replay ? `<h2>🦌✨</h2><p class="prize-text">${L3('¡Los has vuelto a encontrar todos!', 'Els has tornat a trobar tots!', 'You found them all again!')}</p>` : `<h2>🏆</h2><p class="prize-text">${t('prizeGot')[figure()]}</p>`); ctx.finish(); }, 900);
       }
     } else wrong();
   }

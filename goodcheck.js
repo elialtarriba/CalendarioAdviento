@@ -1,8 +1,8 @@
 // Día 13: la ruleta de superpoderes de Navidad. En la pantalla negra pasan los poderes rápido,
 // van frenando y a los 4 segundos sale el tuyo con sonido y chispas.
-import { getLang } from './i18n.js?v=17.20';
-import { el, sleep, confetti } from './fx.js?v=17.20';
-import { machine, chime, pop } from './sound.js?v=17.20';
+import { getLang } from './i18n.js?v=17.27';
+import { el, sleep, confetti } from './fx.js?v=17.27';
+import { machine, chime, pop } from './sound.js?v=17.27';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const POWERS = () => [

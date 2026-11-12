@@ -2,9 +2,9 @@
 // Bola de cristal sobre base dorada con un pueblecito dentro (ventanas iluminadas, árbol, tren).
 // Al deslizar el dedo se levanta una tormenta de nieve; luego la cámara entra en el paisaje,
 // el tren pasa por delante, se encienden las luces y aparece «Feliz Navidad» entre destellos dorados.
-import { el, sleep } from './fx.js?v=17.20';
-import { getLang } from './i18n.js?v=17.20';
-import { chime, whistle, christmasSong, unlockAudio } from './sound.js?v=17.20';
+import { el, sleep } from './fx.js?v=17.27';
+import { getLang } from './i18n.js?v=17.27';
+import { chime, whistle, christmasSong, unlockAudio } from './sound.js?v=17.27';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const ease = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;

@@ -461,3 +461,17 @@ export function sadTrombone() {
     });
   } catch {}
 }
+
+// decepción corta (ficha equivocada): «uo-oooh» que baja
+export function oops() {
+  try {
+    const c = ac(), t0 = c.currentTime + .02;
+    [[392, .22], [330, .5]].forEach(([f, d], i) => {
+      const t = t0 + i * .24, o = c.createOscillator(), g = c.createGain(), fl = c.createBiquadFilter();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t); o.frequency.linearRampToValueAtTime(f * .92, t + d);
+      fl.type = 'lowpass'; fl.frequency.value = 1100;
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.14, t + .04); g.gain.setValueAtTime(.14, t + d - .1); g.gain.linearRampToValueAtTime(.0001, t + d);
+      o.connect(fl); fl.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + .02);
+    });
+  } catch {}
+}
