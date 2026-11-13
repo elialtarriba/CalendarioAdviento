@@ -2,9 +2,10 @@
 // Se toca un bote (sube la bola de arriba) y luego otro bote; o se arrastra la bola con el dedo.
 // Solo se puede poner encima de una bola del mismo color o en un bote vacío (caben 4).
 // Ayuda (solo si no lo consigues): el bote de donde sacar y el bote donde dejar brillan.
-import { el, sleep, confetti, popup, toast } from './fx.js?v=18.3';
-import { getLang } from './i18n.js?v=18.3';
-import { pop, chime, fanfare, christmasSong, unlockAudio, oops, glassClink } from './sound.js?v=18.3';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=18.4';
+import { getLang } from './i18n.js?v=18.4';
+import { pop, chime, fanfare, christmasSong, unlockAudio, oops, glassClink } from './sound.js?v=18.4';
+import { nextGame, rng, TOTAL } from './games25.js?v=18.4';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const CAP = 4, COLORS = ['red', 'gold', 'green', 'blue', 'silver'], EMPTY = 2;
@@ -42,9 +43,12 @@ function solve(start, limit = 60000) {
   };
   return dfs(start) ? path.slice() : null;
 }
-function newGame() {
-  for (let tries = 0; tries < 200; tries++) {
-    const balls = COLORS.flatMap(c => Array(CAP).fill(c)).sort(() => Math.random() - .5);
+// partida número g (0..24): siempre la misma para el mismo número, distinta entre números
+function newGame(g) {
+  const R = rng(1600 + g * 7919);
+  for (let tries = 0; tries < 400; tries++) {
+    const balls = COLORS.flatMap(c => Array(CAP).fill(c));
+    for (let i = balls.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [balls[i], balls[j]] = [balls[j], balls[i]]; }
     const s = COLORS.map((_, i) => balls.slice(i * CAP, i * CAP + CAP));
     for (let e = 0; e < EMPTY; e++) s.push([]);
     if (s.some(full) || s.some(t => t.length && t.slice(1).every(x => x === t[0]))) continue;
@@ -74,7 +78,7 @@ export function render(body, ctx) {
   wrap.append(board, el('div', { class: 'bs-bar' }, undoBtn, moveTxt, resetBtn), helpBtn, msg);
   body.append(wrap);
 
-  let first = newGame(), state, history, count, sel = null, done = false, helping = false, busyAnim = false;
+  let gameNo = nextGame('ballsort'), first = newGame(gameNo), state, history, count, sel = null, done = false, helping = false, busyAnim = false;
   let plan = null, tubes = [], glass = [], balls = []; // balls[i] = elementos del bote i (de abajo arriba)
   let G = null; // medidas
 
@@ -118,11 +122,11 @@ export function render(body, ctx) {
       if (plan.length) { tubes[plan[0][0]].classList.add('hint-from'); tubes[plan[0][1]].classList.add('hint-to'); }
     }
   }
-  const paintCount = () => { moveTxt.textContent = '👣 ' + L(`Movimientos: ${count}`, `Moviments: ${count}`, `Moves: ${count}`); };
+  const paintCount = () => { moveTxt.textContent = '👣 ' + L(`Movimientos: ${count}`, `Moviments: ${count}`, `Moves: ${count}`) + ' · ' + L(`Partida ${gameNo + 1} de ${TOTAL}`, `Partida ${gameNo + 1} de ${TOTAL}`, `Game ${gameNo + 1} of ${TOTAL}`); };
 
   // ---- coger, mover, soltar
   async function pick(i) {
-    if (!state[i].length || full(state[i])) { pop(); shake(i); return false; }
+    if (!state[i].length || full(state[i])) { pop(); shake(i); toast(full(state[i]) ? '✅ ' + L('Este bote ya está completo.', 'Aquest pot ja és complet.', 'This jar is already complete.') : L('Este bote está vacío.', 'Aquest pot és buit.', 'This jar is empty.'), 2200); return false; }
     sel = i; pop(); paintTubes(); await fly(top(i), [liftPos(i)], 220); return true;
   }
   async function putBack() {
@@ -133,7 +137,7 @@ export function render(body, ctx) {
     const i = sel; if (i == null) return;
     const a = state[i], b = state[j], c = a[a.length - 1];
     if (j === i) return putBack();
-    if (b.length >= CAP || (b.length && b[b.length - 1] !== c)) { oops(); shake(j); return putBack(); }
+    if (b.length >= CAP || (b.length && b[b.length - 1] !== c)) { oops(); shake(j); toast('✋ ' + (b.length >= CAP ? L('Ese bote está lleno.', 'Aquest pot és ple.', 'That jar is full.') : L('Solo se puede dejar encima de una bola del mismo color o en un bote vacío.', 'Només es pot deixar sobre una bola del mateix color o en un pot buit.', 'You can only drop it on a bauble of the same colour or in an empty jar.')), 2800); return putBack(); }
     busyAnim = true; sel = null;
     history.push(state.map(t => t.slice()));
     const e = balls[i].pop(); state[i].pop(); state[j].push(c); balls[j].push(e);
@@ -144,6 +148,16 @@ export function render(body, ctx) {
     paintTubes(); busyAnim = false;
     if (full(state[j])) { chime(); sparkleTube(j); }
     if (solved(state)) win();
+    else if (!moves(state).length) stuck();
+  }
+  // sin movimientos posibles: se avisa y se ofrece deshacer o empezar de nuevo
+  async function stuck() {
+    oops();
+    const r = await popup(el('div', { class: 'ttt-info' }, el('div', { class: 'ttt-info-ico' }, '🎄'),
+      el('h2', {}, L('¡Uy! No quedan movimientos', 'Ui! No queden moviments', 'Oops! No moves left')),
+      el('p', {}, L('Ninguna bola se puede mover a otro bote. Puedes deshacer los últimos movimientos o empezar la partida de nuevo.', 'Cap bola es pot moure a un altre pot. Pots desfer els últims moviments o tornar a començar la partida.', 'No bauble can move to another jar. You can undo your last moves or start the game again.'))),
+      { cls: 'small ttt-info-pop', buttons: [{ label: '↩️ ' + L('Deshacer', 'Desfer', 'Undo'), value: 'undo', cls: 'btn-ghost' }, { label: '🔄 ' + L('Empezar de nuevo', 'Tornar a començar', 'Start again'), value: 'restart' }] });
+    if (r === 'restart') restart(); else { undo(); if (!moves(state).length) undo(); }
   }
   function shake(i) { tubes[i].classList.remove('nope'); void tubes[i].offsetWidth; tubes[i].classList.add('nope'); }
   function sparkleTube(j) {
@@ -225,7 +239,7 @@ export function render(body, ctx) {
     msg.classList.add('on'); helpBtn.style.display = 'none';
     setTimeout(() => msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 700);
     again.onclick = () => { ctx.cleanup(); board.classList.remove('solved'); snow.replaceChildren(); msg.classList.remove('on'); helpBtn.style.display = ''; helping = false;
-      helpBtn.textContent = '🆘 ' + L('Ayuda (solo si no lo consigues)', 'Ajuda (només si no te’n surts)', 'Help (only if you’re stuck)'); first = newGame(); restart(); };
+      helpBtn.textContent = '🆘 ' + L('Ayuda (solo si no lo consigues)', 'Ajuda (només si no te’n surts)', 'Help (only if you’re stuck)'); gameNo = nextGame('ballsort'); first = newGame(gameNo); restart(); };
     out.onclick = () => { ctx.cleanup(); ctx.finish(); };
   }
 

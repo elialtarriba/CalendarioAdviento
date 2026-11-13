@@ -2,20 +2,22 @@
 // se toca una casilla y luego el número (o se arrastra la ficha). Si el número es el bueno encaja con un
 // «clac»; si no, vuelve a su sitio. En el 9×9 se pueden apuntar números posibles (en las esquinas y el centro).
 // Botón de ayuda: pone un número. Al acabar: las fichas salen volando, se convierten en estrellas y aparece «¡Conseguido!».
-import { el, sleep, confetti } from './fx.js?v=18.3';
-import { getLang } from './i18n.js?v=18.3';
-import { pop, chime, fanfare, unlockAudio, snapSound, clickSound, oops } from './sound.js?v=18.3';
+import { el, sleep, confetti } from './fx.js?v=18.4';
+import { getLang } from './i18n.js?v=18.4';
+import { pop, chime, fanfare, unlockAudio, snapSound, clickSound, oops } from './sound.js?v=18.4';
+import { nextGame, rng, TOTAL } from './games25.js?v=18.4';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const SIZES = { 4: { br: 2, bc: 2, givens: 8 }, 6: { br: 2, bc: 3, givens: 17 }, 9: { br: 3, bc: 3, givens: 34 } };
 
 // ---------------- generar un sudoku con una sola solución
-function makeSudoku(n) {
+function makeSudoku(n, g = 0) {
+  const R = rng(n * 100003 + g * 7919 + 3);
   const { br, bc, givens } = SIZES[n];
   const box = (r, c) => Math.floor(r / br) * (n / bc) + Math.floor(c / bc);
   const ok = (g, r, c, v) => { for (let k = 0; k < n; k++) if (g[r][k] === v || g[k][c] === v) return false;
     const r0 = r - r % br, c0 = c - c % bc; for (let i = 0; i < br; i++) for (let j = 0; j < bc; j++) if (g[r0 + i][c0 + j] === v) return false; return true; };
-  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = R() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const fill = g => { for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (!g[r][c]) {
     for (const v of shuffle([...Array(n)].map((_, i) => i + 1))) { if (ok(g, r, c, v)) { g[r][c] = v; if (fill(g)) return true; g[r][c] = 0; } } return false; } return true; };
   const count = (g, lim) => { let cnt = 0; const go = () => { for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (!g[r][c]) {
@@ -64,7 +66,8 @@ export function render(body, ctx) {
 
   function open(n) {
     unlockAudio(); pop();
-    const S = makeSudoku(n);
+    const gameNo = nextGame('sudoku' + n);
+    const S = makeSudoku(n, gameNo);
     const cells = [], notes = [...Array(n * n)].map(() => []);
     let sel = null, noteMode = false, done = false, t0 = Date.now(), helps = 0;
     const val = S.puz.map(r => r.slice());
@@ -72,7 +75,7 @@ export function render(body, ctx) {
     // ---- pantalla completa
     const timeEl = el('span', { class: 'sd-time', title: L('Tiempo de juego', 'Temps de joc', 'Playing time') }, '⏱ 0:00 min');
     const close = el('button', { type: 'button', class: 'sd-x no-delay', 'aria-label': 'X' }, '✕');
-    const head = el('div', { class: 'sd-head' }, close, el('h2', {}, L('Sudoku', 'Sudoku', 'Sudoku') + ` ${n}×${n}`), timeEl);
+    const head = el('div', { class: 'sd-head' }, close, el('h2', {}, L('Sudoku', 'Sudoku', 'Sudoku') + ` ${n}×${n}`, el('small', { class: 'sd-gno' }, L(`Partida ${gameNo + 1} de ${TOTAL}`, `Partida ${gameNo + 1} de ${TOTAL}`, `Game ${gameNo + 1} of ${TOTAL}`))), timeEl);
     const tiles = el('div', { class: 'sd-tiles', style: `--n:${n}` }, ...Array.from({ length: n }, (_, i) => el('button', { type: 'button', class: 'sd-tile no-delay', 'data-v': i + 1 }, el('b', {}, i + 1))));
     const grid = el('div', { class: 'sd-grid', style: `--n:${n}` });
     for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {

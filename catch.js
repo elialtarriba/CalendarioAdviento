@@ -1,9 +1,9 @@
 // Día 14: atrapa los regalos. Caen cosas de Navidad (y trolls gruñones). Se coge un objeto con el dedo
 // y se arrastra hasta el saco de Papá Noel: suma puntos (cada cosa vale distinto). Las cosas se van
 // desvaneciendo mientras caen. Tocar un troll: gruñido, vibración, explota y resta puntos. Meta: 100 puntos.
-import { el, sleep, popup, toast } from './fx.js?v=18.3';
-import { getLang } from './i18n.js?v=18.3';
-import { pop, chime, unlockAudio, grumble, boom, sackDrop, wishSong } from './sound.js?v=18.3';
+import { el, sleep, popup, toast } from './fx.js?v=18.4';
+import { getLang } from './i18n.js?v=18.4';
+import { pop, chime, unlockAudio, grumble, boom, sackDrop, wishSong } from './sound.js?v=18.4';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const GOAL = 100, TROLL_PTS = 10;
@@ -38,10 +38,11 @@ const MOUTH = `<svg viewBox="0 0 200 80" preserveAspectRatio="none"><defs><radia
 export function render(body, ctx) {
   body.style.webkitUserSelect = body.style.userSelect = 'none';
   body.append(
-    el('h2', { class: 'q-title cw-title' }, '🎁 ' + L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents') + ' 🎁'),
-    el('p', { class: 'game-help cw-help' }, L(`Atrapa con el dedo las cosas de Navidad antes de que desaparezcan y arrástralas al saco de Papá Noel. ¡Cuidado con los trolls gruñones: si los tocas, pierdes ${TROLL_PTS} puntos! Llega a ${GOAL} puntos.`,
+    el('h2', { class: 'q-title cw-title' }, '🎁 ' + L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents') + ' 🎁'));
+  const helpTxt = el('p', { class: 'ct-help' }, L(`Atrapa con el dedo las cosas de Navidad antes de que desaparezcan y arrástralas al saco de Papá Noel. ¡Cuidado con los trolls gruñones: si los tocas, pierdes ${TROLL_PTS} puntos! Llega a ${GOAL} puntos.`,
       `Atrapa amb el dit les coses de Nadal abans que desapareguin i arrossega-les al sac del Pare Noel. Compte amb els trols rondinaires: si els toques, perds ${TROLL_PTS} punts! Arriba a ${GOAL} punts.`,
-      `Catch the Christmas things with your finger before they vanish and drag them into Santa’s sack. Watch out for the grumpy trolls: touching one loses ${TROLL_PTS} points! Reach ${GOAL} points.`)));
+      `Catch the Christmas things with your finger before they vanish and drag them into Santa’s sack. Watch out for the grumpy trolls: touching one loses ${TROLL_PTS} points! Reach ${GOAL} points.`));
+
 
   const sky = el('div', { class: 'ct-sky' });
   const flakes = el('div', { class: 'ct-flakes' }, ...Array.from({ length: 30 }, () => el('i', { style: `left:${Math.random() * 100}%;--d:${5 + Math.random() * 6}s;--dl:${-Math.random() * 10}s;--s:${6 + Math.random() * 9}px;--x:${(Math.random() - .5) * 50}px` }, '❄')));
@@ -50,7 +51,7 @@ export function render(body, ctx) {
   const bar = el('div', { class: 'ct-bar' }, el('i', {}));
   const score = el('div', { class: 'ct-score' });
   const startBtn = el('button', { class: 'btn btn-big ct-start no-delay' }, '▶️ ' + L('¡Empezar!', 'Comencem!', 'Start!'));
-  const startBox = el('div', { class: 'ct-startbox' }, el('div', { class: 'ct-legend' },
+  const startBox = el('div', { class: 'ct-startbox' }, helpTxt, el('div', { class: 'ct-legend' },
     el('span', {}, el('img', { src: 'estrella8.webp', alt: '' }), '+10'), el('span', {}, el('img', { src: 'ilu-4.webp', alt: '' }), '+8'),
     el('span', {}, el('img', { src: 'ilu-12.webp', alt: '' }), '+4'), el('span', {}, el('img', { src: 'bola8-1.webp', alt: '' }), '+2'),
     el('span', { class: 'bad' }, el('img', { src: TROLL, alt: '' }), '−' + TROLL_PTS)), startBtn);
@@ -58,6 +59,16 @@ export function render(body, ctx) {
   const board = el('div', { class: 'cw-board ct-board' }, el('div', { class: 'cw-lights' }, ...Array.from({ length: 14 }, (_, i) => el('i', { style: `--i:${i}` }))), score, bar, field);
   const msg = el('div', { class: 'sp-msg' });
   body.append(el('div', { class: 'cw-wrap ct-wrap' }, board, msg));
+  // el campo de juego ocupa justo lo que queda de pantalla (sin tener que desplazarse), en cualquier móvil
+  const fitField = () => {
+    if (!field.isConnected) return;
+    const br = body.getBoundingClientRect(), fr = field.getBoundingClientRect(), k = br.height / (body.offsetHeight || 1) || 1;
+    const top = (fr.top - br.top) / k + body.scrollTop;
+    const h = Math.max(250, Math.min(560, body.clientHeight - top - 26));
+    field.style.height = h + 'px'; field.style.minHeight = '0';
+  };
+  fitField(); requestAnimationFrame(fitField); setTimeout(fitField, 400); setTimeout(fitField, 1600);
+  addEventListener('resize', fitField);
 
   let pts = 0, objs = [], raf = 0, last = 0, spawnT = 0, running = false, held = null, over = false;
   const paint = () => { score.replaceChildren(el('b', {}, Math.max(0, pts)), el('small', {}, ' / ' + GOAL + ' ' + L('puntos', 'punts', 'points'))); bar.firstChild.style.width = Math.min(100, pts / GOAL * 100) + '%'; };

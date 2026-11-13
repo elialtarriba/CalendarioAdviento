@@ -71,7 +71,7 @@ const Q = {
         en: ['The lift', 'The stairs', 'The price of mince pies', 'Santa in the chimney'] }, 1],
 };
 
-const SPECIAL = { 1: 'hats', 3: 'sudoku', 4: 'reindeer', 6: 'differences', 7: 'puzzle', 8: 'tree', 9: 'simon', 12: 'memory', 13: 'goodcheck', 14: 'catch', 15: 'diploma', 16: 'ballsort', 17: 'ttt', 18: 'puzzle', 21: 'slidepuzzle', 22: 'wordsearch', 23: 'crossword', 20: 'roulette', 24: 'dance', 25: 'pairs' };
+const SPECIAL = { 1: 'hats', 3: 'sudoku', 4: 'reindeer', 6: 'differences', 7: 'puzzle', 8: 'tree', 9: 'simon', 12: 'memory', 13: 'goodcheck', 14: 'catch', 15: 'ballsort', 16: 'diploma', 17: 'ttt', 18: 'puzzle', 21: 'slidepuzzle', 22: 'wordsearch', 23: 'crossword', 20: 'roulette', 24: 'dance', 25: 'pairs' };
 
 const MISSIONS = [
   L('Canta un villancico con voz de robot.', 'Canta una nadala amb veu de robot.', 'Sing a carol in a robot voice.'),

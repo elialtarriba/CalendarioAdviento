@@ -1,8 +1,8 @@
 // Día 17: tres en raya navideño (galleta contra perrito). Cada uno tiene 3 fichas que se arrastran
 // y se pueden volver a mover. Al acabar, cada uno pulsa su dibujo: si ha ganado, baila; si ha perdido, decepción.
-import { el, sleep, confetti, popup, toast } from './fx.js?v=18.3';
-import { getLang } from './i18n.js?v=18.3';
-import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, slideSound, sadTrombone } from './sound.js?v=18.3';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=18.4';
+import { getLang } from './i18n.js?v=18.4';
+import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, slideSound, sadTrombone } from './sound.js?v=18.4';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const P = {
@@ -63,7 +63,17 @@ export function render(body, ctx) {
   const res = el('div', { class: 'ttt-results' },
     el('button', { type: 'button', class: 'ttt-who green no-delay', onclick: () => result('g') }, el('img', { src: P.g.face, alt: '' }), el('span', {}, L('Galleta', 'Galeta', 'Gingerbread'))),
     el('button', { type: 'button', class: 'ttt-who red no-delay', onclick: () => result('r') }, el('img', { src: P.r.face, alt: '' }), el('span', {}, L('Perrito', 'Gosset', 'Puppy'))));
-  body.append(turnTxt, stage, el('p', { class: 'ttt-ask' }, L('¿Quién ha ganado? Pulsa tu dibujo:', 'Qui ha guanyat? Prem el teu dibuix:', 'Who won? Tap your picture:')), res);
+  const ask = el('p', { class: 'ttt-ask' }, L('¿Quién ha ganado? Pulsa tu dibujo:', 'Qui ha guanyat? Prem el teu dibuix:', 'Who won? Tap your picture:'));
+  // ---- jugar contra la app: tú eres la Galleta (verde) y la app mueve el Perrito (rojo)
+  let ai = false, aiBusy = false;
+  const modeBtn = el('button', { type: 'button', class: 'btn ttt-mode no-delay' });
+  const paintMode = () => { modeBtn.textContent = ai ? '👫 ' + L('Jugar dos personas', 'Jugar dues persones', 'Two players') : '🤖 ' + L('Jugar contra la app', 'Jugar contra l’app', 'Play against the app');
+    ask.style.display = res.style.display = ai ? 'none' : ''; };
+  modeBtn.onclick = () => { unlockAudio(); ai = !ai; paintMode(); resetBoard();
+    toast(ai ? '🤖 ' + L('Tú eres la Galleta y empiezas. El Perrito lo mueve la app.', 'Tu ets la Galeta i comences. El Gosset el mou l’app.', 'You are the Gingerbread and you start. The app moves the Puppy.') : '👫 ' + L('Ahora jugáis dos personas.', 'Ara jugueu dues persones.', 'Two players now.'), 3500); };
+  { const ib = body.querySelector('.ttt-infobtn'); const row = el('div', { class: 'ttt-row' }); if (ib) { ib.replaceWith(row); row.append(modeBtn, ib); } else body.append(row.appendChild(modeBtn) && row); }
+  body.append(turnTxt, stage, ask, res);
+  paintMode();
 
   // ---- fichas
   const tokens = [];
@@ -88,6 +98,8 @@ export function render(body, ctx) {
     const tEl = e.target.closest('.ttt-token'); if (!tEl) return;
     const o = tokens.find(x => x.el === tEl); e.preventDefault(); unlockAudio();
     try { stage.setPointerCapture(e.pointerId); } catch {}
+    if (ai && o.who === 'r') { toast('🤖 ' + L('Las fichas rojas las mueve la app.', 'Les fitxes vermelles les mou l’app.', 'The app moves the red pieces.')); return; }
+    if (ai && aiBusy) return;
     if (turn && o.who !== turn) { toast('⏳ ' + L(`Ahora le toca a ${P[turn].name()}`, `Ara li toca a ${P[turn].name()}`, `It is ${P[turn].name()}’s turn`)); trayOf(turn).classList.remove('nudge'); void trayOf(turn).offsetWidth; trayOf(turn).classList.add('nudge'); return; }
     if (left[o.who] <= 0) { toast('⛔ ' + L('Ya no te quedan movimientos', 'Ja no et queden moviments', 'No moves left')); return; }
     const b = stage.getBoundingClientRect();
@@ -107,9 +119,11 @@ export function render(body, ctx) {
     let best = -1, bd = 1e9;
     [...board.children].forEach((c, i) => { const r = rel(c); const d = Math.hypot(r.x + r.w / 2 - x, r.y + r.h / 2 - y); if (d < bd) { bd = d; best = i; } });
     const cellR = rel(board.children[0]);
-    if (best >= 0 && bd < cellR.w * .7 && !tokens.some(t => t !== o && t.cell === best)) { o.cell = best; place(o); snapSound(); if (best !== from) { useMove(o.who); setTurn(o.who === 'g' ? 'r' : 'g'); } }
+    let moved = false;
+    if (best >= 0 && bd < cellR.w * .7 && !tokens.some(t => t !== o && t.cell === best)) { o.cell = best; place(o); snapSound(); if (best !== from) { moved = true; useMove(o.who); setTurn(o.who === 'g' ? 'r' : 'g'); } }
     else place(o); // vuelve a donde estaba
     check();
+    if (ai && moved) afterMove();
   };
   stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
 
@@ -124,6 +138,49 @@ export function render(body, ctx) {
     if (w) { w.ln.forEach(i => board.children[i].classList.add('win')); if (shown !== w.ln.join()) { shown = w.ln.join(); chime(); toast('✨ ' + L('¡Tres en raya!', 'Tres en ratlla!', 'Three in a row!')); } }
     else shown = null;
   }
+
+  // ---- la app piensa su jugada
+  const occ = () => { const b = Array(9).fill(null); tokens.forEach(t => { if (t.cell >= 0) b[t.cell] = t.who; }); return b; };
+  const lineWin = (b, who) => LINES.some(ln => ln.every(i => b[i] === who));
+  function movesOf(b, who, cellsOf) { // [desde (-1 = bandeja), hasta]
+    const mine = cellsOf.filter(c => c.who === who), empty = b.map((x, i) => x ? -1 : i).filter(i => i >= 0);
+    const tray = mine.filter(c => c.cell < 0);
+    const froms = tray.length ? [-1] : mine.map(c => c.cell);
+    const out = []; froms.forEach(f => empty.forEach(t => out.push([f, t]))); return out;
+  }
+  const applyMv = (b, who, [f, t]) => { const c = b.slice(); if (f >= 0) c[f] = null; c[t] = who; return c; };
+  const simTokens = b => { const list = []; b.forEach((w, i) => w && list.push({ who: w, cell: i })); ['g', 'r'].forEach(w => { const n = 3 - list.filter(x => x.who === w).length; for (let k = 0; k < n; k++) list.push({ who: w, cell: -1 }); }); return list; };
+  function aiChoose() {
+    const b = occ(), mv = movesOf(b, 'r', simTokens(b));
+    if (!mv.length) return null;
+    const win = mv.find(m => lineWin(applyMv(b, 'r', m), 'r')); if (win) return win;
+    const safe = mv.filter(m => { const nb = applyMv(b, 'r', m); return !movesOf(nb, 'g', simTokens(nb)).some(m2 => lineWin(applyMv(nb, 'g', m2), 'g')); });
+    const pool = safe.length ? safe : mv;
+    if (Math.random() < .25) return pool[Math.floor(Math.random() * pool.length)]; // a veces se despista (para que se le pueda ganar)
+    const score = ([f, t]) => (t === 4 ? 3 : [0, 2, 6, 8].includes(t) ? 2 : 1) + (f === 4 ? -2 : 0) + Math.random();
+    return pool.slice().sort((x, y) => score(y) - score(x))[0];
+  }
+  async function aiMove() {
+    if (!ai || turn !== 'r' || winner()) return;
+    if (left.r <= 0) { return finishIfStuck(); }
+    aiBusy = true;
+    turnTxt.classList.add('thinking'); await sleep(650 + Math.random() * 500); turnTxt.classList.remove('thinking');
+    const m = aiChoose(); if (!m || !ai) { aiBusy = false; return; }
+    const [f, t] = m; const o = f < 0 ? tokens.find(x => x.who === 'r' && x.cell < 0) : tokens.find(x => x.who === 'r' && x.cell === f);
+    o.el.classList.add('lift'); o.el.style.zIndex = 50; slideSound(); await sleep(150);
+    o.cell = t; place(o); await sleep(260); o.el.classList.remove('lift'); o.el.style.zIndex = '';
+    snapSound(); useMove('r'); setTurn('g'); check(); aiBusy = false;
+    afterMove();
+  }
+  function finishIfStuck() { if (left.g <= 0 && left.r <= 0 && !winner()) setTimeout(() => show('draw'), 700); }
+  function afterMove() {
+    const w = winner();
+    if (w) { aiBusy = true; setTimeout(() => { aiBusy = false; show(w.who === 'g' ? 'win' : 'lose', 'g'); }, 1100); return; }
+    if (left.g <= 0 && left.r <= 0) return finishIfStuck();
+    if (turn === 'r') { if (left.r <= 0) { setTurn('g'); return; } setTimeout(aiMove, 350); }
+    else if (left.g <= 0) { setTurn('r'); setTimeout(aiMove, 350); }
+  }
+  function resetBoard() { tokens.forEach(o => { o.cell = -1; place(o); }); left.g = limit.g; left.r = limit.r; paint('g'); paint('r'); setTurn(ai ? 'g' : null); check(); aiBusy = false; }
 
   // ---- resultado
   let submitted = false;
@@ -160,7 +217,7 @@ export function render(body, ctx) {
     }
     document.body.append(fx);
     const close = () => { alive = false; fx._stop?.(); try { music?.stop(1); } catch {} fx.classList.add('out'); setTimeout(() => fx.remove(), 400); };
-    again.onclick = () => { close(); tokens.forEach(o => { o.cell = -1; place(o); }); left.g = limit.g; left.r = limit.r; paint('g'); paint('r'); setTurn(null); check(); };
+    again.onclick = () => { close(); resetBoard(); };
     out.onclick = () => { close(); ctx.finish(); };
     later.onclick = () => { close(); ctx.finish(true); };
     ctx.cleanup = close;

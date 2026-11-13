@@ -2085,3 +2085,17 @@ body.sum-open { overflow: hidden; }
 .sd-full .sd-in { gap: 18px; min-height: 100%; justify-content: center; padding-top: calc(18px + env(safe-area-inset-top)); padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
 .sd-full .sd-tools { margin: 2px 0 6px; }
 .sd-full .sd-tiles { margin-top: 2px; }
+/* V18.4 día 14: textos más compactos para que quepa el juego */
+.ct-wrap { gap: 6px; }
+.ct-board { padding-top: 22px; padding-bottom: 8px; }
+.ct-score b { font-size: 24px; }
+.ct-bar { margin: 2px 10px 6px; }
+.ct-help { margin: 0 !important; max-width: 320px; padding: 10px 12px; border-radius: 14px; background: #fffaf0ee; border: 2px solid #e9c46a; color: #5a2a1a; font: 600 14px/1.4 'Fredoka', sans-serif; text-align: center; }
+.ct-startbox { gap: 12px; padding: 12px; }
+.cw-gno, .sd-gno { display: block; text-align: center; margin: -10px 0 4px !important; font: 700 13px 'Fredoka', sans-serif; color: #8a6a3a; }
+.sd-gno { margin: 0 !important; font-size: 12px; }
+.ttt-mode { display: block; margin: 0 auto 8px; font-size: 15px !important; padding: 9px 16px !important; }
+.ttt-turn.thinking span::after { content: ' …'; animation: smBlink 1s infinite; }
+.ttt-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; margin: 0 0 6px; }
+.ttt-row .ttt-mode { margin: 0; }
+.ttt-row .ttt-infobtn { margin: 0 !important; font-size: 13px !important; }

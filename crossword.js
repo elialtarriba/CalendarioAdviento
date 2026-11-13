@@ -2,9 +2,10 @@
 // (o se toca la casilla y luego la letra) hasta su sitio. Si la letra es buena encaja con un clic;
 // si no, suena decepción y la ficha vuelve sola al abecedario. Al acabar, las letras vuelan y forman
 // «¡Felicidades! Has completado el crucigrama» con nieve y confeti.
-import { el, sleep, confetti, toast } from './fx.js?v=18.3';
-import { getLang } from './i18n.js?v=18.3';
-import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, clickSound, oops } from './sound.js?v=18.3';
+import { el, sleep, confetti, toast } from './fx.js?v=18.4';
+import { getLang } from './i18n.js?v=18.4';
+import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, clickSound, oops } from './sound.js?v=18.4';
+import { nextGame, rng, TOTAL } from './games25.js?v=18.4';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 
@@ -47,9 +48,89 @@ const MSG = {
   en: ['WELL DONE!', 'YOU COMPLETED', 'THE CROSSWORD'],
 };
 
+// ---- banco de palabras para las 25 partidas (sin acentos para que se puedan escribir con las fichas)
+const BANK = {
+  es: [['NAVIDAD', 'Fiesta del 25 de diciembre 🎄'], ['NIEVE', 'Cae del cielo, blanca y fría ❄️'], ['CASCABELES', 'Suenan «tilín, tilín» en el cuello de los renos 🔔'],
+    ['VILLANCICO', 'Canción típica de Navidad 🎶'], ['ESTRELLA', 'Brilla en lo más alto del árbol ⭐'], ['REGALO', 'Lo encuentras envuelto debajo del árbol 🎁'],
+    ['RENO', 'Animal con cuernos que tira del trineo 🦌'], ['REYES', 'Los … Magos llegan el 6 de enero 👑'], ['TRINEO', 'El vehículo volador de Papá Noel 🛷'],
+    ['GALLETA', 'Dulce de jengibre con forma de muñeco 🍪'], ['BUFANDA', 'Abriga el cuello cuando hace frío 🧣'], ['GORRO', 'Papá Noel lo lleva rojo con una bola blanca 🎅'],
+    ['CHIMENEA', 'Por donde baja Papá Noel 🔥'], ['GUIRNALDA', 'Adorno largo de hojas o de luces ✨'], ['VELA', 'Se enciende y da una lucecita 🕯️'],
+    ['CAMPANA', 'Suena «din, don» 🔔'], ['MUÑECO', '… de nieve, con nariz de zanahoria ⛄'], ['ZANAHORIA', 'La nariz del muñeco de nieve 🥕'],
+    ['ELFO', 'Ayudante de Papá Noel en el taller 🧝'], ['JUGUETE', 'Lo fabrican los elfos 🧸'], ['PASTOR', 'Cuida las ovejas en el belén 🐑'],
+    ['CAMELLO', 'Los Reyes Magos viajan en él 🐪'], ['ORO', 'Uno de los regalos de los Reyes ✨'], ['NOEL', 'Papá … 🎅'], ['FAMILIA', 'Nos reunimos con ella en Navidad 👨‍👩‍👧'],
+    ['CENA', 'La de Nochebuena es muy especial 🍽️'], ['UVAS', 'Comemos doce en Nochevieja 🍇'], ['ABRAZO', 'Se da con los brazos y con cariño 🤗'],
+    ['INVIERNO', 'La estación del año de la Navidad ❄️'], ['LUCES', 'Brillan de colores en el árbol y en la calle 💡'], ['ADORNO', 'Se cuelga del árbol para decorarlo'],
+    ['BOLA', 'Adorno redondo del árbol 🔴'], ['CARTA', 'La escribimos a los Reyes o a Papá Noel ✉️'], ['ACEBO', 'Planta de hojas verdes y bolitas rojas 🌿'], ['PAVO', 'Plato típico de la cena de Navidad 🦃']],
+  ca: [['NADAL', 'La festa del 25 de desembre 🎄'], ['NEU', 'Cau del cel, blanca i freda ❄️'], ['CASCAVELLS', 'Fan «ding, ding» al coll dels rens 🔔'],
+    ['NADALA', 'Cançó típica de Nadal 🎶'], ['ESTRELLA', 'Brilla dalt de tot de l’arbre ⭐'], ['REGAL', 'El trobes embolicat sota l’arbre 🎁'],
+    ['REN', 'Animal amb banyes que estira el trineu 🦌'], ['REIS', 'Els … d’Orient arriben el 6 de gener 👑'], ['TRINEU', 'El vehicle volador del Pare Noel 🛷'],
+    ['ARBRE', 'El decorem amb boles i llums 🎄'], ['GALETA', 'Dolç de gingebre amb forma de ninot 🍪'], ['BUFANDA', 'Abriga el coll quan fa fred 🧣'],
+    ['BARRET', 'El Pare Noel el porta vermell 🎅'], ['XEMENEIA', 'Per on baixa el Pare Noel 🔥'], ['GARLANDA', 'Adorn llarg de fulles o de llums ✨'],
+    ['ESPELMA', 'S’encén i fa una llumeta 🕯️'], ['CAMPANA', 'Fa «ding, dong» 🔔'], ['NINOT', '… de neu, amb nas de pastanaga ⛄'], ['PASTANAGA', 'El nas del ninot de neu 🥕'],
+    ['FOLLET', 'Ajudant del Pare Noel al taller 🧝'], ['JOGUINA', 'La fabriquen els follets 🧸'], ['PASTOR', 'Cuida les ovelles al pessebre 🐑'],
+    ['CAMELL', 'Els Reis hi viatgen a sobre 🐪'], ['OR', 'Un dels regals dels Reis ✨'], ['SOPAR', 'El de Nit de Nadal és molt especial 🍽️'],
+    ['HIVERN', 'L’estació de l’any del Nadal ❄️'], ['LLUMS', 'Brillen de colors a l’arbre i al carrer 💡'], ['ADORN', 'Es penja a l’arbre per decorar-lo'],
+    ['BOLA', 'Adorn rodó de l’arbre 🔴'], ['CARTA', 'L’escrivim als Reis o al Pare Noel ✉️'], ['PESSEBRE', 'Escena del naixement amb figuretes 🐑'],
+    ['GALL', '… d’indi, plat típic de Nadal 🦃'], ['CAGANER', 'Figureta amagada del pessebre, molt catalana 😄'], ['GEL', 'Aigua glaçada que rellisca 🧊'], ['NOEL', 'Pare … 🎅']],
+  en: [['CHRISTMAS', 'The holiday on 25 December 🎄'], ['SNOW', 'White and cold, it falls from the sky ❄️'], ['REINDEER', 'Animals with antlers that pull Santa’s sleigh 🦌'],
+    ['SANTA', 'He comes down the chimney with presents 🎅'], ['BELLS', 'Jingle …, jingle all the way! 🔔'], ['CAROL', 'A Christmas song you sing together 🎶'],
+    ['STAR', 'It shines at the very top of the tree ⭐'], ['GIFT', 'Something wrapped under the tree for you 🎁'], ['SLEIGH', 'Santa’s flying vehicle 🛷'],
+    ['TREE', 'We decorate it with baubles and lights 🎄'], ['COOKIE', 'Gingerbread treat shaped like a little man 🍪'], ['SCARF', 'It keeps your neck warm 🧣'],
+    ['HAT', 'Santa’s is red with a white bobble 🎅'], ['CHIMNEY', 'Santa comes down it 🔥'], ['WREATH', 'Round decoration hung on the door 🌿'],
+    ['CANDLE', 'You light it and it gives a little light 🕯️'], ['SNOWMAN', 'Built of snow, with a carrot nose ⛄'], ['CARROT', 'The snowman’s nose 🥕'],
+    ['ELF', 'Santa’s little helper in the workshop 🧝'], ['TOY', 'The elves make it 🧸'], ['ANGEL', 'It has wings and sits on top of some trees 👼'],
+    ['CAMEL', 'The Three Kings ride on it 🐪'], ['GOLD', 'One of the Three Kings’ gifts ✨'], ['FAMILY', 'We get together with them at Christmas 👨‍👩‍👧'],
+    ['DINNER', 'Christmas … is a very special meal 🍽️'], ['WINTER', 'The season of Christmas ❄️'], ['LIGHTS', 'They twinkle on the tree and in the street 💡'],
+    ['BAUBLE', 'Round decoration for the tree 🔴'], ['LETTER', 'We write one to Santa ✉️'], ['HOLLY', 'Plant with green leaves and red berries 🌿'],
+    ['TURKEY', 'Traditional Christmas dinner bird 🦃'], ['STOCKING', 'Hung by the fireplace for presents 🧦'], ['MITTENS', 'Warm gloves without fingers 🧤'], ['ICE', 'Frozen water, very slippery 🧊']],
+};
+// crea un crucigrama con 8 palabras que se cruzan (siempre igual para la misma partida)
+function genCross(lang, g) {
+  const R = rng(2300 + g * 104729 + lang.charCodeAt(0));
+  const pool = BANK[lang].slice(); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  let best = null;
+  for (let att = 0; att < 30; att++) {
+    const grid = new Map(), pl = []; const k = (r, c) => r + ',' + c;
+    const can = (w, r, c, d) => {
+      const dr = d === 'A' ? 0 : 1, dc = d === 'A' ? 1 : 0; let inter = 0;
+      if (grid.has(k(r - dr, c - dc)) || grid.has(k(r + dr * w.length, c + dc * w.length))) return -1;
+      for (let i = 0; i < w.length; i++) { const rr = r + dr * i, cc = c + dc * i, x = grid.get(k(rr, cc));
+        if (x) { if (x.ch !== w[i] || x.d === d || x.d === 'X') return -1; inter++; }
+        else if (grid.has(k(rr + dc, cc + dr)) || grid.has(k(rr - dc, cc - dr))) return -1; }
+      return inter;
+    };
+    const put = (w, r, c, d, clue) => { const dr = d === 'A' ? 0 : 1, dc = d === 'A' ? 1 : 0;
+      for (let i = 0; i < w.length; i++) { const kk = k(r + dr * i, c + dc * i), x = grid.get(kk); grid.set(kk, x ? { ch: w[i], d: 'X' } : { ch: w[i], d }); }
+      pl.push([w, r, c, d, clue]); };
+    const order = pool.slice(); const sh = Math.floor(R() * order.length); order.push(...order.splice(0, sh));
+    const first = order.shift(); put(first[0], 0, 0, R() < .5 ? 'A' : 'D', first[1]);
+    for (const [w, clue] of order) {
+      if (pl.length >= 8) break;
+      const cands = [];
+      for (const [kk, x] of grid) { const [r, c] = kk.split(',').map(Number);
+        for (let i = 0; i < w.length; i++) if (w[i] === x.ch) for (const d of 'AD') {
+          const rr = d === 'A' ? r : r - i, cc = d === 'A' ? c - i : c; const s = can(w, rr, cc, d); if (s < 1) continue;
+          let r0 = rr, r1 = d === 'A' ? rr : rr + w.length - 1, c0 = cc, c1 = d === 'A' ? cc + w.length - 1 : cc;
+          for (const k2 of grid.keys()) { const [a, b] = k2.split(',').map(Number); r0 = Math.min(r0, a); r1 = Math.max(r1, a); c0 = Math.min(c0, b); c1 = Math.max(c1, b); }
+          const W = c1 - c0 + 1, H = r1 - r0 + 1; if (W > 11 || H > 11) continue;
+          cands.push([s * 10 - W * H / 8 + R(), rr, cc, d]); } }
+      if (!cands.length) continue;
+      cands.sort((a, b) => b[0] - a[0]); put(w, cands[0][1], cands[0][2], cands[0][3], clue);
+    }
+    if (pl.length < 7) continue;
+    let r0 = 1e9, c0 = 1e9, r1 = -1e9, c1 = -1e9; for (const kk of grid.keys()) { const [a, b] = kk.split(',').map(Number); r0 = Math.min(r0, a); r1 = Math.max(r1, a); c0 = Math.min(c0, b); c1 = Math.max(c1, b); }
+    const W = c1 - c0 + 1, H = r1 - r0 + 1, inter = [...grid.values()].filter(x => x.d === 'X').length;
+    const score = pl.length * 20 + inter * 8 - W * H / 4 - Math.abs(W - H);
+    if (!best || score > best.score) best = { score, w: W, h: H, words: pl.map(([w, r, c, d, clue]) => [w, r - r0, c - c0, d, clue]) };
+  }
+  return best;
+}
+
 export function render(body, ctx) {
   const lang = SETS[getLang()] ? getLang() : 'es';
-  const S = SETS[lang];
+  // partida 1: la de siempre; de la 2 a la 25, crucigramas nuevos con otras palabras
+  const gameNo = nextGame('crossword_' + lang);
+  const S = gameNo === 0 ? SETS[lang] : { ...genCross(lang, gameNo), abc: SETS[lang].abc };
   body.style.webkitUserSelect = body.style.userSelect = 'none';
 
   // ---- celdas y numeración (como en los crucigramas de papel)
@@ -63,6 +144,7 @@ export function render(body, ctx) {
   // ---- cabecera
   body.append(
     el('h2', { class: 'q-title cw-title' }, '🎄 ' + L('Crucigrama de Navidad', 'Mots encreuats de Nadal', 'Christmas crossword') + ' 🎄'),
+    el('p', { class: 'cw-gno' }, L(`Partida ${gameNo + 1} de ${TOTAL}`, `Partida ${gameNo + 1} de ${TOTAL}`, `Game ${gameNo + 1} of ${TOTAL}`)),
     el('p', { class: 'game-help cw-help' }, L('Arrastra cada letra hasta su casilla (o toca una casilla y después la letra). ¡Lee las pistas de abajo!',
       'Arrossega cada lletra fins a la seva casella (o toca una casella i després la lletra). Llegeix les pistes de sota!',
       'Drag each letter to its square (or tap a square, then the letter). Read the clues below!')));

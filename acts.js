@@ -1,11 +1,11 @@
 // Actividades especiales (interactivas) de algunos días
 //  · Día 23: tres regalos que no se compran, debajo de un árbol con luces → eliges a quién se los das
 //  · Día 24: el regalo que Papá Noel ha dejado para ti → lazo, luz, bolas con regalos imaginarios
-import { el, sleep, confetti, popup, toast } from './fx.js?v=18.3';
-import { getLang } from './i18n.js?v=18.3';
-import { chime, pop, jingle, hohoho, christmasSong, unlockAudio } from './sound.js?v=18.3';
-import { S } from './app.js?v=18.3';
-import { store } from './store.js?v=18.3';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=18.4';
+import { getLang } from './i18n.js?v=18.4';
+import { chime, pop, jingle, hohoho, christmasSong, unlockAudio } from './sound.js?v=18.4';
+import { S } from './app.js?v=18.4';
+import { store } from './store.js?v=18.4';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const img = (src, cls = '') => el('img', { src, class: 'ilu ' + cls, alt: '', draggable: 'false' });
@@ -36,7 +36,8 @@ function gifts23(box, key) {
       { id: 'thanks', pic: THANKS, title: L('Un «gracias» que llevas tiempo pensando', 'Un «gràcies» que fa temps que penses', 'A “thank you” you have been meaning to say for a while') },
       { id: 'kitchen', pic: KITCHEN, title: L('¡Un «recojo yo la cocina»!', 'Un «ja recullo jo la cuina»!', 'An “I’ll tidy the kitchen”!') },
     ];
-    const chosen = { ...(S.profile?.gifts23?.[key] || {}) };
+    const stamp = S.answers?.[23]?.at || 0, saved = S.profile?.gifts23?.[key];
+    const chosen = saved && saved.at === stamp ? { ...saved } : { at: stamp }; // si el día se ha reiniciado, los regalos vuelven a estar sin abrir
     let next = G.findIndex(g => !chosen[g.id]); if (next < 0) next = 3;
     const intro = el('div', { class: 'g23-intro' },
       el('p', { class: 'g23-big' }, L('Esta noche puedes regalar algo que no se compra. ', 'Aquesta nit pots regalar una cosa que no es compra. ', 'Tonight you can give something money can’t buy. '), el('b', {}, L('¿A quién se lo darías?', 'A qui l’hi donaries?', 'Who would you give it to?'))),
