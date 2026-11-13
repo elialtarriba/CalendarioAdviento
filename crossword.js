@@ -2,10 +2,10 @@
 // (o se toca la casilla y luego la letra) hasta su sitio. Si la letra es buena encaja con un clic;
 // si no, suena decepción y la ficha vuelve sola al abecedario. Al acabar, las letras vuelan y forman
 // «¡Felicidades! Has completado el crucigrama» con nieve y confeti.
-import { el, sleep, confetti, toast } from './fx.js?v=18.4';
-import { getLang } from './i18n.js?v=18.4';
-import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, clickSound, oops } from './sound.js?v=18.4';
-import { nextGame, rng, TOTAL } from './games25.js?v=18.4';
+import { el, sleep, confetti, toast } from './fx.js?v=18.5';
+import { getLang } from './i18n.js?v=18.5';
+import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, clickSound, oops } from './sound.js?v=18.5';
+import { nextGame, rng, TOTAL } from './games25.js?v=18.5';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 
@@ -351,7 +351,7 @@ export function render(body, ctx) {
     const again = el('button', { class: 'btn btn-big no-delay' }, '🔄 ' + L('Volver a jugar', 'Tornar a jugar', 'Play again'));
     const out = el('button', { class: 'btn btn-ghost btn-big no-delay' }, '🎁 ' + L('Continuar', 'Continuar', 'Continue'));
     fx.append(el('div', { class: 'cw-fx-btns', style: `top:${top0 + totalH + 40}px` }, again, out));
-    again.onclick = () => { stopFx(); reset(); };
+    again.onclick = () => { stopFx(); body.replaceChildren(); render(body, ctx); body.scrollTop = 0; }; // la siguiente partida de las 25
     out.onclick = () => { stopFx(); ctx.finish(); };
   }
   function reset() {

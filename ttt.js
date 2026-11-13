@@ -1,8 +1,8 @@
 // Día 17: tres en raya navideño (galleta contra perrito). Cada uno tiene 3 fichas que se arrastran
 // y se pueden volver a mover. Al acabar, cada uno pulsa su dibujo: si ha ganado, baila; si ha perdido, decepción.
-import { el, sleep, confetti, popup, toast } from './fx.js?v=18.4';
-import { getLang } from './i18n.js?v=18.4';
-import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, slideSound, sadTrombone } from './sound.js?v=18.4';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=18.5';
+import { getLang } from './i18n.js?v=18.5';
+import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, slideSound, sadTrombone } from './sound.js?v=18.5';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const P = {

@@ -730,9 +730,9 @@ button.strip-fig { border: 0; background: none; padding: 0; font: inherit; curso
 .sp-user b, .sp-user small { display: block; } .sp-user small { color: #8a6a4a; font-size: 12px; word-break: break-all; }
 .sp-ava { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; background: linear-gradient(#e11d48, #b3122e); }
 .sp-msgs { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
-.sp-msg { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; background: #fff; border-radius: 12px; border: 2px solid #ead7b0; text-align: left; }
-.sp-msg.today { border-color: #16a34a; } .sp-msg.past { opacity: .6; }
-.sp-msg b { text-transform: capitalize; } .sp-msg small { display: block; color: #8a6a4a; }
+.sx-card { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; background: #fff; border-radius: 12px; border: 2px solid #ead7b0; text-align: left; }
+.sx-card.today { border-color: #16a34a; } .sx-card.past { opacity: .6; }
+.sx-card b { text-transform: capitalize; } .sx-card small { display: block; color: #8a6a4a; }
 .sp-msg-btns { display: flex; gap: 6px; flex: none; }
 .sp-tag { margin-left: 8px; background: #16a34a; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; }
 .sp-new { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; padding: 12px; border-radius: 14px; background: #fff6e0; border: 2px dashed #c79a42; }
@@ -757,9 +757,9 @@ button.strip-fig { border: 0; background: none; padding: 0; font: inherit; curso
 .sp-thumb button { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: #b3122e; color: #fff; font-weight: 800; }
 .sp-thumbs .media-btn { flex: 0 0 auto; width: 96px; height: 96px; flex-direction: column; gap: 2px; }
 .sp-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
-@media (max-width: 760px) { .sp-editor { grid-template-columns: 1fr; } .sp-preview { position: static; order: -1; max-width: 320px; margin: 0 auto; } .sp-msg { flex-direction: column; align-items: stretch; } }
+@media (max-width: 760px) { .sp-editor { grid-template-columns: 1fr; } .sp-preview { position: static; order: -1; max-width: 320px; margin: 0 auto; } .sx-card { flex-direction: column; align-items: stretch; } }
 /* V15.7 · activado / fechas */
-.sp-msg.off { background: #f4efe6; } .sp-msg.off .sp-msg-main { opacity: .5; filter: grayscale(.7); }
+.sx-card.off { background: #f4efe6; } .sx-card.off .sp-msg-main { opacity: .5; filter: grayscale(.7); }
 .sp-msg-main { min-width: 0; } .sp-msg-main small { display: block; }
 .sp-msg-btns { align-items: center; flex-wrap: wrap; }
 .sp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
@@ -2099,3 +2099,51 @@ body.sum-open { overflow: hidden; }
 .ttt-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; margin: 0 0 6px; }
 .ttt-row .ttt-mode { margin: 0; }
 .ttt-row .ttt-infobtn { margin: 0 !important; font-size: 13px !important; }
+
+/* ================= Día 11: laberinto de los regalos perdidos ================= */
+.mz-how { max-width: 560px; margin: 0 auto 6px; background: #fffaf0; border: 2px solid #e9c46a; border-radius: 14px; padding: 6px 12px; font: 600 14px/1.4 'Fredoka', sans-serif; color: #5a2a1a; }
+.mz-how summary { cursor: pointer; font-weight: 800; color: #a3122a; text-align: center; list-style: none; }
+.mz-how summary::-webkit-details-marker { display: none; }
+.mz-how p { margin: 6px 0 !important; }
+.mz-board { padding: 24px 10px 12px; display: flex; flex-direction: column; align-items: center; }
+.mz-hud { display: flex; justify-content: space-between; width: 100%; max-width: 500px; padding: 0 6px 8px; color: #fff6c2; font: 800 17px 'Fredoka', sans-serif; text-shadow: 0 2px 3px #0008; }
+.mz-stage { position: relative; touch-action: none; border-radius: 10px; box-shadow: 0 0 0 4px #e9c46a, 0 8px 16px #0006; }
+.mz-cv { display: block; border-radius: 8px; }
+.mz-santa, .mz-gift, .mz-sleigh { position: absolute; pointer-events: none; z-index: 2; transition: left .12s linear, top .12s linear; }
+.mz-santa { border-radius: 50%; overflow: hidden; background: radial-gradient(circle, #fff, #f3e2c0); box-shadow: 0 0 0 2px #e9c46a, 0 3px 6px #0006; z-index: 3; }
+.mz-santa img { width: 118%; height: 118%; object-fit: cover; object-position: 30% 20%; margin: -4% 0 0 -6%; }
+.mz-santa.drag { box-shadow: 0 0 0 3px #ffd24a, 0 0 16px #ffd24a; transform: scale(1.12); }
+.mz-santa.nudge { animation: mzNudge .6s; }
+@keyframes mzNudge { 25% { transform: scale(1.25) rotate(-8deg); } 50% { transform: scale(1.25) rotate(8deg); } }
+.mz-gift img, .mz-sleigh img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 3px 3px #0006); }
+.mz-gift { animation: mzBob 2s ease-in-out infinite; }
+@keyframes mzBob { 50% { transform: translateY(-3px); } }
+.mz-gift.got { animation: none; transform: scale(.8); filter: drop-shadow(0 0 8px #ffd24a); }
+.mz-gift.got::after { content: '✓'; position: absolute; right: -4px; bottom: -4px; width: 46%; height: 46%; border-radius: 50%; background: #1f7a44; color: #fff; font: 800 12px/1 'Fredoka', sans-serif; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #fff; }
+.mz-sleigh { opacity: .75; }
+.mz-sleigh.ready { opacity: 1; animation: mzReady 1s ease-in-out infinite; }
+@keyframes mzReady { 50% { filter: drop-shadow(0 0 10px #ffd24a); transform: scale(1.1); } }
+.mz-santa.in-sleigh { opacity: 0; transition: opacity .4s; }
+.mz-fly { position: fixed; inset: 0; z-index: 300; pointer-events: none; background: radial-gradient(ellipse at 50% 30%, #1d3b5ccc, #0b1630ee); animation: fadeIn .4s; overflow: hidden; }
+.mz-fly-ride { position: absolute; left: -45vw; top: 55%; width: min(60vw, 320px); animation: mzRide 3.2s cubic-bezier(.4,.1,.5,1) forwards; }
+@keyframes mzRide { 0% { transform: translate(0, 0) rotate(-4deg); } 50% { transform: translate(80vw, -18vh) rotate(-10deg); } 100% { transform: translate(170vw, -45vh) rotate(-14deg); } }
+.mz-fly-sleigh { width: 100%; position: relative; z-index: 2; filter: drop-shadow(0 6px 10px #0008); }
+.mz-fly-santa { position: absolute; width: 42%; left: 28%; top: -30%; z-index: 1; border-radius: 50% 50% 10% 10%; }
+.mz-fly-gift { position: absolute; width: 24%; top: -14%; z-index: 1; } .mz-fly-gift.g0 { left: 4%; } .mz-fly-gift.g1 { left: 62%; } .mz-fly-gift.g2 { left: 78%; top: -4%; }
+.mz-fly-trail i { position: absolute; color: #ffe066; font-size: 18px; text-shadow: 0 0 8px #ffd24a; animation: bsSpark 1.4s ease-out both; }
+.mz-board { position: relative; }
+.mz-over { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; padding: 14px; border-radius: 18px; background: #0d3b20cc; }
+.mz-over.hide { display: none; }
+.mz-over .mz-how { margin: 0; padding: 12px 14px; text-align: center; max-height: 100%; overflow: auto; }
+.mz-how h3 { margin: 0 0 4px; color: #a3122a; font: 800 18px 'Fredoka', sans-serif; }
+.mz-how .btn { margin-top: 6px; }
+.mz-helpbtn { border: 2px solid #e9c46a; background: #fffaf0; border-radius: 50%; width: 32px; height: 32px; font-size: 16px; cursor: pointer; }
+
+/* V18.5 · mensajes sorpresa: lista de espera, historial y botón Enviar */
+.sx-sec { margin: 10px 0; background: #fffaf0; border: 2px solid #e9c46a; border-radius: 14px; padding: 8px 12px; text-align: left; }
+.sx-sec > summary { cursor: pointer; font: 800 17px 'Fredoka', sans-serif; color: #7a1020; padding: 4px 0; }
+.sx-sec.sx-wait { border-color: #16a34a; }
+.sx-who { display: block; font-size: 13px; font-weight: 800; color: #1f6b45; }
+.sx-lbl { font-size: 12px; font-weight: 800; color: #8a6a3a; align-self: center; }
+.sx-newh { margin-top: 18px; }
+.sx-send { font-size: 18px; padding-left: 22px; padding-right: 22px; }

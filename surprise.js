@@ -1,9 +1,9 @@
 // Mensajes sorpresa: la administradora prepara un popup para una persona y un día concretos
-import { el, popup, toast, confetti } from './fx.js?v=18.4';
-import { store } from './store.js?v=18.4';
-import { shrink, ytId, lightbox } from './richact.js?v=18.4';
-import { chime } from './sound.js?v=18.4';
-import { getLang } from './i18n.js?v=18.4';
+import { el, popup, toast, confetti } from './fx.js?v=18.5';
+import { store } from './store.js?v=18.5';
+import { shrink, ytId, lightbox } from './richact.js?v=18.5';
+import { chime } from './sound.js?v=18.5';
+import { getLang } from './i18n.js?v=18.5';
 
 export const todayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -71,7 +71,7 @@ export async function showSurprise(uid) {
   const lang = getLang();
   if (lang !== 'es') {
     try {
-      const { tr } = await import('./translate.js?v=18.4');
+      const { tr } = await import('./translate.js?v=18.5');
       const [text, title] = await Promise.all([tr(msg.text, lang), msg.title?.text ? tr(msg.title.text, lang) : null]);
       msg = { ...msg, text, title: msg.title ? { ...msg.title, text: title || msg.title.text } : msg.title };
     } catch {}
@@ -82,7 +82,37 @@ export async function showSurprise(uid) {
 
 // ================================================================ ADMINISTRADORA
 export async function surpriseAdmin(root) {
+  root.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
   const users = (await store.listUsers()).sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email, 'es'));
+  // todos los mensajes de todas las personas, para la lista de espera y el historial
+  const today = todayKey();
+  const all = (await Promise.all(users.map(u => store.listSurprises(u.uid).then(ms => ms.map(m => ({ m, u }))).catch(() => [])))).flat();
+  const fut = x => (x.m.dates || []).filter(d => d > today).sort(), past = x => (x.m.dates || []).filter(d => d <= today).sort();
+  const on = x => x.m.active !== false;
+  const waiting = all.filter(x => on(x) && fut(x).length).sort((a, b) => fut(a)[0].localeCompare(fut(b)[0]));
+  const sent = all.filter(x => on(x) && past(x).length).sort((a, b) => past(b).at(-1).localeCompare(past(a).at(-1)));
+  const drafts = all.filter(x => !on(x) || !(x.m.dates || []).length);
+  const row = (x, kind) => {
+    const ds = kind === 'wait' ? fut(x) : kind === 'sent' ? past(x).reverse() : (x.m.dates || []).slice().sort();
+    return el('div', { class: 'sx-card' + (kind === 'draft' ? ' off' : '') },
+      el('div', { class: 'sp-msg-main' },
+        el('span', { class: 'sx-who' }, '👤 ' + (x.u.name || x.u.email)),
+        el('b', {}, x.m.title?.text || '(sin título)'),
+        x.m.text ? el('small', {}, x.m.text.slice(0, 70) + (x.m.text.length > 70 ? '…' : '')) : null,
+        el('div', { class: 'sp-chips' }, el('span', { class: 'sx-lbl' }, kind === 'wait' ? '⏳ Saldrá:' : kind === 'sent' ? '📨 Enviado:' : '📝'),
+          ...(ds.length ? ds.map(d => el('span', { class: 'sp-chip' + (d === today ? ' today' : d < today ? ' past' : '') }, (d === today ? 'HOY · ' : '') + shortDate(d))) : [el('span', { class: 'sp-chip past' }, 'Sin fechas')]))),
+      el('div', { class: 'sp-msg-btns' },
+        el('button', { class: 'btn btn-ghost small-btn', title: 'Ver', onclick: () => showCard(x.m) }, '👀'),
+        el('button', { class: 'btn small-btn', onclick: () => editor(root, x.u, users, x.m, () => surpriseAdmin(root)) }, kind === 'sent' ? '✏️ Reenviar' : '✏️ Modificar'),
+        el('button', { class: 'btn btn-ghost small-btn', title: 'Borrar', onclick: async () => {
+          if (!await popup(`<h2>🗑️</h2><p>¿Borrar este mensaje para ${x.u.name || x.u.email} para siempre?${kind === 'wait' ? '<br><small>Así ya no se enviará.</small>' : ''}</p>`, { cls: 'small', buttons: [{ label: 'No', value: false, cls: 'btn-ghost' }, { label: 'Sí, borrar', value: true }] })) return;
+          try { await store.deleteSurprise(x.u.uid, x.m.id); toast('🗑️ Borrado'); } catch (e) { toast('⚠️ ' + (e.code || e.message), 5000); }
+          surpriseAdmin(root);
+        } }, '🗑️')));
+  };
+  const section = (title, hint, items, kind, open) => el('details', { class: 'sx-sec sx-' + kind, open },
+    el('summary', {}, `${title} (${items.length})`), el('p', { class: 'muted' }, hint),
+    items.length ? el('div', { class: 'sp-msgs' }, ...items.map(x => row(x, kind))) : el('p', { class: 'muted' }, 'Ninguno.'));
   const q = el('input', { type: 'search', class: 'sp-search', placeholder: '🔍 Buscar persona por nombre o correo…' });
   const list = el('div', { class: 'sp-users' });
   const draw = () => {
@@ -94,8 +124,11 @@ export async function surpriseAdmin(root) {
   };
   q.oninput = draw; draw();
   root.replaceChildren(el('h3', { class: 'sp-h' }, '💌 Mensajes sorpresa'),
+    section('⏳ Lista de espera', 'Mensajes programados para otro día. Puedes modificarlos o borrarlos antes de que se envíen.', waiting, 'wait', true),
+    section('📜 Historial de enviados', 'Mensajes que ya han salido (o salen hoy). El más reciente, arriba.', sent, 'sent', false),
+    drafts.length ? section('📝 Guardados sin enviar', 'Borradores: no saldrán hasta que los envíes.', drafts, 'draft', false) : null,
+    el('h3', { class: 'sp-h sx-newh' }, '✉️ Escribir un mensaje nuevo'),
     el('p', { class: 'muted' }, 'Elige a una persona para prepararle un mensaje que verá al entrar el día que tú digas.'), q, list);
-  setTimeout(() => q.focus(), 50);
 }
 
 async function userView(root, u, users) {
@@ -105,7 +138,7 @@ async function userView(root, u, users) {
   const card = m => {
     const dates = (m.dates || []).slice().sort();
     const sw = el('input', { type: 'checkbox', checked: m.active !== false });
-    const box = el('div', { class: 'sp-msg' + (sw.checked ? '' : ' off') },
+    const box = el('div', { class: 'sx-card' + (sw.checked ? '' : ' off') },
       el('div', { class: 'sp-msg-main' },
         el('b', {}, m.title?.text || '(sin título)'),
         m.text ? el('small', {}, m.text.slice(0, 70) + (m.text.length > 70 ? '…' : '')) : null,
@@ -126,14 +159,14 @@ async function userView(root, u, users) {
     return box;
   };
   root.replaceChildren(
-    el('button', { class: 'btn btn-ghost small-btn', onclick: () => surpriseAdmin(root) }, '← Todas las personas'),
+    el('button', { class: 'btn btn-ghost small-btn', onclick: () => surpriseAdmin(root) }, '← Mensajes sorpresa'),
     el('h3', { class: 'sp-h' }, `💌 Mensajes para ${u.name || u.email}`),
     el('p', { class: 'muted' }, 'Solo sale si está «Activado» y hoy es una de sus fechas.'),
     msgs.length ? el('div', { class: 'sp-msgs' }, ...msgs.map(card)) : el('p', { class: 'muted' }, 'Todavía no tiene ningún mensaje.'),
     el('div', { class: 'sp-new' }, el('button', { class: 'btn', onclick: () => editor(root, u, users, null) }, '➕ Nuevo mensaje')));
 }
 
-function editor(root, u, users, data) {
+function editor(root, u, users, data, back = () => userView(root, u, users)) {
   const st = data ? JSON.parse(JSON.stringify({ active: data.active !== false, dates: data.dates || [], title: { ...DEFAULT_TITLE, ...data.title }, text: data.text || '', photos: data.photos || [], video: data.video || '' })) : blank();
   const T = st.title; T.colors = T.colors || [];
   let sel = new Set();
@@ -220,12 +253,21 @@ function editor(root, u, users, data) {
   };
 
   // ---- guardar / ver / copiar
-  const save = async () => {
-    if (st.active && !st.dates.length) return toast('Añade al menos una fecha (o déjalo «No activado»)', 4000);
+  // «Enviar»: se activa; si no hay fechas, la del calendario (hoy si no se ha cambiado). «Guardar sin enviar»: borrador.
+  const save = async send => {
     st.title.text = tText.value;
+    if (send) {
+      if (!st.dates.length) st.dates.push(date.value || todayKey());
+      st.active = true;
+    } else st.active = false;
+    const t = todayKey(), next = st.dates.slice().sort().find(d => d >= t);
     try {
       await store.saveSurprise(u.uid, data?.id || null, st);
-      toast('✅ Mensaje guardado'); userView(root, u, users);
+      if (!send) toast('📝 Guardado sin enviar. Lo tienes en «Guardados sin enviar».', 4000);
+      else if (st.dates.includes(t)) toast(`📨 ¡Enviado! ${u.name || u.email} lo verá hoy al entrar.`, 4500);
+      else if (next) toast(`⏳ Programado para el ${shortDate(next)}. Está en la lista de espera.`, 4500);
+      else toast('⚠️ Todas las fechas ya han pasado: no saldrá. Añade una fecha de hoy o futura.', 6000);
+      surpriseAdmin(root);
     } catch (e) { toast('⚠️ ' + (e.code === 'permission-denied' ? 'Sin permiso: publica las reglas nuevas de Firestore' : (e.code || e.message)), 6000); }
   };
   const copy = async () => {
@@ -239,7 +281,7 @@ function editor(root, u, users, data) {
 
   const form = el('div', { class: 'sp-form' },
     el('fieldset', { class: 'sp-when' }, el('legend', {}, '📅 Cuándo sale'),
-      el('label', { class: 'sp-switch big no-delay' }, act, el('span', { class: 'sp-slider' }), actTxt),
+      el('p', { class: 'sp-hint' }, 'Elige el día y pulsa «Añadir fecha» (puedes poner varios). Si no añades ninguno, al pulsar «Enviar» se envía el día que marca el calendario (hoy).'),
       el('div', { class: 'sp-adddate' }, date, el('button', { type: 'button', class: 'btn small-btn no-delay', onclick: addDate }, '➕ Añadir fecha')),
       chips),
     el('fieldset', {}, el('legend', {}, '✨ Título'), tText,
@@ -256,13 +298,14 @@ function editor(root, u, users, data) {
     el('fieldset', {}, el('legend', {}, '💬 Mensaje'), text),
     el('fieldset', {}, el('legend', {}, '📷 Fotos (máx. 2) y 🎥 vídeo'), photosBox, fileIn, video),
     el('div', { class: 'sp-actions' },
-      el('button', { class: 'btn btn-ghost', onclick: () => userView(root, u, users) }, 'Cancelar'),
+      el('button', { class: 'btn btn-ghost', onclick: back }, 'Cancelar'),
       el('button', { class: 'btn btn-ghost', onclick: () => showCard(st) }, '👀 Ver como lo verá'),
       el('button', { class: 'btn btn-ghost', onclick: copy }, '📋 Copiar a otra persona'),
-      el('button', { class: 'btn btn-green', onclick: save }, '💾 Guardar')));
+      el('button', { class: 'btn btn-ghost', onclick: () => save(false) }, '💾 Guardar sin enviar'),
+      el('button', { class: 'btn btn-green sx-send', onclick: () => save(true) }, '📨 Enviar')));
 
   root.replaceChildren(
-    el('button', { class: 'btn btn-ghost small-btn', onclick: () => userView(root, u, users) }, '← Mensajes de ' + (u.name || u.email)),
+    el('button', { class: 'btn btn-ghost small-btn', onclick: back }, '← Volver'),
     el('h3', { class: 'sp-h' }, `💌 ${u.name || u.email}`),
     el('div', { class: 'sp-editor' }, form, el('div', { class: 'sp-preview' }, el('p', { class: 'sp-hint' }, 'Vista previa'), prevBox)));
   drawLetters(); drawPhotos(); drawDates(); redraw();

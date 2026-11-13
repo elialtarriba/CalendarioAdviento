@@ -1,9 +1,10 @@
 // Día 22: sopa de letras de animales. Se desliza el dedo en línea recta (horizontal, vertical o en
 // diagonal, en cualquier sentido). Si las letras forman un animal se queda marcado con relieve y suena
 // «encaja»; si no, el marcado desaparece al soltar. Al encontrarlos todos: confeti y ¡enhorabuena!
-import { el, sleep, confetti, popup, toast } from './fx.js?v=18.4';
-import { getLang } from './i18n.js?v=18.4';
-import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, clickSound } from './sound.js?v=18.4';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=18.5';
+import { getLang } from './i18n.js?v=18.5';
+import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, clickSound } from './sound.js?v=18.5';
+import { nextGame, rng, TOTAL } from './games25.js?v=18.5';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 // [palabra, fila, columna, paso fila, paso columna, dibujo, nombre bonito]
@@ -39,17 +40,52 @@ const SETS = {
     ['CAT', 0, 1, 1, 0, '🐱', 'CAT'],
   ] },
 };
+// 25 partidas: la 1 es la de siempre; las demás se crean con 8 animales de esta lista (siempre igual para el mismo número)
+const BANK = {
+  es: [['HIPOPOTAMO','🦛','HIPOPÓTAMO'],['BALLENA','🐋'],['CABALLO','🐴'],['JIRAFA','🦒'],['PERRO','🐶'],['KOALA','🐨'],['RENO','🦌'],['GATO','🐱'],['LEON','🦁','LEÓN'],['TIGRE','🐯'],['OSO','🐻'],['CONEJO','🐰'],['ZORRO','🦊'],['PINGUINO','🐧','PINGÜINO'],['CERDO','🐷'],['VACA','🐮'],['MONO','🐵'],['RATON','🐭','RATÓN'],['PATO','🦆'],['BUHO','🦉','BÚHO'],['LOBO','🐺'],['OVEJA','🐑'],['CEBRA','🦓'],['ELEFANTE','🐘'],['TORTUGA','🐢'],['PULPO','🐙'],['ARDILLA','🐿️'],['RANA','🐸'],['POLLITO','🐤'],['DELFIN','🐬','DELFÍN']],
+  ca: [['HIPOPOTAM','🦛','HIPOPÒTAM'],['BALENA','🐋'],['CAVALL','🐴'],['GIRAFA','🦒'],['KOALA','🐨'],['REN','🦌'],['GOS','🐶'],['GAT','🐱'],['LLEO','🦁','LLEÓ'],['TIGRE','🐯'],['CONILL','🐰'],['GUINEU','🦊'],['PINGUI','🐧','PINGÜÍ'],['PORC','🐷'],['VACA','🐮'],['MICO','🐵'],['RATOLI','🐭','RATOLÍ'],['ANEC','🦆','ÀNEC'],['MUSSOL','🦉'],['LLOP','🐺'],['OVELLA','🐑'],['ZEBRA','🦓'],['ELEFANT','🐘'],['TORTUGA','🐢'],['POP','🐙'],['ESQUIROL','🐿️'],['GRANOTA','🐸'],['POLLET','🐤'],['DOFI','🐬','DOFÍ']],
+  en: [['REINDEER','🦌'],['GIRAFFE','🦒'],['WHALE','🐋'],['HORSE','🐴'],['HIPPO','🦛'],['KOALA','🐨'],['DOG','🐶'],['CAT','🐱'],['LION','🦁'],['TIGER','🐯'],['BEAR','🐻'],['RABBIT','🐰'],['FOX','🦊'],['PENGUIN','🐧'],['PIG','🐷'],['COW','🐮'],['MONKEY','🐵'],['MOUSE','🐭'],['DUCK','🦆'],['OWL','🦉'],['WOLF','🐺'],['SHEEP','🐑'],['ZEBRA','🦓'],['ELEPHANT','🐘'],['TURTLE','🐢'],['OCTOPUS','🐙'],['SQUIRREL','🐿️'],['FROG','🐸'],['CHICK','🐤'],['DOLPHIN','🐬']],
+};
+const DIRS = [[0, 1], [1, 0], [1, 1], [-1, 1], [0, -1], [-1, 0], [-1, -1], [1, -1]];
+function genWS(lang, g) {
+  const R = rng(2200 + g * 104729), N = 10, ABC = 'ABCDEFGHIJLMNOPRSTUVZ';
+  for (let tries = 0; tries < 200; tries++) {
+    const pool = BANK[lang].slice();
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    const pick = pool.slice(0, 8).sort((a, b) => b[0].length - a[0].length);
+    const G = Array.from({ length: N }, () => Array(N).fill('')), words = [];
+    const ok = pick.every(([w, emo, nice]) => {
+      for (let k = 0; k < 300; k++) {
+        // más a menudo derecho que del revés, para que no sea demasiado difícil
+        const [dr, dc] = DIRS[R() < .7 ? Math.floor(R() * 4) : 4 + Math.floor(R() * 4)];
+        const r0 = Math.floor(R() * N), c0 = Math.floor(R() * N), r1 = r0 + dr * (w.length - 1), c1 = c0 + dc * (w.length - 1);
+        if (r1 < 0 || r1 >= N || c1 < 0 || c1 >= N) continue;
+        let fit = true; for (let i = 0; i < w.length && fit; i++) { const x = G[r0 + dr * i][c0 + dc * i]; if (x && x !== w[i]) fit = false; }
+        if (!fit) continue;
+        for (let i = 0; i < w.length; i++) G[r0 + dr * i][c0 + dc * i] = w[i];
+        words.push([w, r0, c0, dr, dc, emo, nice || w]); return true;
+      }
+      return false;
+    });
+    if (!ok) continue;
+    const grid = G.map(row => row.map(x => x || ABC[Math.floor(R() * ABC.length)]).join(''));
+    return { grid, words };
+  }
+  return SETS[lang];
+}
 const FRIENDS = ['ttt-perro.webp'];
 const COLORS = ['#e63946', '#2a9d8f', '#f4a261', '#3a86ff', '#9b5de5', '#06a77d', '#ff70a6', '#e9a92a'];
 
 export function render(body, ctx) {
   const lang = SETS[getLang()] ? getLang() : 'es';
-  const S = SETS[lang], N = S.grid.length;
+  const gameNo = nextGame('wordsearch_' + lang);
+  const S = gameNo === 0 ? SETS[lang] : genWS(lang, gameNo), N = S.grid.length;
   body.style.webkitUserSelect = body.style.userSelect = 'none';
   const words = S.words.map(([w, r, c, dr, dc, emo, nice], i) => ({ w, r, c, dr, dc, emo, nice, col: COLORS[i % COLORS.length], found: false }));
 
   body.append(
     el('h2', { class: 'q-title cw-title' }, '🦌 ' + L('Sopa de letras de animales', 'Sopa de lletres d’animals', 'Animal word search') + ' 🎄'),
+    el('p', { class: 'cw-gno' }, L(`Partida ${gameNo + 1} de ${TOTAL}`, `Partida ${gameNo + 1} de ${TOTAL}`, `Game ${gameNo + 1} of ${TOTAL}`)),
     el('p', { class: 'game-help cw-help' }, L('Hay 8 animales escondidos. Desliza el dedo por encima de las letras (en línea recta, también en diagonal) para marcar cada animal.',
       'Hi ha 8 animals amagats. Llisca el dit per sobre de les lletres (en línia recta, també en diagonal) per marcar cada animal.',
       'There are 8 hidden animals. Slide your finger over the letters (in a straight line, diagonals too) to mark each animal.')));
@@ -194,7 +230,7 @@ export function render(body, ctx) {
     const again = el('button', { class: 'btn btn-big no-delay' }, '🔄 ' + L('Volver a jugar', 'Tornar a jugar', 'Play again'));
     const out = el('button', { class: 'btn btn-ghost btn-big no-delay' }, '🎁 ' + L('Continuar', 'Continuar', 'Continue'));
     fx.querySelector('.ws-fx-box').append(el('div', { class: 'ttt-fx-btns' }, again, out));
-    again.onclick = () => { stopFx(); reset(); };
+    again.onclick = () => { stopFx(); removeEventListener('resize', relayout); body.replaceChildren(); render(body, ctx); body.scrollTop = 0; }; // la siguiente de las 25
     out.onclick = () => { stopFx(); ctx.finish(); };
   }
   function reset() {

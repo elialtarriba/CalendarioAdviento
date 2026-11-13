@@ -1,9 +1,9 @@
 // Día 14: atrapa los regalos. Caen cosas de Navidad (y trolls gruñones). Se coge un objeto con el dedo
 // y se arrastra hasta el saco de Papá Noel: suma puntos (cada cosa vale distinto). Las cosas se van
 // desvaneciendo mientras caen. Tocar un troll: gruñido, vibración, explota y resta puntos. Meta: 100 puntos.
-import { el, sleep, popup, toast } from './fx.js?v=18.4';
-import { getLang } from './i18n.js?v=18.4';
-import { pop, chime, unlockAudio, grumble, boom, sackDrop, wishSong } from './sound.js?v=18.4';
+import { el, sleep, popup, toast } from './fx.js?v=18.5';
+import { getLang } from './i18n.js?v=18.5';
+import { pop, chime, unlockAudio, grumble, boom, sackDrop, wishSong } from './sound.js?v=18.5';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const GOAL = 100, TROLL_PTS = 10;
@@ -39,9 +39,9 @@ export function render(body, ctx) {
   body.style.webkitUserSelect = body.style.userSelect = 'none';
   body.append(
     el('h2', { class: 'q-title cw-title' }, '🎁 ' + L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents') + ' 🎁'));
-  const helpTxt = el('p', { class: 'ct-help' }, L(`Atrapa con el dedo las cosas de Navidad antes de que desaparezcan y arrástralas al saco de Papá Noel. ¡Cuidado con los trolls gruñones: si los tocas, pierdes ${TROLL_PTS} puntos! Llega a ${GOAL} puntos.`,
-      `Atrapa amb el dit les coses de Nadal abans que desapareguin i arrossega-les al sac del Pare Noel. Compte amb els trols rondinaires: si els toques, perds ${TROLL_PTS} punts! Arriba a ${GOAL} punts.`,
-      `Catch the Christmas things with your finger before they vanish and drag them into Santa’s sack. Watch out for the grumpy trolls: touching one loses ${TROLL_PTS} points! Reach ${GOAL} points.`));
+  const helpTxt = el('p', { class: 'ct-help' }, L(`Atrapa con el dedo las cosas de Navidad antes de que desaparezcan y arrástralas al saco de Papá Noel. ¡Cuidado con los trolls gruñones: si los tocas o pasas por encima de ellos mientras llevas algo al saco, pierdes ${TROLL_PTS} puntos! Llega a ${GOAL} puntos.`,
+      `Atrapa amb el dit les coses de Nadal abans que desapareguin i arrossega-les al sac del Pare Noel. Compte amb els trols rondinaires: si els toques o hi passes per sobre mentre portes alguna cosa al sac, perds ${TROLL_PTS} punts! Arriba a ${GOAL} punts.`,
+      `Catch the Christmas things with your finger before they vanish and drag them into Santa’s sack. Watch out for the grumpy trolls: touching one, or passing over one while carrying something to the sack, loses ${TROLL_PTS} points! Reach ${GOAL} points.`));
 
 
   const sky = el('div', { class: 'ct-sky' });
@@ -113,13 +113,16 @@ export function render(body, ctx) {
     objs.forEach(o => { const cx = o.x + o.size / 2, cy = o.y + o.size / 2, d = Math.hypot(cx - x, cy - y); if (d < o.size * .75 && d < bd) { bd = d; best = o; } });
     if (!best) return;
     e.preventDefault(); unlockAudio();
-    if (best.troll) return hitTroll(best);
+    if (best.troll) { if (best.hit) return; best.hit = true; return hitTroll(best); }
     try { field.setPointerCapture(e.pointerId); } catch {}
     held = best; held.id = e.pointerId; best.e.classList.add('held'); best.e.style.opacity = 1; pop();
     moveHeld(x, y);
   });
   const moveHeld = (x, y) => { held.x = x - held.size / 2; held.y = y - held.size / 2; held.e.style.transform = `translate(${held.x}px, ${held.y}px) scale(1.15)`;
-    sack.classList.toggle('open', overSack(x, y)); };
+    sack.classList.toggle('open', overSack(x, y));
+    // si al llevar algo al saco pasas por encima de un troll: ¡se enfada y pierdes puntos!
+    const hx = held.x + held.size / 2, hy = held.y + held.size / 2;
+    for (const o of objs) if (o.troll && !o.hit && Math.hypot(o.x + o.size / 2 - hx, o.y + o.size / 2 - hy) < (o.size + held.size) * .36) { o.hit = true; hitTroll(o); } };
   const overSack = (x, y) => { const sx = sack.offsetLeft, sy = sack.offsetTop, sw = sack.offsetWidth, sh = sack.offsetHeight; return x > sx - 20 && x < sx + sw + 20 && y > sy - 40 && y < sy + sh; };
   field.addEventListener('pointermove', e => { if (held && e.pointerId === held.id) { const [x, y] = local(e); moveHeld(x, y); } });
   const release = e => {
