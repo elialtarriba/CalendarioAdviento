@@ -2,9 +2,9 @@
 // Se toca un bote (sube la bola de arriba) y luego otro bote; o se arrastra la bola con el dedo.
 // Solo se puede poner encima de una bola del mismo color o en un bote vacío (caben 4).
 // Ayuda (solo si no lo consigues): el bote de donde sacar y el bote donde dejar brillan.
-import { el, sleep, confetti, popup, toast } from './fx.js?v=18.1';
-import { getLang } from './i18n.js?v=18.1';
-import { pop, chime, fanfare, christmasSong, unlockAudio, oops, glassClink } from './sound.js?v=18.1';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=18.3';
+import { getLang } from './i18n.js?v=18.3';
+import { pop, chime, fanfare, christmasSong, unlockAudio, oops, glassClink } from './sound.js?v=18.3';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const CAP = 4, COLORS = ['red', 'gold', 'green', 'blue', 'silver'], EMPTY = 2;

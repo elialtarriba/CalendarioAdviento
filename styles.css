@@ -2062,3 +2062,26 @@ body.sum-open { overflow: hidden; }
 @media (orientation: landscape) and (min-width: 700px) {
   .sd-board, .sd-tiles { width: min(100%, calc(100dvh - 300px), 600px); }
 }
+
+/* V18.2 sudoku: medidas en píxeles calculadas para que todo quepa en una pantalla */
+.sd-in { gap: 8px; }
+.sd-grid { grid-template-columns: repeat(var(--n), var(--cell, 30px)); justify-content: center; }
+.sd-cell { width: var(--cell); height: var(--cell); aspect-ratio: auto; }
+.sd-num { font-size: calc(var(--cell, 30px) * .58); }
+.sd-notes i { font-size: calc(var(--cell, 30px) * .25); }
+.sd-board { width: auto; min-width: 0; display: inline-block; max-width: 100%; }
+.sd-tiles { width: auto; max-width: 100%; justify-content: center; padding: 8px 10px; gap: 6px; }
+.sd-tile { width: var(--tile, 36px); height: var(--tile, 36px); aspect-ratio: auto; }
+.sd-tile b { font-size: calc(var(--tile, 36px) * .55); }
+.sd-tools { flex-wrap: nowrap; gap: 8px; }
+.sd-tool { font-size: 14px !important; padding: 8px 12px !important; white-space: nowrap; }
+.sd-head h2 { font-size: clamp(24px, 6vw, 36px); }
+.sd-time { font-size: 15px; white-space: nowrap; }
+.sd-howto { font-size: 14px !important; margin-top: 12px !important; }
+.sd-full .sd-cell.br { margin-right: 0; } .sd-full .sd-cell.bb { margin-bottom: 0; }
+@media (max-width: 360px) { .sd-tool { font-size: 12.5px !important; padding: 7px 8px !important; } .sd-tools { gap: 5px; } }
+
+/* V18.3 sudoku: más aire entre bloques, todo centrado en la pantalla */
+.sd-full .sd-in { gap: 18px; min-height: 100%; justify-content: center; padding-top: calc(18px + env(safe-area-inset-top)); padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
+.sd-full .sd-tools { margin: 2px 0 6px; }
+.sd-full .sd-tiles { margin-top: 2px; }
