@@ -1,9 +1,9 @@
 // Día 21: puzle deslizante 3×3 (8 piezas y un hueco). Se toca (o se arrastra) una pieza de la misma fila
 // o columna que el hueco y se desliza. Al completarlo entra la última pieza y la imagen cobra vida.
 // Ayuda (solo si no lo consigues): números en las piezas y la pieza que conviene mover, brillando.
-import { el, sleep, confetti, popup, toast } from './fx.js?v=18';
-import { getLang } from './i18n.js?v=18';
-import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, slideSound } from './sound.js?v=18';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=18.1';
+import { getLang } from './i18n.js?v=18.1';
+import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, slideSound } from './sound.js?v=18.1';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const N = 3, GOAL = '012345678'; // la pieza 8 es el hueco (abajo a la derecha)

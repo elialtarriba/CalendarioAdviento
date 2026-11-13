@@ -1,9 +1,9 @@
 // Día 8: decorar el árbol (dibujo pintado de Elisabeth) arrastrando 25 objetos hasta su sitio.
 // Al encajar: «clac» y uno o dos destellos que suben y se apagan. Al acabar, el árbol cobra vida:
 // luces de colores que cambian, halo luminoso y la estrella brillando. Volver a jugar / Continuar.
-import { t, getLang } from './i18n.js?v=18';
-import { el, svgEl, confetti } from './fx.js?v=18';
-import { chime, pop, snapSound, clickSound, fanfare, christmasSong, unlockAudio } from './sound.js?v=18';
+import { t, getLang } from './i18n.js?v=18.1';
+import { el, svgEl, confetti } from './fx.js?v=18.1';
+import { chime, pop, snapSound, clickSound, fanfare, christmasSong, unlockAudio } from './sound.js?v=18.1';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const ns = 'http://www.w3.org/2000/svg';

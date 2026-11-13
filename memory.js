@@ -1,7 +1,7 @@
 // Día 12: mira la imagen; en la siguiente falta un objeto. ¿Cuál?
-import { t, getLang } from './i18n.js?v=18';
-import { el, sleep, toast } from './fx.js?v=18';
-import { chime } from './sound.js?v=18';
+import { t, getLang } from './i18n.js?v=18.1';
+import { el, sleep, toast } from './fx.js?v=18.1';
+import { chime } from './sound.js?v=18.1';
 
 // dibujos pintados al estilo del calendario
 const OBJ = [

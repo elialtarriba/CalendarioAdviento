@@ -1,18 +1,18 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store, DEMO } from './store.js?v=18';
-import { t, tx } from './i18n.js?v=18';
-import { el, popup, toast, esc } from './fx.js?v=18';
-import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode } from './app.js?v=18';
-import { openActEditor, plain, shrink } from './richact.js?v=18';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=18';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=18';
+import { store, DEMO } from './store.js?v=18.1';
+import { t, tx } from './i18n.js?v=18.1';
+import { el, popup, toast, esc } from './fx.js?v=18.1';
+import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode } from './app.js?v=18.1';
+import { openActEditor, plain, shrink } from './richact.js?v=18.1';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=18.1';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=18.1';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
 const FIG_IMG = { galleta: 'galleta.png', arbol: 'arbol.png', gnomo: 'gnomo.png' };
 const ST = { correct: '✓', incorrect: '✗', pending: '⏳' };
 const TYPE_NAME = { hats: 'Atrapa los 3 gorros', quiz: 'Pregunta con 4 respuestas', reindeer: 'Busca los renos con gafas', differences: 'Las 5 diferencias + susto', tree: 'Decorar el árbol',
-  memory: 'Ojo de lince (objeto que falta)', goodcheck: '¿Has sido bueno?', diploma: 'Diploma absurdo', roulette: 'Ruleta del disparate', dance: 'El baile secreto', santa: 'Tu cara en Papá Noel', puzzle: 'Puzle que cobra vida', pairs: 'Memory navideño (parejas)', ttt: 'Tres en raya navideño', crossword: 'Crucigrama de Navidad', wordsearch: 'Sopa de letras de animales', slidepuzzle: 'Puzle deslizante que cobra vida', ballsort: 'Ordena las bolas por colores', catch: 'Atrapa los regalos', simon: 'Papá Noel dice (Simón)' };
+  memory: 'Ojo de lince (objeto que falta)', goodcheck: '¿Has sido bueno?', diploma: 'Diploma absurdo', roulette: 'Ruleta del disparate', dance: 'El baile secreto', santa: 'Tu cara en Papá Noel', puzzle: 'Puzle que cobra vida', pairs: 'Memory navideño (parejas)', ttt: 'Tres en raya navideño', crossword: 'Crucigrama de Navidad', wordsearch: 'Sopa de letras de animales', slidepuzzle: 'Puzle deslizante que cobra vida', ballsort: 'Ordena las bolas por colores', catch: 'Atrapa los regalos', simon: 'Papá Noel dice (Simón)', sudoku: 'Sudoku de Navidad (4×4, 6×6, 9×9)' };
 
 export async function openAdmin() {
   if (!S.isAdmin) {
@@ -71,16 +71,16 @@ function showPanel() {
   const special = el('button', { class: 'sp-special no-delay', onclick: () => {
     [...bar.children].forEach(b => b.classList.remove('active'));
     content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
-    import('./surprise.js?v=18').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
+    import('./surprise.js?v=18.1').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
   } }, el('span', { class: 'sp-special-ico' }, '💌'), el('span', {}, el('b', {}, 'Mensajes sorpresa'), el('small', {}, 'Un popup para quien tú quieras, el día que quieras')));
-  const guide = el('button', { class: 'hg-open no-delay', onclick: () => import('./help.js?v=18').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+  const guide = el('button', { class: 'hg-open no-delay', onclick: () => import('./help.js?v=18.1').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
     el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos')));
   // solo para la administradora principal (no para los demás administradores)
   const owner = DEMO || (S.user?.email || '').toLowerCase() === 'elialtarriba@gmail.com';
   const who = owner ? el('button', { class: 'sp-special pr-open no-delay', onclick: () => {
     [...bar.children].forEach(b => b.classList.remove('active'));
     content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
-    import('./presence.js?v=18').then(m => m.presenceAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
+    import('./presence.js?v=18.1').then(m => m.presenceAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
   } }, el('span', { class: 'sp-special-ico' }, '🟢'), el('span', {}, el('b', {}, 'Quién está en la app'), el('small', {}, 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta'))) : null;
   const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), who, special, guide, bar, content);
   // los botones de guardar y de volver se quedan siempre a la vista al hacer scroll
