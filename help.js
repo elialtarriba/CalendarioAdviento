@@ -1,10 +1,10 @@
 // Guía de la app (para la administradora): pantalla completa, índice, dibujos y zoom con dos dedos
-import { el } from './fx.js?v=19';
-import { getLang } from './i18n.js?v=19';
-import { PORTADAS, PAPERS } from './defaults.js?v=19';
-import { figure, S } from './app.js?v=19';
-import { store } from './store.js?v=19';
-import { toast } from './fx.js?v=19';
+import { el } from './fx.js?v=19.2';
+import { getLang } from './i18n.js?v=19.2';
+import { PORTADAS, PAPERS } from './defaults.js?v=19.2';
+import { figure, S } from './app.js?v=19.2';
+import { store } from './store.js?v=19.2';
+import { toast } from './fx.js?v=19.2';
 // una ventanita del calendario (recortada del tema «Cosas Navidad»), como las de la portada
 function doorCrop(d = 1, cls = '') {
   const v = PORTADAS[0].variants.find(x => /movil/.test(x.img)) || PORTADAS[0].variants[0];
@@ -309,7 +309,7 @@ function userSections() {
   { id: 'u-start', ico: '❄️', color: '#0e7490', title: L('Cómo se entra: la pantalla de la nieve', 'Com s’entra: la pantalla de la neu', 'How to get in: the snow screen'), body: () => [
     P(L('Al abrir la app empieza a ', 'En obrir l’app comença a ', 'When you open the app, it starts to '), B(L('nevar', 'nevar', 'snow')), L(' y suena música de Navidad (en iPhone, toca la pantalla para oírla). Abajo verás una tarjeta:', ' i sona música de Nadal (a l’iPhone, toca la pantalla per sentir-la). A baix veuràs una targeta:', ' and Christmas music plays (on iPhone, tap the screen to hear it). At the bottom you’ll see a card:')),
     mock(L('¿Cómo te llamas?', 'Com et dius?', 'What is your name?'), el('div', { class: 'hg-field' }, 'Marian'), el('div', { class: 'hg-field' }, '• • • •'), el('div', { class: 'hg-guide-btn' }, '🔔 ', B(L('Pulsa para empezar', 'Prem per començar', 'Tap to start')))),
-    steps(el('span', {}, L('Escribe ', 'Escriu ', 'Write '), B(L('tu nombre', 'el teu nom', 'your name')), L(' (si en la familia hay dos personas con el mismo, añade el apellido).', ' (si a la família hi ha dues persones amb el mateix, afegeix-hi el cognom).', ' (if two people in the family share it, add your surname).')),
+    steps(el('span', {}, L('Escribe ', 'Escriu ', 'Write '), B(L('tu nombre', 'el teu nom', 'your name')), L('. Si en la familia hay dos personas con el mismo nombre, poned el nombre con un número, por ejemplo Marian2. La aplicación os dirá si el nombre ya está cogido.', '. Si a la família hi ha dues persones amb el mateix nom, poseu el nom amb un número, per exemple Marian2. L’aplicació us dirà si el nom ja està agafat.', '. If two people in the family have the same name, add a number to it, for example Marian2. The app will tell you if the name is already taken.')),
       el('span', {}, L('Escribe tu ', 'Escriu el teu ', 'Write your '), B(L('PIN de 4 números', 'PIN de 4 números', '4-number PIN')), L('. La primera vez ', '. La primera vegada ', '. The first time '), B(L('te lo inventas tú', 'te l’inventes tu', 'you make it up')), L(': la app te lo enseñará en grande para que lo recuerdes.', ': l’app te l’ensenyarà en gran perquè el recordis.', ': the app will show it to you in big numbers so you remember it.')),
       el('span', {}, L('Pulsa ', 'Prem ', 'Tap '), btn('🔔 ' + L('Pulsa para empezar', 'Prem per començar', 'Tap to start'), 'red'), L(' y ya estás dentro.', ' i ja ets a dins.', ' and you’re in.'))),
     el('div', { class: 'hg-list' },

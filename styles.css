@@ -2263,3 +2263,50 @@ body:has(.splash) .hg { z-index: 1100; }
 .wl-sign b { font-family: 'Great Vibes', cursive; font-style: normal; font-size: 30px; color: #b3122e; font-weight: 400; }
 @media (max-height: 760px) { .splash-guide { padding: 7px 14px; font-size: 15px; } }
 .splash-ver { position: absolute; z-index: 4; left: 12px; bottom: max(6px, env(safe-area-inset-bottom)); font: 600 11px 'Montserrat', sans-serif; color: #9aa8b8; opacity: .7; pointer-events: none; }
+
+/* V19.1 · laberinto: niveles, reloj, flechas y resultado */
+.mz-over { overflow-y: auto; align-items: flex-start; }
+.mz-over .mz-how { margin: auto 0; max-height: none; }
+.mz-intro { text-align: center; padding: 10px 14px 12px; }
+.mz-lv-h { text-align: center; margin: 10px 0 8px; font-family: 'Mountains of Christmas', cursive; font-size: 28px; color: #a3122a; }
+.mz-levels { display: flex; flex-direction: column; gap: 14px; max-width: 520px; margin: 0 auto 12px; }
+.mz-lv { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 16px; border: 0; border-radius: 20px; cursor: pointer; text-align: left; color: #fff; font-family: 'Fredoka', sans-serif;
+  box-shadow: 0 6px 0 var(--d), 0 10px 16px #0003, inset 0 2px 0 #ffffff55; transition: transform .08s, box-shadow .08s; }
+.mz-lv:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--d), inset 0 2px 0 #ffffff44; }
+.mz-lv-f { --d: #0d4a28; background: linear-gradient(120deg, #1f8a4c, #34c26f); }
+.mz-lv-m { --d: #8a6408; background: linear-gradient(120deg, #c99a2e, #e8b64c); }
+.mz-lv-x { --d: #5a0614; background: linear-gradient(120deg, #a3122a, #e11d48); }
+.mz-lv-stars { flex: none; min-width: 78px; font-size: 22px; text-align: center; filter: drop-shadow(0 2px 2px #0004); }
+.mz-lv-txt b { display: block; font-size: 22px; text-shadow: 0 1px 2px #0005; }
+.mz-lv-txt small { display: block; font-size: 14px; opacity: .95; }
+.mz-firstbox { max-width: 520px; margin: 8px auto 0; padding: 10px 14px; text-align: center; border-radius: 16px; background: #fff4dc; border: 2px solid #e8b64c; font: 600 16px 'Fredoka', sans-serif; color: #5a2a1a; }
+.mz-firstbox p { margin: 0 0 8px !important; }
+.mz-clock { font-variant-numeric: tabular-nums; }
+.mz-hud { align-items: center; gap: 6px; }
+.mz-pad { display: grid; grid-template-columns: repeat(3, 58px); grid-template-rows: repeat(2, 50px); gap: 6px 10px; justify-content: center; margin-top: 12px; }
+.mz-arrow { border: 0; border-radius: 16px; cursor: pointer; color: #7a1020; font-size: 24px; touch-action: none; -webkit-user-select: none; user-select: none;
+  background: linear-gradient(#fffefa, #fbeccc); box-shadow: 0 5px 0 #c99a2e, 0 7px 12px #0004, inset 0 0 0 2px #f2c14e; transition: transform .06s, box-shadow .06s; }
+.mz-arrow.on, .mz-arrow:active { transform: translateY(4px); box-shadow: 0 1px 0 #c99a2e, inset 0 0 0 2px #f2c14e; }
+.mz-arrow.up { grid-column: 2; grid-row: 1; } .mz-arrow.left { grid-column: 1; grid-row: 2; } .mz-arrow.down { grid-column: 2; grid-row: 2; } .mz-arrow.right { grid-column: 3; grid-row: 2; }
+.mz-stage.bump { animation: mzBump .25s; }
+@keyframes mzBump { 30% { transform: translateX(-4px); } 70% { transform: translateX(4px); } }
+.mz-result { display: flex; justify-content: center; gap: 10px; margin: 6px 0 8px; }
+.mz-result div { min-width: 86px; padding: 8px 10px; border-radius: 16px; background: #fffaf0; border: 2px solid #e8b64c; box-shadow: 0 3px 0 #c99a2e; }
+.mz-result small { display: block; font: 700 12px 'Fredoka', sans-serif; color: #b8862b; text-transform: uppercase; }
+.mz-result b { display: block; font: 800 22px 'Fredoka', sans-serif; color: #b3122e; }
+.mz-share { background: linear-gradient(#25d366, #128c4a) !important; color: #fff !important; }
+/* aviso de nombre cogido / PIN: letra de Navidad */
+.splash-err:not(:empty) { font: 700 21px/1.2 'Mountains of Christmas', cursive; color: #a3122a; background: linear-gradient(#fffdf6, #fff1d6); border: 2px solid #e8b64c; border-radius: 16px;
+  padding: 8px 12px; box-shadow: 0 3px 0 #c99a2e, 0 0 14px #ffd24a55; max-width: none; }
+/* día 21: el vídeo que da vida al puzle (se para tocándolo) */
+.sp-grid.alive .sp-alive { pointer-events: auto; cursor: pointer; }
+.sp-alive-hint { font-size: 14px !important; color: #7a4a2a !important; font-weight: 600 !important; }
+/* popup «este nombre ya existe» */
+.nt { text-align: center; }
+.nt-deco { color: #d4a017; letter-spacing: 6px; }
+.nt-title { font-family: 'Mountains of Christmas', cursive; color: #b3122e; font-size: 34px; margin: 4px 0 2px; }
+.nt .nt-name { font-family: 'Mountains of Christmas', cursive; font-weight: 700; font-size: 30px; color: #1f6b45; margin: 0 0 8px; }
+.nt p { font-size: 16px; line-height: 1.45; color: #4a2a1a; }
+.nt-small { font-size: 14px !important; opacity: .85; font-style: italic; }
+.nt-pop .popup-btns { flex-direction: column-reverse; }
+.nt-pop .popup-btns .btn { width: 100%; }

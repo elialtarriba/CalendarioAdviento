@@ -1,9 +1,9 @@
 // Día 14: atrapa los regalos. Caen cosas de Navidad (y trolls gruñones). Se coge un objeto con el dedo
 // y se arrastra hasta el saco de Papá Noel: suma puntos (cada cosa vale distinto). Las cosas se van
 // desvaneciendo mientras caen. Tocar un troll: gruñido, vibración, explota y resta puntos. Meta: 100 puntos.
-import { el, sleep, popup, toast } from './fx.js?v=19';
-import { getLang } from './i18n.js?v=19';
-import { pop, chime, unlockAudio, grumble, boom, sackDrop, wishSong } from './sound.js?v=19';
+import { el, sleep, popup, toast } from './fx.js?v=19.2';
+import { getLang } from './i18n.js?v=19.2';
+import { pop, chime, unlockAudio, grumble, boom, sackDrop, wishSong } from './sound.js?v=19.2';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const GOAL = 100, TROLL_PTS = 10;
