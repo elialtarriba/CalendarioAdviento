@@ -2,10 +2,10 @@
 // se toca una casilla y luego el número (o se arrastra la ficha). Si el número es el bueno encaja con un
 // «clac»; si no, vuelve a su sitio. En el 9×9 se pueden apuntar números posibles (en las esquinas y el centro).
 // Botón de ayuda: pone un número. Al acabar: las fichas salen volando, se convierten en estrellas y aparece «¡Conseguido!».
-import { el, sleep, confetti } from './fx.js?v=20.1';
-import { getLang } from './i18n.js?v=20.1';
-import { pop, chime, fanfare, unlockAudio, snapSound, clickSound, oops } from './sound.js?v=20.1';
-import { nextGame, rng, TOTAL } from './games25.js?v=20.1';
+import { el, sleep, confetti } from './fx.js?v=20.3';
+import { getLang } from './i18n.js?v=20.3';
+import { pop, chime, fanfare, unlockAudio, snapSound, clickSound, oops } from './sound.js?v=20.3';
+import { nextGame, rng, TOTAL } from './games25.js?v=20.3';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const SIZES = { 4: { br: 2, bc: 2, givens: 8 }, 6: { br: 2, bc: 3, givens: 17 }, 9: { br: 3, bc: 3, givens: 34 } };

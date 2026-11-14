@@ -4,10 +4,10 @@
 // una pared o se levanta antes de llegar, el camino se borra y se vuelve a empezar desde Papá Noel; con las
 // flechas, la pared solo frena. Con los 3 regalos, Papá Noel tiene que llegar al trineo.
 // Se cuenta el tiempo. Solo cuenta la PRIMERA partida (se guarda como respuesta del día y se puede compartir).
-import { el, sleep, confetti, toast, popup } from './fx.js?v=20.1';
-import { getLang } from './i18n.js?v=20.1';
-import { pop, chime, fanfare, unlockAudio, snapSound, oops, jingle, christmasSong } from './sound.js?v=20.1';
-import { nextGame, rng, TOTAL } from './games25.js?v=20.1';
+import { el, sleep, confetti, toast, popup } from './fx.js?v=20.3';
+import { getLang } from './i18n.js?v=20.3';
+import { pop, chime, fanfare, unlockAudio, snapSound, oops, jingle, christmasSong } from './sound.js?v=20.3';
+import { nextGame, rng, TOTAL } from './games25.js?v=20.3';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const GIFTS = ['ilu-gl.webp', 'ilu-gr.webp', 'ilu-4.webp'];
@@ -114,7 +114,9 @@ export function render(body, ctx, levelId = null) {
 
   // gnomos, primera partida: al llegar al primer regalo se destapan los premios (el suyo y lo que «podría» haber ganado)
   const isGnome = ctx.settings?.figure === 'gnomo', counts0 = !ctx.prev && !ctx._mzFirst;
-  const money = { win: Number(ctx.config?.mazeMoney?.win ?? 5), other: Number(ctx.config?.mazeMoney?.other ?? 50) };
+  // los 3 premios (Configuración → «Casilla 11 · Gnomos»), por orden de llegada: 1.º regalo, 2.º y 3.º
+  const prizes = mazePrizes(ctx.config);
+  const giftPrize = []; // índice del regalo → premio que le ha tocado
   let moneyShown = false, moneyEls = [];
   let cs = 30, nTries = 0, anchor = [0, 0], locked = [], active = null, ghosts = [], taken = [false, false, false], done = false, warnedSleigh = false, moving = false;
   // ---- reloj
@@ -137,18 +139,21 @@ export function render(body, ctx, levelId = null) {
     cv.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
     if (!moving) posEl(santa, anchor, .92);
     M.gifts.forEach((p, i) => posEl(giftEls[i], p, .84)); posEl(sleighEl, M.sleigh, .98);
-    moneyEls.forEach((m, i) => placeMoney(m, M.gifts[i]));
+    moneyEls.forEach(([m, i]) => placeMoney(m, M.gifts[i]));
     draw();
   }
   function placeMoney(m, [r, c]) { Object.assign(m.style, { left: (c * cs + cs / 2) + 'px', top: (r * cs - 2) + 'px', fontSize: Math.max(11, cs * .42) + 'px' }); }
-  function revealMoney(gi) {
+  // chispitas de estrellas al llegar a un regalo (para todos)
+  function sparkle(gi) { const g = giftEls[gi]; for (let k = 0; k < 9; k++) { const sp = el('i', { class: 'mz-spark', style: `--a:${Math.round(Math.random() * 360)}deg;--d:${(Math.random() * .5).toFixed(2)}s` }, '✦'); g.append(sp); setTimeout(() => sp.remove(), 2400); } }
+  // gnomos, 1.ª partida: el premio de ESE regalo se destapa al llegar (los demás siguen tapados)
+  function revealPrize(gi) {
     moneyShown = true;
-    moneyEls = M.gifts.map((p, i) => { const m = el('span', { class: 'mz-money ' + (i === gi ? 'win' : 'lost') }, euro(i === gi ? money.win : money.other)); placeMoney(m, p); stage.append(m); return m; });
-    // chispitas de estrellas en los tres regalos
-    giftEls.forEach(g => { for (let k = 0; k < 7; k++) { const sp = el('i', { class: 'mz-spark', style: `--a:${Math.round(Math.random() * 360)}deg;--d:${(Math.random() * .6).toFixed(2)}s` }, '✦'); g.append(sp); setTimeout(() => sp.remove(), 2600); } });
+    const n = giftPrize.length, pz = prizes[n] ?? ''; giftPrize.push(pz);
+    const m = el('span', { class: 'mz-money win' }, prizeLabel(pz)); placeMoney(m, M.gifts[gi]); stage.append(m); moneyEls.push([m, gi]);
     fanfare();
-    toast('🎁 ' + L(`¡Has ganado ${euro(money.win)}! (Los otros regalos tenían ${euro(money.other)}… ¡casi!)`, `Has guanyat ${euro(money.win)}! (Els altres regals tenien ${euro(money.other)}… gairebé!)`, `You won ${euro(money.win)}! (The other presents had ${euro(money.other)}… so close!)`), 5000);
+    toast('🎁 ' + L(`¡Premio en el regalo ${n + 1}: ${prizeLabel(pz)}!`, `Premi al regal ${n + 1}: ${prizeLabel(pz)}!`, `Prize in present ${n + 1}: ${prizeLabel(pz)}!`), 3000);
   }
+
 
   // ---- dibujo
   const ctr = ([r, c]) => [c * cs + cs / 2, r * cs + cs / 2];
@@ -277,7 +282,8 @@ export function render(body, ctx, levelId = null) {
     anchor = p.slice(); moving = false;
     if (gi >= 0) {
       taken[gi] = true; giftEls[gi].classList.add('got'); paintHud();
-      if (isGnome && counts0 && !moneyShown) revealMoney(gi);
+      sparkle(gi);
+      if (isGnome && counts0) revealPrize(gi);
       const r = giftEls[gi].getBoundingClientRect(); confetti(60, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
       if (taken.every(Boolean)) { sleighEl.classList.add('ready'); toast('🛷 ' + L('¡Ya tienes los 3 regalos! Ahora lleva a Papá Noel al trineo.', 'Ja tens els 3 regals! Ara porta el Pare Noel al trineu.', 'You have the 3 presents! Now take Santa to the sleigh.'), 3200); }
     } else win();
@@ -288,7 +294,7 @@ export function render(body, ctx, levelId = null) {
   ctx.cleanup = () => { hideLoupe(); clearInterval(tick); try { music?.stop(1); } catch {} };
   async function win() {
     done = true; stopClock();
-    const res = { time: Math.round(elapsed), level: levelId, tries: nTries, at: Date.now(), ...(moneyShown ? { money: money.win } : {}) };
+    const res = { time: Math.round(elapsed), level: levelId, tries: nTries, at: Date.now(), ...(moneyShown ? { prizes: giftPrize.slice() } : {}) };
     const counts = !ctx.prev && !ctx._mzFirst; // solo la primera partida (la que se guarda como respuesta del día)
     if (counts) {
       ctx._mzFirst = res;
@@ -328,6 +334,18 @@ export function render(body, ctx, levelId = null) {
 }
 
 const euro = n => `${n} €`;
+// premios: si todo son números se suman; si hay texto, se dice que pasen a ver a Mamá Noel
+export const mazePrizes = cfg => { const p = cfg?.mazePrizes; if (Array.isArray(p)) return [0, 1, 2].map(i => String(p[i] ?? '').trim());
+  const w = cfg?.mazeMoney?.win ?? 5; return [String(w), String(w), String(w)]; };
+const num = x => { const t = String(x).replace(/€|eur(os)?/gi, '').replace(',', '.').trim(); return t !== '' && !isNaN(+t) ? +t : null; };
+const prizeLabel = x => (num(x) != null ? euro(num(x)) : String(x || '🎁'));
+function prizeSummary(list) {
+  const ps = (list || []).filter(x => String(x).trim());
+  if (!ps.length) return null;
+  const nums = ps.map(num);
+  if (nums.every(v => v != null)) { const t = Math.round(nums.reduce((a, b) => a + b, 0) * 100) / 100; return { total: euro(t), text: null }; }
+  return { total: null, text: ps.map(prizeLabel).join(' · ') };
+}
 // popup bonito al acabar: tiempo y enhorabuena (y el premio de los gnomos)
 function winPopup(res, lv) {
   popup(el('div', { class: 'mz-winpop' },
@@ -335,8 +353,10 @@ function winPopup(res, lv) {
     el('h2', {}, L('¡Enhorabuena, lo has conseguido!', 'Enhorabona, ho has aconseguit!', 'Congratulations, you did it!')),
     el('div', { class: 'mz-winpop-time' }, el('small', {}, L('Tu tiempo', 'El teu temps', 'Your time')), el('b', {}, fmt(res.time))),
     el('p', {}, `${lv.name()} · ${res.tries} ` + L('intentos', 'intents', 'tries')),
-    res.money != null ? el('div', { class: 'mz-winpop-money' }, el('b', {}, L('Premio: ', 'Premi: ', 'Prize: ') + euro(res.money)),
-      el('p', {}, L(`Compártelo en el grupo de la familia: ¡Mamá Noel lo verá y te dará ${euro(res.money)}!`, `Comparteix-ho al grup de la família: la Mare Noel ho veurà i et donarà ${euro(res.money)}!`, `Share it in the family group: Mrs Claus will see it and give you ${euro(res.money)}!`))) : null),
+    (() => { const ps = prizeSummary(res.prizes); if (!ps) return null;
+      return ps.total ? el('div', { class: 'mz-winpop-money' }, el('b', {}, L('Premio total: ', 'Premi total: ', 'Total prize: ') + ps.total),
+          el('p', {}, L(`Compártelo en el grupo de la familia: ¡Mamá Noel lo verá y te dará ${ps.total}!`, `Comparteix-ho al grup de la família: la Mare Noel ho veurà i et donarà ${ps.total}!`, `Share it in the family group: Mrs Claus will see it and give you ${ps.total}!`)))
+        : el('div', { class: 'mz-winpop-money' }, el('p', {}, L('Pasa a ver a Mamá Noel para recibir tu regalo:', 'Passa a veure la Mare Noel per rebre el teu regal:', 'Go and see Mrs Claus to get your present:')), el('b', { class: 'mz-prize-txt' }, ps.text)); })()),
     { cls: 'small', buttons: [{ label: '🎄 ' + L('¡Genial!', 'Genial!', 'Great!'), value: true }] });
 }
 
@@ -380,7 +400,7 @@ async function resultImage(res, name) {
   // tarjeta con el resultado
   g.fillStyle = '#fffaf0'; g.strokeStyle = '#f2c14e'; g.lineWidth = 8;
   const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
-  const hasMoney = res.money != null, o = hasMoney ? -40 : 0;
+  const ps = prizeSummary(res.prizes), hasMoney = !!ps, o = hasMoney ? -40 : 0;
   rr(120, 730 + o, W - 240, hasMoney ? 560 : 470, 46); g.fill(); g.stroke();
   g.fillStyle = '#7a1020'; g.font = '700 84px "Mountains of Christmas", cursive'; g.fillText(name || L('¡Lo he conseguido!', 'Ho he aconseguit!', 'I did it!'), W / 2, 830 + o);
   g.fillStyle = '#14532d'; g.font = '600 40px Montserrat, sans-serif';
@@ -389,9 +409,12 @@ async function resultImage(res, name) {
   const cols = [[L('TIEMPO', 'TEMPS', 'TIME'), fmt(res.time)], [L('NIVEL', 'NIVELL', 'LEVEL'), LEVELS[res.level]?.name() || ''], [L('INTENTOS', 'INTENTS', 'TRIES'), String(res.tries)]];
   cols.forEach(([k, v], i) => { const x = 270 + i * 270; g.fillStyle = '#b8862b'; g.font = '700 30px Montserrat, sans-serif'; g.fillText(k, x, 1035 + o); g.fillStyle = '#b3122e'; g.font = '800 64px Montserrat, sans-serif'; g.fillText(v, x, 1110 + o); });
   if (hasMoney) {
-    g.fillStyle = '#1f6b45'; g.font = '800 46px Montserrat, sans-serif'; g.fillText(L('PREMIO: ', 'PREMI: ', 'PRIZE: ') + euro(res.money), W / 2, 1140);
+    g.fillStyle = '#1f6b45'; let fs = 46; const top = ps.total ? L('PREMIO TOTAL: ', 'PREMI TOTAL: ', 'TOTAL PRIZE: ') + ps.total : ps.text;
+    g.font = `800 ${fs}px Montserrat, sans-serif`; while (g.measureText(top).width > W - 300 && fs > 22) { fs -= 2; g.font = `800 ${fs}px Montserrat, sans-serif`; }
+    g.fillText(top, W / 2, 1140);
     g.fillStyle = '#7a4a2a'; g.font = '600 28px Montserrat, sans-serif';
-    const [l1, l2] = L([`Al ponerlo en el grupo de la familia,`, `Mamá Noel lo verá y le dará ${euro(res.money)}`], [`En posar-ho al grup de la família,`, `la Mare Noel ho veurà i li donarà ${euro(res.money)}`], [`When shared in the family group,`, `Mrs Claus will see it and give ${euro(res.money)}`]);
+    const [l1, l2] = ps.total ? L([`Al ponerlo en el grupo de la familia,`, `Mamá Noel lo verá y le dará ${ps.total}`], [`En posar-ho al grup de la família,`, `la Mare Noel ho veurà i li donarà ${ps.total}`], [`When shared in the family group,`, `Mrs Claus will see it and give ${ps.total}`])
+      : L([`Pasa a ver a Mamá Noel`, `para recibir tu regalo`], [`Passa a veure la Mare Noel`, `per rebre el teu regal`], [`Go and see Mrs Claus`, `to get your present`]);
     g.fillText(l1, W / 2, 1185); g.fillText(l2, W / 2, 1222);
   }
   g.fillStyle = '#fff6d6'; g.font = '700 44px "Mountains of Christmas", cursive';
@@ -402,7 +425,7 @@ async function shareResult(res, ctx) {
   if (!res) return;
   const name = (ctx.profile?.name || '').trim();
   const text = L(`🎅 ¡He encontrado los 3 regalos perdidos de Papá Noel! Nivel ${LEVELS[res.level]?.name()} en ${fmt(res.time)}.`, `🎅 He trobat els 3 regals perduts del Pare Noel! Nivell ${LEVELS[res.level]?.name()} en ${fmt(res.time)}.`, `🎅 I found Santa’s 3 lost presents! ${LEVELS[res.level]?.name()} level in ${fmt(res.time)}.`)
-    + (res.money != null ? ' ' + L(`¡Mamá Noel, me debes ${euro(res.money)}! 😅`, `Mare Noel, em deus ${euro(res.money)}! 😅`, `Mrs Claus, you owe me ${euro(res.money)}! 😅`) : '') + (name ? `\n— ${name}` : '');
+    + ((ps => !ps ? '' : ps.total ? ' ' + L(`¡Mamá Noel, me debes ${ps.total}! 😅`, `Mare Noel, em deus ${ps.total}! 😅`, `Mrs Claus, you owe me ${ps.total}! 😅`) : ' ' + L(`¡Mamá Noel, voy a por mi regalo: ${ps.text}!`, `Mare Noel, vinc a buscar el meu regal: ${ps.text}!`, `Mrs Claus, I’m coming for my present: ${ps.text}!`))(prizeSummary(res.prizes))) + (name ? `\n— ${name}` : '');
   toast('✨ ' + L('Preparando la foto…', 'Preparant la foto…', 'Preparing the picture…'), 1500);
   const blob = await resultImage(res, name).catch(() => null);
   const file = blob ? new File([blob], 'laberinto-navidad.png', { type: 'image/png' }) : null;

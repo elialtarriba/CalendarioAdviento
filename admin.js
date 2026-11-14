@@ -1,11 +1,11 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store, DEMO } from './store.js?v=20.1';
-import { t, tx } from './i18n.js?v=20.1';
-import { el, popup, toast, esc } from './fx.js?v=20.1';
-import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode } from './app.js?v=20.1';
-import { openActEditor, plain, shrink } from './richact.js?v=20.1';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=20.1';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=20.1';
+import { store, DEMO } from './store.js?v=20.3';
+import { t, tx } from './i18n.js?v=20.3';
+import { el, popup, toast, esc } from './fx.js?v=20.3';
+import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode, celebrateStart } from './app.js?v=20.3';
+import { openActEditor, plain, shrink } from './richact.js?v=20.3';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=20.3';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=20.3';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -98,17 +98,20 @@ function showPanel() {
   const usersBtn = B('👥', 'Usuarios', 'Nombres, PIN, galleta / árbol / gnomo y sus días', root => VIEWS.users(root).then(() => usersBtn.querySelector('.adm-badge')?.remove()));
   store.listUsers().then(us => { const n = us.filter(pinNew).length; if (n) usersBtn.append(el('span', { class: 'adm-badge' }, `🔄 ${n} PIN ${n > 1 ? 'nuevos' : 'nuevo'}`)); }).catch(() => {});
   const btns = [
-    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=20.1').then(m => m.presenceAdmin(root))) : null,
-    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=20.1').then(m => m.surpriseAdmin(root))),
+    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=20.3').then(m => m.presenceAdmin(root))) : null,
+    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=20.3').then(m => m.surpriseAdmin(root))),
     B('📨', 'Respuestas', 'Lo que han contestado y lo que tienes que corregir', root => VIEWS.answers(root)),
     usersBtn,
     B('📅', 'Contenido de los días', 'Lo que sale en cada casilla y las actividades 1 y 2', root => VIEWS.days(root)),
     owner ? B('👤', 'Mis datos de administradora', 'Tu correo y tus contraseñas (pulsa el ojo para verlas)', root => VIEWS.me(root)) : null,
     B('🎁', 'Regalo sorpresa', 'La web que se abre con el botón «Regalo sorpresa» (días 24 y 25)', root => VIEWS.gift(root)),
-    B('🎰', 'Máquina de regalos y premio del laberinto', 'Las 5 opciones de la tragaperras (día 25) y el dinero del laberinto (día 11), solo para gnomos', root => VIEWS.slot(root)),
+    B('🎰', 'Máquina de regalos', 'Las 5 opciones de la tragaperras del día 25 (solo gnomos)', root => VIEWS.slot(root)),
     B('🏆', 'Premios y ajustes', 'Premios, abrir todas las casillas, modo prueba, contraseña…', root => VIEWS.general(root)),
-    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=20.1').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=20.3').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'adm-btn-ico' }, '📖'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos'))),
+    el('button', { class: 'adm-btn', onclick: () => { document.querySelectorAll('.popup-back').forEach(x => x.remove()); celebrateStart(true); } },
+      el('span', { class: 'adm-btn-ico' }, '🎆'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Probar la explosión del día 1'), el('small', {}, 'Cómo lo verán todos al entrar el 1 de diciembre (fuegos artificiales y «¡A empezar!»)'))),
+    B('🧝', 'Casilla 11 · Gnomos', 'Los 3 premios del laberinto (solo para los gnomos)', root => VIEWS.maze11(root)),
   ];
   const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), el('div', { class: 'adm-menu' }, ...btns.filter(Boolean)));
   popup(box, { cls: 'wide', buttons: [{ label: t('close'), value: true }] }).then(async r => {
@@ -140,13 +143,30 @@ async function loadAll(force) {
   return cache;
 }
 const VIEWS = {
-  // ---------------------------------------------------------------- Máquina de regalos (día 25) + dinero del laberinto (día 11)
+  // ---------------------------------------------------------------- Casilla 11 · Gnomos: los 3 premios del laberinto
+  async maze11(root) {
+    const { mazePrizes } = await import('./maze.js?v=20.3');
+    const cur = mazePrizes(S.config);
+    const ins = cur.map((v, i) => el('input', { type: 'text', value: v, maxlength: 40, placeholder: i ? `Ej.: 2 o «una chocolatina»` : 'Ej.: 5 o «un abrazo»' }));
+    const prev = el('p', { class: 'mz-adm-prev' });
+    const show = () => { const v = ins.map(x => x.value.trim()).filter(Boolean);
+      const nums = v.map(x => x.replace(/€|eur(os)?/gi, '').replace(',', '.').trim());
+      prev.textContent = !v.length ? 'Sin premios: no saldrá nada.' : nums.every(x => x !== '' && !isNaN(+x)) ? `Al final verán: «Premio total: ${Math.round(nums.reduce((a, b) => a + +b, 0) * 100) / 100} €»` : `Al final verán: «Pasa a ver a Mamá Noel para recibir tu regalo: ${v.join(' · ')}»`; };
+    ins.forEach(x => x.addEventListener('input', show)); show();
+    root.replaceChildren(el('div', { class: 'card' },
+      el('p', {}, 'Solo para los gnomos y solo en su primera partida (cualquier nivel). Cada premio está tapado hasta que llegan a su regalo: el 1.º que cogen destapa el premio 1, el 2.º el premio 2 y el 3.º el premio 3. Los demás jugadores solo ven chispas y sonidos.'),
+      el('p', { class: 'muted' }, 'Escribe un número (euros) o un texto. Si los tres son números, al final se suman; si hay texto, les sale que pasen a ver a Mamá Noel para recibir su regalo, con lo que has escrito.'),
+      ...ins.map((x, i) => el('label', { class: 'mm-row' }, el('span', {}, `🎁 Premio del regalo ${i + 1}`), x)),
+      prev,
+      el('button', { class: 'btn small-btn no-delay', onclick: async () => {
+        const v = ins.map(x => x.value.trim());
+        try { await store.saveConfig({ mazePrizes: v }); S.config.mazePrizes = v; toast('🎁 Premios guardados'); } catch (e) { toast('⚠️ ' + (e.code || e.message), 5000); }
+      } }, '💾 Guardar premios')));
+  },
+  // ---------------------------------------------------------------- Máquina de regalos (día 25)
   async slot(root) {
     const cur = S.config.slot?.opts || [];
     const ins = [0, 1, 2, 3, 4].map(i => el('input', { type: 'text', placeholder: `Opción ${i + 1} (ej.: Una cena sorpresa)`, value: cur[i] || '', maxlength: 60 }));
-    const mm = S.config.mazeMoney || {};
-    const win = el('input', { type: 'number', min: 0, step: 1, inputmode: 'numeric', value: mm.win ?? 5 });
-    const other = el('input', { type: 'number', min: 0, step: 1, inputmode: 'numeric', value: mm.other ?? 50 });
     root.replaceChildren(
       el('div', { class: 'card' }, el('h3', {}, '🎰 Máquina de regalos (día 25, solo gnomos)'),
         el('p', { class: 'muted' }, 'Debajo de «Regalo ya abierto», los gnomos tienen «Juega al Regalo Seguro». Al tirar de la palanca, el rodillo va pasando estas opciones; al tocarlo se para en una. Solo cuenta la primera tirada. Deja vacías las que no quieras.'),
@@ -155,15 +175,7 @@ const VIEWS = {
           const opts = ins.map(x => x.value.trim());
           try { await store.saveConfig({ slot: { opts } }); S.config.slot = { opts }; toast('🎰 Opciones guardadas'); } catch (e) { toast('⚠️ ' + (e.code || e.message), 5000); }
         } }, '💾 Guardar opciones'),
-        el('button', { class: 'btn btn-ghost small-btn no-delay', style: 'margin-left:8px', onclick: async () => { (await import('./slot.js?v=20.1')).openSlot(); } }, '👀 Probar la máquina')),
-      el('div', { class: 'card' }, el('h3', {}, '💶 Premio del laberinto (día 11, solo gnomos)'),
-        el('p', { class: 'muted' }, 'En la primera partida, al llegar al primer regalo, a ese regalo le sale el premio y a los otros dos «lo que podrían haber ganado». Vale para cualquier nivel.'),
-        el('label', { class: 'mm-row' }, el('span', {}, 'Premio que ganan (€)'), win),
-        el('label', { class: 'mm-row' }, el('span', {}, 'Lo que ponen los otros dos regalos (€)'), other),
-        el('button', { class: 'btn small-btn no-delay', onclick: async () => {
-          const v = { win: Math.max(0, Number(win.value) || 0), other: Math.max(0, Number(other.value) || 0) };
-          try { await store.saveConfig({ mazeMoney: v }); S.config.mazeMoney = v; toast('💶 Premio guardado'); } catch (e) { toast('⚠️ ' + (e.code || e.message), 5000); }
-        } }, '💾 Guardar premio')));
+        el('button', { class: 'btn btn-ghost small-btn no-delay', style: 'margin-left:8px', onclick: async () => { (await import('./slot.js?v=20.3')).openSlot(); } }, '👀 Probar la máquina')));
   },
   // ---------------------------------------------------------------- Regalo sorpresa (días 24 y 25)
   async gift(root) {
