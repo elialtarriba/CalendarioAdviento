@@ -1,10 +1,10 @@
 // Guía de la app (para la administradora): pantalla completa, índice, dibujos y zoom con dos dedos
-import { el } from './fx.js?v=19.2';
-import { getLang } from './i18n.js?v=19.2';
-import { PORTADAS, PAPERS } from './defaults.js?v=19.2';
-import { figure, S } from './app.js?v=19.2';
-import { store } from './store.js?v=19.2';
-import { toast } from './fx.js?v=19.2';
+import { el } from './fx.js?v=20';
+import { getLang } from './i18n.js?v=20';
+import { PORTADAS, PAPERS } from './defaults.js?v=20';
+import { figure, S } from './app.js?v=20';
+import { store } from './store.js?v=20';
+import { toast } from './fx.js?v=20';
 // una ventanita del calendario (recortada del tema «Cosas Navidad»), como las de la portada
 function doorCrop(d = 1, cls = '') {
   const v = PORTADAS[0].variants.find(x => /movil/.test(x.img)) || PORTADAS[0].variants[0];

@@ -2310,3 +2310,18 @@ body:has(.splash) .hg { z-index: 1100; }
 .nt-small { font-size: 14px !important; opacity: .85; font-style: italic; }
 .nt-pop .popup-btns { flex-direction: column-reverse; }
 .nt-pop .popup-btns .btn { width: 100%; }
+
+/* V19.3 · regalo sorpresa (días 24 y 25) */
+.gift-btn { display: flex; align-items: center; gap: 14px; width: 100%; max-width: 460px; margin: 0 auto; padding: 10px 18px 10px 12px; border: 0; border-radius: 22px; cursor: pointer; text-align: left; color: #fff;
+  background: linear-gradient(120deg, #a3122a, #e11d48 45%, #d4a017); box-shadow: 0 7px 0 #6e0a1c, 0 12px 20px #b3122e55, inset 0 2px 0 #ffffff66; transition: transform .08s, box-shadow .08s; animation: giftGlow 2.2s ease-in-out infinite; }
+.gift-btn:active { transform: translateY(6px); box-shadow: 0 1px 0 #6e0a1c, inset 0 2px 0 #ffffff44; }
+.gift-btn img { flex: none; width: 58px; height: 58px; object-fit: contain; filter: drop-shadow(0 3px 4px #0005); animation: bob 2s ease-in-out infinite; }
+.gift-btn-txt b { display: block; font-family: 'Mountains of Christmas', cursive; font-size: 28px; line-height: 1.05; text-shadow: 0 2px 3px #0005; }
+.gift-btn-txt small { display: block; font-size: 13px; opacity: .95; font-family: var(--font-ui, sans-serif); }
+.gift-btn.opened { background: linear-gradient(120deg, #1f6b45, #2f8f5b 55%, #d4a017); box-shadow: 0 7px 0 #0d4a28, 0 12px 20px #1f6b4555, inset 0 2px 0 #ffffff55; animation: none; }
+@keyframes giftGlow { 0%, 100% { filter: none; } 50% { filter: brightness(1.08) drop-shadow(0 0 10px #ffd24a); } }
+.gift-box24, .gift-box25, .gift-sum { width: 100%; margin: 18px 0 8px; display: flex; justify-content: center; }
+.gift-sum { padding: 0 14px 6px; box-sizing: border-box; }
+.gift-pop { text-align: center; } .gift-pop-img { width: 110px; animation: bob 2s ease-in-out infinite; }
+.gift-pop h2 { font-family: 'Mountains of Christmas', cursive; color: #b3122e; font-size: 30px; margin: 6px 0; }
+.gift-url { width: 100%; box-sizing: border-box; font-size: 16px; padding: 10px 12px; border-radius: 12px; border: 2px solid #e3cfa5; margin: 6px 0; }

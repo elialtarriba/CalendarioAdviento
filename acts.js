@@ -1,11 +1,12 @@
 // Actividades especiales (interactivas) de algunos días
 //  · Día 23: tres regalos que no se compran, debajo de un árbol con luces → eliges a quién se los das
 //  · Día 24: el regalo que Papá Noel ha dejado para ti → lazo, luz, bolas con regalos imaginarios
-import { el, sleep, confetti, popup, toast } from './fx.js?v=19.2';
-import { getLang } from './i18n.js?v=19.2';
-import { chime, pop, jingle, hohoho, christmasSong, unlockAudio } from './sound.js?v=19.2';
-import { S } from './app.js?v=19.2';
-import { store } from './store.js?v=19.2';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=20';
+import { getLang } from './i18n.js?v=20';
+import { chime, pop, jingle, hohoho, christmasSong, unlockAudio } from './sound.js?v=20';
+import { S } from './app.js?v=20';
+import { store } from './store.js?v=20';
+import { giftButton } from './gift.js?v=20';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const img = (src, cls = '') => el('img', { src, class: 'ilu ' + cls, alt: '', draggable: 'false' });
@@ -186,7 +187,8 @@ function present24(box) {
     const teaser = el('div', { class: 'p24-teaser' }, img(PRESENT));
     const go = el('button', { class: 'btn btn-big no-delay p24-go' }, '🎬 ' + L('Abrir mi regalo', 'Obrir el meu regal', 'Open my present'));
     const foot = el('div', { class: 'p24-foot' });
-    box.append(head, el('p', { class: 'p24-hint' }, L('«Hay un paquete con tu nombre…»', '«Hi ha un paquet amb el teu nom…»', '“There’s a parcel with your name on it…”')), teaser, el('div', { class: 'p24-foot' }, go), foot);
+    box.append(head, el('p', { class: 'p24-hint' }, L('«Hay un paquete con tu nombre…»', '«Hi ha un paquet amb el teu nom…»', '“There’s a parcel with your name on it…”')), teaser, el('div', { class: 'p24-foot' }, go), foot,
+      el('div', { class: 'gift-box24' }, giftButton({ opened: !!S.profile?.giftOpened })));
     let finished = false;
     const start = () => cinema().then(done => {
       if (!done) return;

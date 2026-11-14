@@ -1,7 +1,7 @@
 // Día 15: el diploma absurdo
-import { t } from './i18n.js?v=19.2';
-import { el, confetti } from './fx.js?v=19.2';
-import { chime } from './sound.js?v=19.2';
+import { t } from './i18n.js?v=20';
+import { el, confetti } from './fx.js?v=20';
+import { chime } from './sound.js?v=20';
 
 export function render(body, ctx) {
   const today = new Date(+(ctx.config?.year) || new Date().getFullYear(), 11, 25).toLocaleDateString(ctx.lang === 'en' ? 'en-GB' : ctx.lang === 'ca' ? 'ca-ES' : 'es-ES', { day: 'numeric', month: 'long', year: 'numeric' });

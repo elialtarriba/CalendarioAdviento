@@ -1,11 +1,11 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store, DEMO } from './store.js?v=19.2';
-import { t, tx } from './i18n.js?v=19.2';
-import { el, popup, toast, esc } from './fx.js?v=19.2';
-import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode } from './app.js?v=19.2';
-import { openActEditor, plain, shrink } from './richact.js?v=19.2';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=19.2';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=19.2';
+import { store, DEMO } from './store.js?v=20';
+import { t, tx } from './i18n.js?v=20';
+import { el, popup, toast, esc } from './fx.js?v=20';
+import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode } from './app.js?v=20';
+import { openActEditor, plain, shrink } from './richact.js?v=20';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=20';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=20';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -98,14 +98,15 @@ function showPanel() {
   const usersBtn = B('👥', 'Usuarios', 'Nombres, PIN, galleta / árbol / gnomo y sus días', root => VIEWS.users(root).then(() => usersBtn.querySelector('.adm-badge')?.remove()));
   store.listUsers().then(us => { const n = us.filter(pinNew).length; if (n) usersBtn.append(el('span', { class: 'adm-badge' }, `🔄 ${n} PIN ${n > 1 ? 'nuevos' : 'nuevo'}`)); }).catch(() => {});
   const btns = [
-    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=19.2').then(m => m.presenceAdmin(root))) : null,
-    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=19.2').then(m => m.surpriseAdmin(root))),
+    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=20').then(m => m.presenceAdmin(root))) : null,
+    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=20').then(m => m.surpriseAdmin(root))),
     B('📨', 'Respuestas', 'Lo que han contestado y lo que tienes que corregir', root => VIEWS.answers(root)),
     usersBtn,
     B('📅', 'Contenido de los días', 'Lo que sale en cada casilla y las actividades 1 y 2', root => VIEWS.days(root)),
     owner ? B('👤', 'Mis datos de administradora', 'Tu correo y tus contraseñas (pulsa el ojo para verlas)', root => VIEWS.me(root)) : null,
+    B('🎁', 'Regalo sorpresa', 'La web que se abre con el botón «Regalo sorpresa» (días 24 y 25)', root => VIEWS.gift(root)),
     B('🏆', 'Premios y ajustes', 'Premios, abrir todas las casillas, modo prueba, contraseña…', root => VIEWS.general(root)),
-    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=19.2').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=20').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'adm-btn-ico' }, '📖'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos'))),
   ];
   const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), el('div', { class: 'adm-menu' }, ...btns.filter(Boolean)));
@@ -138,6 +139,26 @@ async function loadAll(force) {
   return cache;
 }
 const VIEWS = {
+  // ---------------------------------------------------------------- Regalo sorpresa (días 24 y 25)
+  async gift(root) {
+    const cur = S.config.gift || {};
+    const url = el('input', { type: 'url', inputmode: 'url', placeholder: 'https://…', value: cur.url || '', autocomplete: 'off', class: 'gift-url' });
+    const state = el('p', { class: 'muted' });
+    const paint = () => { state.textContent = (S.config.gift?.url || '').trim() ? '✅ Ahora mismo el botón abre: ' + S.config.gift.url : '⏳ Todavía no hay web: si alguien pulsa el botón le sale «¡Shhh! Todavía se está envolviendo…».'; };
+    paint();
+    const save = async v => {
+      try { await store.saveConfig({ gift: { url: v } }); S.config.gift = { url: v }; paint(); toast(v ? '🎁 Web del regalo guardada' : '🗑️ Web del regalo quitada'); }
+      catch (e) { toast('⚠️ ' + (e.code || e.message), 5000); }
+    };
+    root.replaceChildren(el('div', { class: 'card' },
+      el('p', {}, 'Escribe (o pega) la dirección de la web del regalo. El botón «🎁 Regalo sorpresa» sale en:'),
+      el('ul', {}, el('li', {}, 'Las actividades 1 y 2 del día 24 (árboles y gnomos).'), el('li', {}, 'Abajo del todo de la casilla 25 (allí, a los árboles y gnomos les sale «Regalo ya abierto»).'), el('li', {}, 'Al final del resumen del día 25.')),
+      url, state,
+      el('div', { class: 'row' },
+        el('button', { class: 'btn small-btn no-delay', onclick: () => { let v = url.value.trim(); if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v; url.value = v; save(v); } }, '💾 Guardar'),
+        el('button', { class: 'btn btn-ghost small-btn no-delay', onclick: () => { const v = url.value.trim(); if (!v) return toast('Primero escribe la web'); window.open(/^https?:\/\//i.test(v) ? v : 'https://' + v, '_blank', 'noopener'); } }, '👀 Probarla'),
+        el('button', { class: 'btn btn-ghost small-btn no-delay', onclick: () => { url.value = ''; save(''); } }, '🗑️ Quitar'))));
+  },
   // ---------------------------------------------------------------- Mis datos de administradora
   async me(root) {
     root.replaceChildren(el('div', { class: 'card adm-me' },

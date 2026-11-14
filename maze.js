@@ -4,10 +4,10 @@
 // una pared o se levanta antes de llegar, el camino se borra y se vuelve a empezar desde Papá Noel; con las
 // flechas, la pared solo frena. Con los 3 regalos, Papá Noel tiene que llegar al trineo.
 // Se cuenta el tiempo. Solo cuenta la PRIMERA partida (se guarda como respuesta del día y se puede compartir).
-import { el, sleep, confetti, toast, popup } from './fx.js?v=19.2';
-import { getLang } from './i18n.js?v=19.2';
-import { pop, chime, fanfare, unlockAudio, snapSound, oops, jingle, christmasSong } from './sound.js?v=19.2';
-import { nextGame, rng, TOTAL } from './games25.js?v=19.2';
+import { el, sleep, confetti, toast, popup } from './fx.js?v=20';
+import { getLang } from './i18n.js?v=20';
+import { pop, chime, fanfare, unlockAudio, snapSound, oops, jingle, christmasSong } from './sound.js?v=20';
+import { nextGame, rng, TOTAL } from './games25.js?v=20';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const GIFTS = ['ilu-gl.webp', 'ilu-gr.webp', 'ilu-4.webp'];
