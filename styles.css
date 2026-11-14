@@ -2419,3 +2419,35 @@ body.full-view .cd-fab { bottom: calc(var(--fv-strip, 0px) + 10px); z-index: 32;
 .cd-boom-msg { position: absolute; font-family: 'Mountains of Christmas', cursive; font-weight: 700; font-size: clamp(54px, 15vw, 110px); color: #ffe27a; text-shadow: 0 0 18px #ffd24a, 0 0 40px #ff9d2e, 0 4px 0 #7a1020;
   opacity: 0; animation: cdMsg 1.2s cubic-bezier(.2,1.6,.4,1) 1.5s both; }
 @keyframes cdMsg { from { opacity: 0; transform: scale(.3) rotate(-6deg); } to { opacity: 1; transform: none; } }
+
+/* V20.4 · usuarios: Configurar y Eliminar uno al lado del otro */
+.u-btns { display: flex; gap: 8px; flex: none; }
+.u-btns .u-btn { flex: 1 1 0; white-space: nowrap; }
+.u-del { background: linear-gradient(#fdf6ea, #f1e1c2) !important; color: #8a0d22 !important; box-shadow: 0 4px 0 #c99a2e, inset 0 0 0 2px #e3cfa5 !important; }
+@media (max-width: 520px) { .u-btns { flex: 1 1 100%; } .u-btn { flex: 1 1 0 !important; } }
+
+/* V20.4 · pantalla de la nieve: idioma, botones 3D y todo alineado */
+.splash-lang { position: absolute; z-index: 5; top: max(14px, env(safe-area-inset-top)); left: 14px; height: 42px; display: inline-flex; align-items: center; gap: 4px; padding: 0 12px 0 10px;
+  border-radius: 999px; border: 3px solid #e8b64c; background: radial-gradient(circle at 35% 30%, #fff, #fff4dc); box-shadow: 0 4px 0 #c99a2e, 0 6px 14px #0002; cursor: pointer; box-sizing: border-box; }
+.splash-lang:active { transform: translateY(3px); box-shadow: 0 1px 0 #c99a2e; }
+.splash-lang span { font-size: 18px; }
+.splash-lang i { font-style: normal; color: #b3122e; font-size: 13px; pointer-events: none; }
+.splash-lang-sel { -webkit-appearance: none; appearance: none; border: 0; background: transparent; font: 800 15px 'Montserrat', sans-serif; color: #7a1020; padding: 0 2px; cursor: pointer; outline: none; }
+.splash-admin { display: inline-block; margin-top: 2px; padding: 6px 14px; border-radius: 999px; border: 2px solid #e3cfa5; background: linear-gradient(#fffdf8, #f6ead2); color: #8a5a3a;
+  font: 700 13px 'Montserrat', sans-serif; text-decoration: none; opacity: 1; box-shadow: 0 3px 0 #d8c39a; transition: transform .08s, box-shadow .08s; }
+.splash-admin:active { transform: translateY(2px); box-shadow: 0 1px 0 #d8c39a; }
+.splash-guide { transition: transform .08s, box-shadow .08s; }
+.splash-form { gap: 11px; }
+.splash-start:not(:disabled):active { transform: translateY(4px) scale(.98); box-shadow: 0 2px 0 #5a0614; }
+.splash-msg { padding-top: calc(max(14px, env(safe-area-inset-top)) + 60px); padding-bottom: max(30px, calc(env(safe-area-inset-bottom) + 24px)); }
+@media (max-height: 760px) {
+  .splash-pic { display: none; }
+  .splash-msg { gap: 10px; }
+  .splash-title { font-size: clamp(22px, 6vw, 30px); }
+  .splash-form { padding: 12px 14px 14px; gap: 8px; }
+  .splash-form label { font-size: 24px; }
+  .splash-name { padding: 9px 14px; font-size: 17px; }
+  .splash-start { padding: 11px 16px; }
+  .splash-guide { padding: 8px 14px; font-size: 15px; }
+  .splash-pin-hint { font-size: 12px; }
+}

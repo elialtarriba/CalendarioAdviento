@@ -1,5 +1,5 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js?v=20.3';
+import { firebaseConfig } from './firebase-config.js?v=20.4';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {
@@ -138,6 +138,18 @@ async function firebaseApi() {
       b.set(d('admins', uid), { key: h, at: Date.now() });
       await b.commit();
     },
+    // borra todo lo de una persona (sus días, ajustes, tarjeta, mensajes, «quién está» y su nombre)
+    deleteUserData: async uid => {
+      const del = async ref => { try { await F.deleteDoc(ref); } catch (e) { console.warn('borrar', ref.path, e.code); } };
+      const items = await F.getDocs(F.collection(db, 'answers', uid, 'items')).catch(() => null);
+      if (items) await Promise.all(items.docs.map(x => del(x.ref)));
+      const msgs = await F.getDocs(F.collection(db, 'surprises', uid, 'msgs')).catch(() => null);
+      if (msgs) await Promise.all(msgs.docs.map(x => del(x.ref)));
+      const nm = await F.getDocs(F.query(F.collection(db, 'names'), F.where('uid', '==', uid))).catch(() => null);
+      if (nm) await Promise.all(nm.docs.map(x => del(x.ref)));
+      await Promise.all([del(d('settings', uid)), del(d('cards', uid)), del(d('presence', uid))]);
+      await F.deleteDoc(d('users', uid)); // este sí tiene que funcionar
+    },
     listUsers: async () => {
       const qs = await F.getDocs(F.collection(db, 'users'));
       const out = []; qs.forEach(s => out.push({ uid: s.id, ...s.data() })); return out;
@@ -257,6 +269,12 @@ function demoApi() {
     adminChangePw: async (uid, pw) => sv('adminHash', await hashPw(pw)),
     adminOwnerReset: async (uid, pw) => sv('adminHash', await hashPw(pw)),
     listUsers: async () => Object.entries(ld('users', {})).map(([uid, u]) => ({ uid, ...u })),
+    deleteUserData: async uid => {
+      const rm = k => { const o = ld(k, {}); delete o[uid]; sv(k, o); };
+      ['users', 'answers', 'settings', 'cards', 'presence'].forEach(rm);
+      const n = ld('names', {}); Object.keys(n).forEach(k => { if (n[k]?.uid === uid) delete n[k]; }); sv('names', n);
+      const a = ld('accounts', {}); Object.keys(a).forEach(k => { if (a[k]?.uid === uid) delete a[k]; }); sv('accounts', a);
+    },
     saveCard: async (uid, img) => { const c = ld('cards', {}); c[uid] = img; sv('cards', c); },
     getCard: async uid => ld('cards', {})[uid] || null,
     getSurprise: async (uid, date) => Object.values(ld('surprises', {})[uid] || {}).filter(m => m.active !== false && (m.dates || []).includes(date)).sort((a, b) => (b.at || 0) - (a.at || 0))[0] || null,

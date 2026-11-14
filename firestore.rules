@@ -22,6 +22,7 @@ service cloud.firestore {
       allow read: if me(uid) || isAdmin();
       allow create, update: if me(uid);
       allow list: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     // Lo que decide la administradora (figura, progreso visible, actividades personales)
@@ -81,6 +82,7 @@ service cloud.firestore {
       allow read: if me(uid) || isOwner();
       allow list: if isOwner();
       allow create, update: if me(uid) || isOwner();
+      allow delete: if isOwner();
     }
 
     // Nombres que se escriben al entrar: no se pueden repetir
@@ -94,6 +96,7 @@ service cloud.firestore {
     match /cards/{uid} {
       allow read: if me(uid) || isAdmin();
       allow write: if me(uid);
+      allow delete: if isAdmin();
     }
   }
 }

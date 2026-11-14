@@ -1,11 +1,11 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store, DEMO } from './store.js?v=20.3';
-import { t, tx } from './i18n.js?v=20.3';
-import { el, popup, toast, esc } from './fx.js?v=20.3';
-import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode, celebrateStart } from './app.js?v=20.3';
-import { openActEditor, plain, shrink } from './richact.js?v=20.3';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=20.3';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=20.3';
+import { store, DEMO } from './store.js?v=20.4';
+import { t, tx } from './i18n.js?v=20.4';
+import { el, popup, toast, esc } from './fx.js?v=20.4';
+import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode, celebrateStart } from './app.js?v=20.4';
+import { openActEditor, plain, shrink } from './richact.js?v=20.4';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=20.4';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=20.4';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -98,8 +98,8 @@ function showPanel() {
   const usersBtn = B('👥', 'Usuarios', 'Nombres, PIN, galleta / árbol / gnomo y sus días', root => VIEWS.users(root).then(() => usersBtn.querySelector('.adm-badge')?.remove()));
   store.listUsers().then(us => { const n = us.filter(pinNew).length; if (n) usersBtn.append(el('span', { class: 'adm-badge' }, `🔄 ${n} PIN ${n > 1 ? 'nuevos' : 'nuevo'}`)); }).catch(() => {});
   const btns = [
-    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=20.3').then(m => m.presenceAdmin(root))) : null,
-    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=20.3').then(m => m.surpriseAdmin(root))),
+    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=20.4').then(m => m.presenceAdmin(root))) : null,
+    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=20.4').then(m => m.surpriseAdmin(root))),
     B('📨', 'Respuestas', 'Lo que han contestado y lo que tienes que corregir', root => VIEWS.answers(root)),
     usersBtn,
     B('📅', 'Contenido de los días', 'Lo que sale en cada casilla y las actividades 1 y 2', root => VIEWS.days(root)),
@@ -107,7 +107,7 @@ function showPanel() {
     B('🎁', 'Regalo sorpresa', 'La web que se abre con el botón «Regalo sorpresa» (días 24 y 25)', root => VIEWS.gift(root)),
     B('🎰', 'Máquina de regalos', 'Las 5 opciones de la tragaperras del día 25 (solo gnomos)', root => VIEWS.slot(root)),
     B('🏆', 'Premios y ajustes', 'Premios, abrir todas las casillas, modo prueba, contraseña…', root => VIEWS.general(root)),
-    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=20.3').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=20.4').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'adm-btn-ico' }, '📖'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos'))),
     el('button', { class: 'adm-btn', onclick: () => { document.querySelectorAll('.popup-back').forEach(x => x.remove()); celebrateStart(true); } },
       el('span', { class: 'adm-btn-ico' }, '🎆'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Probar la explosión del día 1'), el('small', {}, 'Cómo lo verán todos al entrar el 1 de diciembre (fuegos artificiales y «¡A empezar!»)'))),
@@ -145,7 +145,7 @@ async function loadAll(force) {
 const VIEWS = {
   // ---------------------------------------------------------------- Casilla 11 · Gnomos: los 3 premios del laberinto
   async maze11(root) {
-    const { mazePrizes } = await import('./maze.js?v=20.3');
+    const { mazePrizes } = await import('./maze.js?v=20.4');
     const cur = mazePrizes(S.config);
     const ins = cur.map((v, i) => el('input', { type: 'text', value: v, maxlength: 40, placeholder: i ? `Ej.: 2 o «una chocolatina»` : 'Ej.: 5 o «un abrazo»' }));
     const prev = el('p', { class: 'mz-adm-prev' });
@@ -175,7 +175,7 @@ const VIEWS = {
           const opts = ins.map(x => x.value.trim());
           try { await store.saveConfig({ slot: { opts } }); S.config.slot = { opts }; toast('🎰 Opciones guardadas'); } catch (e) { toast('⚠️ ' + (e.code || e.message), 5000); }
         } }, '💾 Guardar opciones'),
-        el('button', { class: 'btn btn-ghost small-btn no-delay', style: 'margin-left:8px', onclick: async () => { (await import('./slot.js?v=20.3')).openSlot(); } }, '👀 Probar la máquina')));
+        el('button', { class: 'btn btn-ghost small-btn no-delay', style: 'margin-left:8px', onclick: async () => { (await import('./slot.js?v=20.4')).openSlot(); } }, '👀 Probar la máquina')));
   },
   // ---------------------------------------------------------------- Regalo sorpresa (días 24 y 25)
   async gift(root) {
@@ -229,18 +229,35 @@ const VIEWS = {
 
   // ---------------------------------------------------------------- Usuarios
   async users(root) {
-    const { all } = await loadAll(true);
-    setTimeout(() => all.forEach(({ u }) => { if (u.pinChangedAt) try { localStorage.setItem(pinSeenKey(u), String(u.pinChangedAt)); } catch {} }), 1500);
-    const settings = await Promise.all(all.map(x => store.getSettings(x.u.uid).catch(() => null)));
-    root.replaceChildren(el('p', { class: 'muted' }, 'Pulsa «Configurar» para elegir su figura, si ve su progreso, corregir sus días y personalizar sus actividades.'),
-      el('div', { class: 'u-cards' }, ...all.map(({ u, a }, i) => {
-        const open = () => userPanel(root, u, a, settings[i] || {});
-        return el('div', { class: 'u-card', onclick: e => { if (!e.target.closest('button')) open(); } },
-          el('img', { class: 'u-fig', src: FIG_IMG[settings[i]?.figure || 'galleta'], alt: '' }),
-          el('div', { class: 'u-info' }, el('b', {}, u.name || '—'), el('small', {}, who2(u)), pinNote(u),
-            el('span', { class: 'u-score' }, '⭐ ' + Object.values(a).filter(r => r.status === 'correct').length + ' aciertos')),
-          el('button', { class: 'btn small-btn u-btn', onclick: open }, '⚙️ Configurar'));
-      })));
+    // rápido: primero la lista (y lo que ya teníamos guardado); los aciertos y las figuras se van rellenando
+    const fresh = cache && Date.now() - cacheAt < 60000;
+    const users = fresh ? cache.users : await store.listUsers();
+    const ansOf = {}; (fresh ? cache.all : []).forEach(x => { ansOf[x.u.uid] = x.a; });
+    setTimeout(() => users.forEach(u => { if (u.pinChangedAt) try { localStorage.setItem(pinSeenKey(u), String(u.pinChangedAt)); } catch {} }), 1500);
+    const setOf = {};
+    users.sort((x, y) => String(x.name || x.email || '').localeCompare(String(y.name || y.email || ''), 'es'));
+    const cards = users.map(u => {
+      const img = el('img', { class: 'u-fig', src: FIG_IMG.galleta, alt: '' });
+      const score = el('span', { class: 'u-score' }, ansOf[u.uid] ? '⭐ ' + Object.values(ansOf[u.uid]).filter(r => r.status === 'correct').length + ' aciertos' : '⭐ …');
+      const open = async () => {
+        const a = ansOf[u.uid] || await store.getAnswers(u.uid).catch(() => ({}));
+        const st = setOf[u.uid] || await store.getSettings(u.uid).catch(() => null) || {};
+        userPanel(root, u, a, st);
+      };
+      const delBtn = el('button', { class: 'btn small-btn u-btn u-del', onclick: () => deleteUser(u, root) }, '🗑️ Eliminar');
+      const card = el('div', { class: 'u-card', onclick: e => { if (!e.target.closest('button')) open(); } },
+        img,
+        el('div', { class: 'u-info' }, el('b', {}, u.name || '—'), el('small', {}, who2(u)), pinNote(u), score),
+        el('div', { class: 'u-btns' }, el('button', { class: 'btn small-btn u-btn', onclick: open }, '⚙️ Configurar'), u.uid === S.user.uid ? null : delBtn));
+      // relleno en segundo plano
+      store.getSettings(u.uid).then(st => { setOf[u.uid] = st || {}; img.src = FIG_IMG[st?.figure || 'galleta']; }).catch(() => {});
+      store.getAnswers(u.uid).then(a => { ansOf[u.uid] = a; score.textContent = '⭐ ' + Object.values(a).filter(r => r.status === 'correct').length + ' aciertos'; }).catch(() => {});
+      return card;
+    });
+    root.replaceChildren(el('p', { class: 'muted' }, 'Pulsa «Configurar» para elegir su figura, si ve su progreso y corregir o reiniciar sus días. «Eliminar» borra a la persona y todo lo que ha hecho.'),
+      el('div', { class: 'u-cards' }, ...cards));
+    // la próxima vez, al momento
+    Promise.all(users.map(async u => ({ u, a: ansOf[u.uid] || await store.getAnswers(u.uid).catch(() => ({})) }))).then(all => { cache = { users, all }; cacheAt = Date.now(); });
   },
 
   // ---------------------------------------------------------------- Contenido
@@ -470,6 +487,20 @@ function statusButtons(uid, day, r, after) {
   return wrap;
 }
 
+// eliminar a una persona: dos confirmaciones
+async function deleteUser(u, root) {
+  const name = esc(u.name || u.email || '');
+  if (!(await popup(`<h2>🗑️ Eliminar a ${name}</h2><p>Se borrará <b>${name}</b> del calendario con todo lo que ha hecho (casillas, respuestas, premios, tarjeta y mensajes).</p><p>¿Seguro que quieres eliminarlo?</p>`,
+    { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: 'Sí, eliminar', value: true }] }))) return;
+  if (!(await popup(`<h2>⚠️ ¿De verdad?</h2><p>Esto <b>no se puede deshacer</b>. ¿Eliminas a <b>${name}</b> definitivamente?</p>`,
+    { buttons: [{ label: 'No, lo dejo', value: false, cls: 'btn-ghost' }, { label: '🗑️ Sí, eliminar para siempre', value: true }] }))) return;
+  try {
+    await store.deleteUserData(u.uid); clearCache();
+    toast(`🗑️ ${u.name || u.email} eliminado`);
+    VIEWS.users(root);
+  } catch (e) { toast('⚠️ No se ha podido eliminar: ' + (e.code || e.message) + (/permission/.test(e.code || '') ? ' (publica las reglas nuevas de Firebase)' : ''), 8000); }
+}
+
 function userPanel(root, u, answers, set) {
   // selector con dibujos de las tres figuras
   const fig = el('div', { class: 'fig-pick' }); fig.value = set.figure || 'galleta';
@@ -488,16 +519,6 @@ function userPanel(root, u, answers, set) {
         await resetDays(u, [d]); delete answers[d]; userPanel(root, u, answers, set);
       } }, '↺ Reiniciar') : null));
   }
-  // actividades: son las mismas que en «Contenido de los días» (un solo sitio donde se guardan)
-  const daySel = el('select', {}, ...Array.from({ length: 25 }, (_, i) => el('option', { value: i + 1 }, `Día ${i + 1}`)));
-  const langSel = el('select', {}, el('option', { value: 'es' }, 'Español'), el('option', { value: 'ca' }, 'Català'), el('option', { value: 'en' }, 'English'));
-  const actsBox = el('div');
-  const drawActs = async () => {
-    const n = +daySel.value, L = langSel.value;
-    const d = await loadDay(n) || defaultDay(n);
-    actsBox.replaceChildren(actCard(n, L, d, 'act1', '🎄 Actividad 1 (personas con árbol)'), actCard(n, L, d, 'act2', '🧙 Actividad 2 (personas con gnomo)'));
-  };
-  daySel.onchange = drawActs; langSel.onchange = drawActs; drawActs();
   const mq = el('input', { type: 'text', value: set.marqueeText || '', placeholder: 'Vacío = el mensaje general de la marquesina' });
   const saveUser = async () => {
     try { await store.setSettings(u.uid, { figure: fig.value, showProgress: show.checked, marqueeText: mq.value.trim(), actOverrides: {} }); toast('💾 Guardado'); }
@@ -519,10 +540,7 @@ function userPanel(root, u, answers, set) {
       } }, '↺ Reiniciar todas sus casillas')),
     el('div', { class: 'card' }, el('h3', {}, '📣 Mensaje de su marquesina'),
       el('p', { class: 'muted' }, 'Lo que verá esta persona pasando por la pantalla de inicio. Si lo dejas vacío, verá el mensaje general.'), mq),
-
-    el('div', { class: 'card' }, el('h3', {}, '✏️ Actividades del día'),
-      el('p', { class: 'muted' }, 'Son las mismas actividades que en «Contenido de los días»: si cambias algo aquí, cambia allí también, y al revés.'),
-      el('div', { class: 'row' }, el('label', {}, 'Día', daySel), el('label', {}, 'Idioma', langSel)), actsBox));
+    el('p', { class: 'muted' }, 'Las actividades 1 y 2 de cada casilla se escriben en «📅 Contenido de los días» (son las mismas para todos).'));
 }
 
 function marqueeCard() {
