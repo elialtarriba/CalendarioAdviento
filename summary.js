@@ -1,12 +1,12 @@
 // Resumen del mes: al terminar el día 25 (con la actividad, si la tiene la figura),
 // una página muy navideña con los 25 días, cada uno en su cuadro: el reto, lo que contestaste
 // y la actividad de tu figura. Se puede guardar en PDF y volver al calendario.
-import { el, sleep, confetti, toast, popup } from './fx.js?v=20';
-import { t, tx, getLang } from './i18n.js?v=20';
-import { chime } from './sound.js?v=20';
-import { S, figure, loadDay } from './app.js?v=20';
-import { defaultDay } from './defaults.js?v=20';
-import { giftButton } from './gift.js?v=20';
+import { el, sleep, confetti, toast, popup } from './fx.js?v=20.1';
+import { t, tx, getLang } from './i18n.js?v=20.1';
+import { chime } from './sound.js?v=20.1';
+import { S, figure, loadDay } from './app.js?v=20.1';
+import { defaultDay } from './defaults.js?v=20.1';
+import { giftButton } from './gift.js?v=20.1';
 
 const TK = { hats: 'hatsTitle', reindeer: 'd4title', differences: 'd6title', tree: 'd8title', memory: 'd12title', goodcheck: 'd13title', diploma: 'd15title', roulette: 'd20title', dance: 'd24title', pairs: 'd25title', puzzle: 'puzzleTitle' };
 const typeTitle = ty => ty === 'maze' ? L('Los regalos perdidos (laberinto)', 'Els regals perduts (laberint)', 'The lost presents (maze)') : ty === 'sudoku' ? L('Sudoku de Navidad', 'Sudoku de Nadal', 'Christmas sudoku') : ty === 'simon' ? L('Papá Noel dice', 'El Pare Noel diu', 'Santa says') : ty === 'catch' ? L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents') : ty === 'ballsort' ? L('Ordena las bolas de Navidad', 'Ordena les boles de Nadal', 'Sort the Christmas baubles') : ty === 'slidepuzzle' ? L('Puzle deslizante', 'Puzle lliscant', 'Sliding puzzle') : ty === 'wordsearch' ? L('Sopa de letras de animales', 'Sopa de lletres d’animals', 'Animal word search') : ty === 'crossword' ? L('Crucigrama de Navidad', 'Mots encreuats de Nadal', 'Christmas crossword') : ty === 'ttt' ? L('Tres en raya navideño', 'Tres en ratlla de Nadal', 'Christmas noughts and crosses') : ty === 'puzzle' ? L('Haz el puzle y descubre qué imagen esconde', 'Fes el puzle i descobreix quina imatge amaga', 'Do the puzzle') : (TK[ty] && t(TK[ty])) || '';

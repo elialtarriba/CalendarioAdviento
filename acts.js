@@ -1,12 +1,12 @@
 // Actividades especiales (interactivas) de algunos días
 //  · Día 23: tres regalos que no se compran, debajo de un árbol con luces → eliges a quién se los das
 //  · Día 24: el regalo que Papá Noel ha dejado para ti → lazo, luz, bolas con regalos imaginarios
-import { el, sleep, confetti, popup, toast } from './fx.js?v=20';
-import { getLang } from './i18n.js?v=20';
-import { chime, pop, jingle, hohoho, christmasSong, unlockAudio } from './sound.js?v=20';
-import { S } from './app.js?v=20';
-import { store } from './store.js?v=20';
-import { giftButton } from './gift.js?v=20';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=20.1';
+import { getLang } from './i18n.js?v=20.1';
+import { chime, pop, jingle, hohoho, christmasSong, unlockAudio } from './sound.js?v=20.1';
+import { S } from './app.js?v=20.1';
+import { store } from './store.js?v=20.1';
+import { giftButton } from './gift.js?v=20.1';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const img = (src, cls = '') => el('img', { src, class: 'ilu ' + cls, alt: '', draggable: 'false' });

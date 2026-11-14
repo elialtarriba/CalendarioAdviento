@@ -1,11 +1,11 @@
 // Regalo sorpresa: un botón que abre la web que la administradora pone en Configuración → «🎁 Regalo sorpresa».
 // Sale en las actividades 1 y 2 del día 24, abajo del todo de la casilla 25 y al final del resumen del día 25.
 // Árboles y gnomos ya lo reciben el día 24: en el 25 sale como «Regalo ya abierto» (se puede volver a abrir).
-import { el, popup, confetti } from './fx.js?v=20';
-import { getLang } from './i18n.js?v=20';
-import { chime, unlockAudio } from './sound.js?v=20';
-import { S, figure } from './app.js?v=20';
-import { store } from './store.js?v=20';
+import { el, popup, confetti } from './fx.js?v=20.1';
+import { getLang } from './i18n.js?v=20.1';
+import { chime, unlockAudio } from './sound.js?v=20.1';
+import { S, figure } from './app.js?v=20.1';
+import { store } from './store.js?v=20.1';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 export const giftUrl = () => String(S.config?.gift?.url || '').trim();
