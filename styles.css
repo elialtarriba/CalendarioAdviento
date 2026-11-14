@@ -2238,3 +2238,28 @@ body.sum-open { overflow: hidden; }
 .activity-body { justify-content: safe center; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .activity-body > * { flex-shrink: 0; }
 .activity-text.rich { width: 100%; }
+.pw-show-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-top: 1px dashed #e3cfa5; }
+.pw-show-row > span { flex: 1 1 100%; font-weight: 700; font-size: 14px; color: #7a1020; }
+.pw-show-row .pw-dots { flex: 1; font-size: 18px; letter-spacing: 1px; overflow-wrap: anywhere; }
+.pw-inline { display: inline-flex; align-items: center; gap: 8px; }
+
+/* V19 · pantalla de la nieve: «Cómo funciona» y la «i» de bienvenida */
+.splash-guide { width: 100%; padding: 10px 16px; border-radius: 999px; border: 2px solid #e8b64c; background: linear-gradient(#fffefa, #fbeccc); color: #7a1020; cursor: pointer;
+  font: 800 16px 'Montserrat', sans-serif; box-shadow: 0 4px 0 #c99a2e, 0 6px 12px #7a102022; transition: transform .08s, box-shadow .08s; }
+.splash-guide:active { transform: translateY(3px); box-shadow: 0 1px 0 #c99a2e; }
+.splash-info { position: absolute; z-index: 5; top: max(14px, env(safe-area-inset-top)); right: 14px; width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
+  border: 3px solid #e8b64c; background: radial-gradient(circle at 35% 30%, #fff, #fff4dc); color: #b3122e; font: italic 900 24px Georgia, serif; line-height: 1;
+  box-shadow: 0 4px 0 #c99a2e, 0 6px 14px #0002; display: grid; place-items: center; }
+.splash-info:active { transform: translateY(3px); box-shadow: 0 1px 0 #c99a2e; }
+body:has(.splash) .hg { z-index: 1100; }
+.popup-back:has(.wl-pop), body:has(.splash) .popup-back, body:has(.splash) .toast { z-index: 1100; }
+.wl { text-align: center; }
+.wl-fig { width: 84px; filter: drop-shadow(0 0 12px #ffd24a); animation: bob 3s ease-in-out infinite; }
+.wl-title { font-family: 'Mountains of Christmas', cursive; color: #b3122e; font-size: 34px; margin: 4px 0 8px; }
+.wl p { font-size: 16px; line-height: 1.5; margin: 0 0 10px; color: #4a2a1a; }
+.wl-mail { display: inline-block; margin: 2px 0 12px; padding: 8px 16px; border-radius: 999px; background: #fff4dc; border: 2px solid #e8b64c; color: #7a1020; font-weight: 800; text-decoration: none; word-break: break-all; }
+.wl-end { font-weight: 700; color: #1f6b45 !important; }
+.wl-sign { font-style: italic; }
+.wl-sign b { font-family: 'Great Vibes', cursive; font-style: normal; font-size: 30px; color: #b3122e; font-weight: 400; }
+@media (max-height: 760px) { .splash-guide { padding: 7px 14px; font-size: 15px; } }
+.splash-ver { position: absolute; z-index: 4; left: 12px; bottom: max(6px, env(safe-area-inset-bottom)); font: 600 11px 'Montserrat', sans-serif; color: #9aa8b8; opacity: .7; pointer-events: none; }

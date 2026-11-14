@@ -2,10 +2,10 @@
 // el camino. Al llegar a un regalo el camino se engancha (con sonido) y Papá Noel se queda allí. Si el dedo
 // atraviesa una pared o se levanta antes de llegar, el camino se borra poco a poco y se vuelve a empezar
 // desde Papá Noel. Cada vez que se desliza es un intento. Con los 3 regalos, Papá Noel tiene que llegar al trineo.
-import { el, sleep, confetti, toast } from './fx.js?v=18.8';
-import { getLang } from './i18n.js?v=18.8';
-import { pop, chime, fanfare, unlockAudio, snapSound, oops, jingle, christmasSong } from './sound.js?v=18.8';
-import { nextGame, rng, TOTAL } from './games25.js?v=18.8';
+import { el, sleep, confetti, toast } from './fx.js?v=19';
+import { getLang } from './i18n.js?v=19';
+import { pop, chime, fanfare, unlockAudio, snapSound, oops, jingle, christmasSong } from './sound.js?v=19';
+import { nextGame, rng, TOTAL } from './games25.js?v=19';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const C = 9, R = 11; // columnas y filas

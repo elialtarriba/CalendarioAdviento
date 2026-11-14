@@ -2,10 +2,10 @@
 // Se toca un bote (sube la bola de arriba) y luego otro bote; o se arrastra la bola con el dedo.
 // Se puede dejar en cualquier bote que no esté lleno (caben 4). Cada partida (25) es distinta.
 // Ayuda (solo si no lo consigues): el bote de donde sacar y el bote donde dejar brillan.
-import { el, sleep, confetti, popup, toast } from './fx.js?v=18.8';
-import { getLang } from './i18n.js?v=18.8';
-import { pop, chime, fanfare, christmasSong, unlockAudio, oops, glassClink } from './sound.js?v=18.8';
-import { nextGame, rng, TOTAL } from './games25.js?v=18.8';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=19';
+import { getLang } from './i18n.js?v=19';
+import { pop, chime, fanfare, christmasSong, unlockAudio, oops, glassClink } from './sound.js?v=19';
+import { nextGame, rng, TOTAL } from './games25.js?v=19';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const CAP = 4, COLORS = ['red', 'gold', 'green', 'blue', 'silver'], EMPTY = 2;
