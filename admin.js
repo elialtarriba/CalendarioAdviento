@@ -1,11 +1,11 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store, DEMO } from './store.js?v=18.5';
-import { t, tx } from './i18n.js?v=18.5';
-import { el, popup, toast, esc } from './fx.js?v=18.5';
-import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode } from './app.js?v=18.5';
-import { openActEditor, plain, shrink } from './richact.js?v=18.5';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=18.5';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=18.5';
+import { store, DEMO } from './store.js?v=18.8';
+import { t, tx } from './i18n.js?v=18.8';
+import { el, popup, toast, esc } from './fx.js?v=18.8';
+import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode } from './app.js?v=18.8';
+import { openActEditor, plain, shrink } from './richact.js?v=18.8';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=18.8';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=18.8';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -62,44 +62,54 @@ async function forgotAdmin() {
 }
 
 function showPanel() {
-  const content = el('div');
-  const tabs = [['answers', '📨 Respuestas'], ['users', '👥 Usuarios'], ['days', '📅 Contenido de los días'], ['general', '🏆 Premios y ajustes']];
-  const bar = el('div', { class: 'tabs' });
-  const go = id => { [...bar.children].forEach(b => b.classList.toggle('active', b.dataset.id === id)); content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
-    Promise.resolve(VIEWS[id](content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message)))); };
-  tabs.forEach(([id, label]) => bar.append(el('button', { 'data-id': id, onclick: () => go(id) }, label)));
-  const special = el('button', { class: 'sp-special no-delay', onclick: () => {
-    [...bar.children].forEach(b => b.classList.remove('active'));
-    content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
-    import('./surprise.js?v=18.5').then(m => m.surpriseAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
-  } }, el('span', { class: 'sp-special-ico' }, '💌'), el('span', {}, el('b', {}, 'Mensajes sorpresa'), el('small', {}, 'Un popup para quien tú quieras, el día que quieras')));
-  const guide = el('button', { class: 'hg-open no-delay', onclick: () => import('./help.js?v=18.5').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
-    el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos')));
-  // solo para la administradora principal (no para los demás administradores)
+  // cada botón abre su propia ventana (popup); todos iguales, uno debajo de otro y en 3D
   const owner = DEMO || (S.user?.email || '').toLowerCase() === 'elialtarriba@gmail.com';
-  const who = owner ? el('button', { class: 'sp-special pr-open no-delay', onclick: () => {
-    [...bar.children].forEach(b => b.classList.remove('active'));
-    content.replaceChildren(el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…'));
-    import('./presence.js?v=18.5').then(m => m.presenceAdmin(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
-  } }, el('span', { class: 'sp-special-ico' }, '🟢'), el('span', {}, el('b', {}, 'Quién está en la app'), el('small', {}, 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta'))) : null;
-  const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), who, special, guide, bar, content);
-  // los botones de guardar y de volver se quedan siempre a la vista al hacer scroll
-  const pin = () => content.querySelectorAll('button:not([data-pin])').forEach(b => {
-    b.dataset.pin = '1';
-    if (b.closest('.adm-sticky, .sp-actions, .popup-back .popup:not(.wide)')) return;
-    const txt = b.textContent.trim();
-    if (/^←/.test(txt)) b.classList.add('adm-back');
-    else if (/^💾|^Guardar/.test(txt)) (b.parentElement.matches('.row') ? b.parentElement : b).classList.add('adm-save');
-  });
-  new MutationObserver(pin).observe(content, { childList: true, subtree: true });
+  const loading = () => el('p', { class: 'loading-msg' }, el('span', { class: 'spin' }, '❄'), ' Cargando…');
+  const openSub = (title, fill) => {
+    const content = el('div');
+    const pin = () => content.querySelectorAll('button:not([data-pin])').forEach(b => {
+      b.dataset.pin = '1';
+      if (b.closest('.adm-sticky, .sp-actions, .popup-back .popup:not(.wide)')) return;
+      const txt = b.textContent.trim();
+      if (/^←/.test(txt)) b.classList.add('adm-back');
+      else if (/^💾|^Guardar/.test(txt)) (b.parentElement.matches('.row') ? b.parentElement : b).classList.add('adm-save');
+    });
+    new MutationObserver(pin).observe(content, { childList: true, subtree: true });
+    content.replaceChildren(loading());
+    Promise.resolve(fill(content)).catch(e => content.replaceChildren(el('p', {}, '⚠️ ' + (e.code || e.message))));
+    return popup(el('div', { class: 'admin adm-sub' }, el('h2', {}, title), content), { cls: 'wide', buttons: [{ label: '← Volver', value: true }] });
+  };
+  const B = (ico, title, sub, fill) => el('button', { class: 'adm-btn', onclick: () => openSub(ico + ' ' + title, fill) },
+    el('span', { class: 'adm-btn-ico' }, ico), el('span', { class: 'adm-btn-txt' }, el('b', {}, title), el('small', {}, sub)));
+  const usersBtn = B('👥', 'Usuarios', 'Nombres, PIN, galleta / árbol / gnomo y sus días', root => VIEWS.users(root).then(() => usersBtn.querySelector('.adm-badge')?.remove()));
+  store.listUsers().then(us => { const n = us.filter(pinNew).length; if (n) usersBtn.append(el('span', { class: 'adm-badge' }, `🔄 ${n} PIN ${n > 1 ? 'nuevos' : 'nuevo'}`)); }).catch(() => {});
+  const btns = [
+    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=18.8').then(m => m.presenceAdmin(root))) : null,
+    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=18.8').then(m => m.surpriseAdmin(root))),
+    B('📨', 'Respuestas', 'Lo que han contestado y lo que tienes que corregir', root => VIEWS.answers(root)),
+    usersBtn,
+    B('📅', 'Contenido de los días', 'Lo que sale en cada casilla y las actividades 1 y 2', root => VIEWS.days(root)),
+    B('🏆', 'Premios y ajustes', 'Premios, abrir todas las casillas, modo prueba, contraseña…', root => VIEWS.general(root)),
+    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=18.8').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+      el('span', { class: 'adm-btn-ico' }, '📖'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos'))),
+  ];
+  const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), el('div', { class: 'adm-menu' }, ...btns.filter(Boolean)));
   popup(box, { cls: 'wide', buttons: [{ label: t('close'), value: true }] }).then(async r => {
     if (r === 'logout') return;
     S.answers = await store.getAnswers(S.user.uid).catch(() => S.answers);
     S.settings = (await store.getSettings(S.user.uid).catch(() => null)) || S.settings;
     renderHome();
   });
-  go('answers');
 }
+
+// jugadores: se ve su PIN (por si lo olvidan); los demás, su correo
+const isPlayer = u => u.player || /@jugadores\.example\.com$/i.test(u.email || '');
+const who2 = u => isPlayer(u) ? '🔑 PIN ' + (u.pin || '—') : (u.email || '');
+// PIN cambiado por el jugador y que la administradora todavía no ha visto (se recuerda en este aparato)
+const pinSeenKey = u => 'adv_pin_seen_' + u.uid;
+const pinNew = u => { try { return isPlayer(u) && u.pinChangedAt && +(localStorage.getItem(pinSeenKey(u)) || 0) < u.pinChangedAt; } catch { return false; } };
+const pinNote = u => u.pinChangedAt ? el('span', { class: 'pin-chg' + (pinNew(u) ? ' new' : '') },
+  `🔄 PIN cambiado el ${new Date(u.pinChangedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}: ahora ${u.pin}${u.pinPrev ? ' (antes ' + u.pinPrev + ')' : ''}`) : null;
 
 // ------------------------------------------------------------------ Respuestas
 // se guarda 1 minuto para que cambiar de pestaña sea instantáneo
@@ -125,7 +135,7 @@ const VIEWS = {
       list.replaceChildren(shown.length ? el('table', {},
         el('tr', {}, el('th', {}, 'Persona'), el('th', {}, 'Día'), el('th', {}, 'Respuesta'), el('th', {}, 'Estado')),
         ...shown.map(x => el('tr', {},
-          el('td', {}, x.u.name || '', el('br'), el('small', {}, x.u.email)),
+          el('td', {}, x.u.name || '', el('br'), el('small', {}, who2(x.u))),
           el('td', {}, String(x.day)),
           el('td', {}, String(x.r.answer ?? ''), x.r.extra?.missing ? el('div', { class: 'ans' }, 'Faltaba: ' + x.r.extra.missing) : null),
           el('td', {}, statusButtons(x.u.uid, x.day, x.r, () => draw()))))) : el('p', {}, '🎉 No hay respuestas pendientes.'));
@@ -136,14 +146,15 @@ const VIEWS = {
 
   // ---------------------------------------------------------------- Usuarios
   async users(root) {
-    const { all } = await loadAll();
+    const { all } = await loadAll(true);
+    setTimeout(() => all.forEach(({ u }) => { if (u.pinChangedAt) try { localStorage.setItem(pinSeenKey(u), String(u.pinChangedAt)); } catch {} }), 1500);
     const settings = await Promise.all(all.map(x => store.getSettings(x.u.uid).catch(() => null)));
     root.replaceChildren(el('p', { class: 'muted' }, 'Pulsa «Configurar» para elegir su figura, si ve su progreso, corregir sus días y personalizar sus actividades.'),
       el('div', { class: 'u-cards' }, ...all.map(({ u, a }, i) => {
         const open = () => userPanel(root, u, a, settings[i] || {});
         return el('div', { class: 'u-card', onclick: e => { if (!e.target.closest('button')) open(); } },
           el('img', { class: 'u-fig', src: FIG_IMG[settings[i]?.figure || 'galleta'], alt: '' }),
-          el('div', { class: 'u-info' }, el('b', {}, u.name || '—'), el('small', {}, u.email),
+          el('div', { class: 'u-info' }, el('b', {}, u.name || '—'), el('small', {}, who2(u)), pinNote(u),
             el('span', { class: 'u-score' }, '⭐ ' + Object.values(a).filter(r => r.status === 'correct').length + ' aciertos')),
           el('button', { class: 'btn small-btn u-btn', onclick: open }, '⚙️ Configurar'));
       })));
@@ -234,6 +245,15 @@ const VIEWS = {
     } });
     const drawTest = () => { const on = testMode(); testBtn.classList.toggle('on', on); testBtn.replaceChildren(el('span', { class: 'ts-knob' }), el('b', {}, on ? 'ACTIVADO' : 'DESACTIVADO')); };
     drawTest();
+    // abre (o vuelve a cerrar) todas las casillas para TODAS las personas, aunque no haya llegado su día
+    const allBtn = el('button', { class: 'test-switch no-delay', onclick: async () => {
+      const on = !S.config.openAll; allBtn.disabled = true;
+      try { await store.saveConfig({ openAll: on }); S.config.openAll = on; drawAll(); renderHome(); toast(on ? '🔓 Casillas abiertas para todos' : '🔒 Casillas cerradas hasta su día'); }
+      catch (e) { toast('⚠️ ' + (e.code || e.message), 5000); }
+      allBtn.disabled = false;
+    } });
+    const drawAll = () => { const on = !!S.config.openAll; allBtn.classList.toggle('on', on); allBtn.replaceChildren(el('span', { class: 'ts-knob' }), el('b', {}, on ? 'ABIERTAS' : 'CERRADAS')); };
+    drawAll();
     const np = el('input', { type: 'password', placeholder: 'Nueva contraseña' });
     // un solo botón fijo arriba que guarda todo lo de esta pestaña
     const saveAll = el('button', { class: 'btn small-btn no-delay', onclick: async () => {
@@ -316,6 +336,8 @@ const VIEWS = {
           for (let n = 1; n <= 25; n++) { const c = await store.getDay(n).catch(() => null); if (c && !c.locked) { delete c.openAt; await store.saveDay(n, c, y); } }
           e.target.disabled = false; toast('💾 Año guardado');
         } }, 'Guardar año'))),
+      el('div', { class: 'card' }, el('h3', {}, '🔓 Abrir todas las casillas a todos'),
+        el('p', { class: 'muted' }, 'Solo antes de diciembre. ABIERTAS: todas las personas pueden abrir todas las casillas para probarlas. CERRADAS: cada casilla se abre en su día de diciembre. El 1 de diciembre todo lo que se haya hecho antes se borra solo (también lo tuyo) y todos empiezan de 0.'), allBtn),
       el('div', { class: 'card' }, el('h3', {}, '🧪 Modo prueba'),
         el('p', { class: 'muted' }, 'Abre todas las casillas, solo para ti, para probarlas. Se queda activado (aunque cierres la app) hasta que tú lo desactives aquí.'), testBtn),
       (() => {
@@ -339,7 +361,7 @@ const VIEWS = {
             { cls: 'small', buttons: [{ label: 'Cancelar', value: false, cls: 'btn-ghost' }, { label: 'Sí, cerrar sesión', value: true }] });
           if (!ok) return; // se queda en Configuración
           S.isAdmin = false; setTestMode(false);
-          root.closest('.popup-back')?.remove();
+          document.querySelectorAll('.popup-back').forEach(x => x.remove());
           await store.signOut();
         } }, '🚪 Cerrar sesión')),
       (() => {
@@ -402,7 +424,7 @@ function userPanel(root, u, answers, set) {
     el('div', { class: 'adm-sticky' },
       el('button', { class: 'btn btn-ghost small-btn', onclick: () => VIEWS.users(root) }, '← Volver'),
       el('button', { class: 'btn small-btn', onclick: saveUser }, '💾 Guardar configuración')),
-    el('h3', {}, `${esc(u.name || '')} · ${u.email}`),
+    el('h3', {}, `${esc(u.name || '')} · ${esc(who2(u))}`),
     el('div', { class: 'card' },
       el('label', {}, 'Figura y tipo de calendario', fig),
       el('label', { class: 'inline' }, show, ' Ver arriba la franja con sus figuras y su progreso')),
@@ -471,16 +493,21 @@ async function resetDays(u, days) {
 // tarjeta de actividad (la misma en «Contenido de los días» y en cada usuario): al guardar se guarda al momento
 function actCard(n, L, d, key, label) {
   const langName = { es: 'español', ca: 'catalán', en: 'inglés' }[L];
-  const prev = el('div', { class: 'act-prev' }, plain(d[key]?.[L] ?? '') || '—');
+  const qTag = () => d[key + 'Q']?.[L]?.q ? ' · ❓ con pregunta' : '';
+  const prev = el('div', { class: 'act-prev' }, (plain(d[key]?.[L] ?? '') || '—') + qTag());
   return el('div', { class: 'act-card', onclick: async () => {
     const cur = (await loadDay(n)) || defaultDay(n);
-    const r = await openActEditor({ day: n, actKey: key, title: label, html: cur[key]?.[L] ?? '', langName });
+    const r = await openActEditor({ day: n, actKey: key, title: label, html: cur[key]?.[L] ?? '', langName, quiz: cur[key + 'Q']?.[L] || null });
     if (r == null) return;
     try {
       const nd = JSON.parse(JSON.stringify(cur)); delete nd.openAt;
-      nd[key] = { ...(nd[key] || {}), [L]: r };
+      nd[key] = { ...(nd[key] || {}), [L]: r.html };
+      const qk = key + 'Q', qs = { ...(nd[qk] || {}) };
+      if (r.quiz) qs[L] = r.quiz; else delete qs[L];
+      if (L === 'es' && r.quiz) { delete qs.ca; delete qs.en; } // los otros idiomas se traducen solos desde el español
+      nd[qk] = qs;
       await store.saveDay(n, nd, S.config.year);
-      d[key] = nd[key]; prev.textContent = plain(r) || '—';
+      d[key] = nd[key]; d[qk] = qs; prev.textContent = (plain(r.html) || '—') + qTag();
       toast('✅ Texto guardado');
     } catch (e) { toast('Error al guardar: ' + (e.code || e.message), 6000); }
   } }, el('b', {}, label), prev, el('span', { class: 'act-edit' }, '✏️ Editar (texto, títulos, emojis, fotos y vídeos)'));

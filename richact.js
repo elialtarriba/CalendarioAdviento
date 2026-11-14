@@ -1,6 +1,6 @@
 // Actividades con texto enriquecido (títulos de colores, emojis) y fotos/vídeos
-import { el, sleep, popup, toast } from './fx.js?v=18.5';
-import { store } from './store.js?v=18.5';
+import { el, sleep, popup, toast } from './fx.js?v=18.8';
+import { store } from './store.js?v=18.8';
 
 // ---------- limpieza del HTML (solo etiquetas y estilos seguros)
 const OK_TAGS = new Set(['H2', 'H3', 'P', 'DIV', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'FONT', 'UL', 'OL', 'LI']);
@@ -90,7 +90,7 @@ export async function shrink(file, max = 1200, limit = 700000) {
 const EMOJIS = '🎄🎅🤶🦌⛄❄️☃️🎁🎀🔔🕯️⭐🌟✨🍪🥛☕🍫🧦🧤🧣🛷🎶🎵🎉🥳😄😂🤣😍🥰😘😉😎🤩🤗🙌👏👍❤️💚💛💙🧡💜🏠🌲🍬🍭🎈📸📱🎤💃🕺🐧🦊🐻🧸🚂👨‍👩‍👧‍👦'.match(/\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic})*/gu);
 const COLORS = ['#b3122e', '#1f6b45', '#c99a2e', '#1d4ed8', '#7c3aed', '#db2777', '#ea580c', '#0f766e', '#111111', '#6b4423'];
 
-export function openActEditor({ day, actKey, title, html, langName }) {
+export function openActEditor({ day, actKey, title, html, langName, quiz = null }) {
   return new Promise(async resolve => {
     let color = COLORS[0];
     const ed = el('div', { class: 'rich-editor', contenteditable: 'true' });
@@ -143,17 +143,47 @@ export function openActEditor({ day, actKey, title, html, langName }) {
       try { const item = { act: actKey, kind: 'video', src: v, order: Date.now() }; item.id = await store.addMedia(day, item); (media = media || []).push(item); drawMedia(); toast('🎥 Vídeo añadido'); }
       catch (e) { toast('Error: ' + (e.code || e.message), 6000); }
     };
+    // pregunta con 4 respuestas (opcional): la persona elige una y se ve si ha acertado
+    const qText = el('textarea', { rows: 2, class: 'aq-q', placeholder: 'Escribe la pregunta. Ej.: ¿De qué color es la nariz de Rudolf?' }, quiz?.q || '');
+    let okIdx = Number.isInteger(quiz?.ok) ? quiz.ok : -1;
+    const marks = [], ins = [];
+    const rows = [0, 1, 2, 3].map(i => {
+      const mk = el('button', { type: 'button', class: 'aq-mark no-delay', title: 'Marcar como correcta', onclick: () => { okIdx = okIdx === i ? -1 : i; marks.forEach((m, j) => m.classList.toggle('on', j === okIdx)); } });
+      const inp = el('input', { type: 'text', class: 'aq-opt', placeholder: `Respuesta ${i + 1}`, value: quiz?.opts?.[i] || '' });
+      marks.push(mk); ins.push(inp); mk.classList.toggle('on', i === okIdx);
+      return el('div', { class: 'aq-row' }, mk, inp);
+    });
+    const qBody = el('div', { class: 'aq-body' }, el('label', { class: 'aq-lbl' }, 'Pregunta'), qText,
+      el('label', { class: 'aq-lbl' }, 'Respuestas (toca el círculo de la correcta)'), ...rows,
+      el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay', onclick: () => { qText.value = ''; ins.forEach(x => x.value = ''); okIdx = -1; marks.forEach(m => m.classList.remove('on')); qBox.classList.remove('open'); } }, '🗑️ Quitar la pregunta'));
+    const qBox = el('div', { class: 'aq-box' + (quiz?.q ? ' open' : '') },
+      el('button', { type: 'button', class: 'aq-toggle no-delay', onclick: () => qBox.classList.toggle('open') }, '❓ Pregunta con 4 respuestas', el('small', {}, 'Escribe una pregunta y 4 respuestas; marca la correcta')),
+      qBody);
+    const readQuiz = () => {
+      const q = qText.value.trim(); if (!q) return { quiz: null };
+      const opts = ins.map(x => x.value.trim());
+      if (opts.filter(Boolean).length < 2) return { err: 'Escribe al menos 2 respuestas.' };
+      if (okIdx < 0 || !opts[okIdx]) return { err: 'Toca el círculo de la respuesta correcta.' };
+      return { quiz: { q, opts, ok: okIdx } };
+    };
     const box = el('div', { class: 'act-editor' },
       el('h2', {}, '✏️ ' + title),
       el('p', { class: 'muted' }, `Día ${day} · texto en ${langName}. Escribe todo lo que quieras; usa T para títulos, el color para pintarlos y 😀 para emojis (o los del teclado).`),
       toolbar, emojiBox, ed,
+      qBox,
       el('h3', {}, '📷 Fotos y vídeos'),
       mediaBox,
       el('div', { class: 'media-btns' },
         el('button', { type: 'button', class: 'btn media-btn no-delay', title: 'Añadir fotos', onclick: () => fileIn.click() }, '📷', el('small', {}, 'Fotos')),
         el('button', { type: 'button', class: 'btn media-btn no-delay', title: 'Añadir vídeo', onclick: addVideo }, '🎥', el('small', {}, 'Vídeo')), fileIn),
       el('p', { class: 'muted' }, 'Las fotos se guardan al momento. Los vídeos se ponen con un enlace de YouTube o subiendo el vídeo a GitHub y escribiendo su nombre.'));
-    const ok = await popup(box, { cls: 'wide', buttons: [{ label: 'Cancelar', value: false, cls: 'btn-ghost no-delay' }, { label: '💾 Guardar texto', value: true, cls: 'no-delay' }] });
-    resolve(ok ? sanitize(ed.innerHTML).replace(/^(<br>|\s)+|(<br>|\s)+$/g, '') : null);
+    let ok, qz;
+    while (true) {
+      ok = await popup(box, { cls: 'wide', buttons: [{ label: 'Cancelar', value: false, cls: 'btn-ghost no-delay' }, { label: '💾 Guardar', value: true, cls: 'no-delay' }] });
+      if (!ok) break;
+      qz = readQuiz(); if (!qz.err) break;
+      toast('❓ ' + qz.err, 4000); qBox.classList.add('open');
+    }
+    resolve(ok ? { html: sanitize(ed.innerHTML).replace(/^(<br>|\s)+|(<br>|\s)+$/g, ''), quiz: qz.quiz } : null);
   });
 }

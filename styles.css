@@ -421,8 +421,11 @@ html { background: #ffffff; }
 .board { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0; overflow: hidden; background: #fff; }
 .board-img { position: relative; width: auto; min-width: 0; border-radius: 0; box-shadow: none; overflow: hidden; cursor: zoom-in; }
 .board-img > img { width: 100%; height: 100%; display: block; object-fit: fill; }
-body.full-view .top, body.full-view .strip, body.full-view .demo-bar { display: none; }
-body.full-view .board { position: fixed; inset: 0; z-index: 30; }
+body.full-view .top, body.full-view .demo-bar { display: none; }
+body.full-view .board { position: fixed; inset: 0 0 var(--fv-strip, 0px) 0; z-index: 30; }
+/* en grande, la fila de galletas / árboles / gnomos y los premios, abajo */
+body.full-view .strip { position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; border-bottom: 0; border-top: 1px solid #f1e6e6;
+  padding-bottom: max(6px, env(safe-area-inset-bottom)); box-shadow: 0 -3px 12px #0001; }
 body.full-view .board-img { cursor: default; }
 .exit-full { position: fixed; z-index: 40; top: max(10px, env(safe-area-inset-top)); right: 10px; border: 2px solid #fff; border-radius: 999px;
   background: #b3122eee; color: #fff; font-weight: 700; padding: 8px 16px; font-size: 15px; box-shadow: 0 4px 14px #0005; }
@@ -2147,3 +2150,91 @@ body.sum-open { overflow: hidden; }
 .sx-lbl { font-size: 12px; font-weight: 800; color: #8a6a3a; align-self: center; }
 .sx-newh { margin-top: 18px; }
 .sx-send { font-size: 18px; padding-left: 22px; padding-right: 22px; }
+
+/* V18.6 · entrada con nombre + PIN */
+.splash-pin-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.splash-pin-wrap.hide { display: none; }
+.splash-pin { letter-spacing: 8px; font-size: 20px; }
+.splash-pin::placeholder { letter-spacing: 0; font-size: 15px; font-weight: 600; }
+.splash-pin-hint { font: 600 12.5px 'Montserrat', sans-serif; color: #7a4a2a; text-align: center; }
+.splash-admin { border: 0; background: none; color: #8a5a3a; font: 600 13px 'Montserrat', sans-serif; text-decoration: underline; padding: 2px 6px; cursor: pointer; opacity: .85; }
+.pin-show { font: 800 40px 'Montserrat', sans-serif; letter-spacing: 12px; color: #b3122e; margin: 6px 0; }
+.splash-msg { justify-content: safe center; }
+@media (max-height: 760px) {
+  .splash-msg { gap: 8px; padding-top: 12px; }
+  .splash-pic img { height: clamp(70px, 13vh, 130px); }
+  .splash-title { font-size: clamp(26px, 6.5vw, 48px); }
+  .splash-form { gap: 7px; padding-top: 12px; padding-bottom: 12px; }
+  .splash-form label { font-size: 24px; }
+  .splash-name { padding: 9px 14px; }
+}
+
+/* V18.7 · menú de Configuración: botones iguales, uno debajo de otro, en 3D */
+.adm-menu { display: flex; flex-direction: column; gap: 14px; margin: 6px 0 4px; }
+.adm-btn { display: flex; align-items: center; gap: 14px; width: 100%; padding: 13px 16px; border: 0; border-radius: 20px; text-align: left; color: #fff; cursor: pointer;
+  font-family: var(--font-ui); background: linear-gradient(120deg, #b3122e, #e11d48 45%, #c99a2e);
+  box-shadow: 0 7px 0 #6e0a1c, 0 12px 18px #b3122e55, inset 0 2px 0 #ffffff66, inset 0 0 0 2px #fff4;
+  transform: translateY(0); transition: transform .08s ease, box-shadow .08s ease; position: relative; }
+.adm-btn::after { content: ''; position: absolute; left: 10px; right: 10px; top: 4px; height: 40%; border-radius: 16px 16px 40px 40px;
+  background: linear-gradient(#ffffff40, #ffffff00); pointer-events: none; }
+.adm-btn:active, .adm-btn.pressing { transform: translateY(6px); box-shadow: 0 1px 0 #6e0a1c, 0 3px 6px #b3122e44, inset 0 2px 0 #ffffff44, inset 0 0 0 2px #fff3; }
+.adm-btn-ico { font-size: 32px; flex: none; width: 44px; text-align: center; filter: drop-shadow(0 2px 2px #0004); }
+.adm-btn-txt b { display: block; font-size: 19px; text-shadow: 0 1px 2px #0005; }
+.adm-btn-txt small { display: block; opacity: .92; font-size: 13px; line-height: 1.3; margin-top: 2px; }
+.adm-sub > h2 { margin-top: 0; }
+.adm-badge { position: absolute; top: -8px; right: 10px; background: #fff; color: #b3122e; border: 2px solid #b3122e; border-radius: 999px; padding: 2px 10px; font: 800 12px var(--font-ui); box-shadow: 0 2px 6px #0003; animation: bob 1.6s ease-in-out infinite; }
+.pin-chg { display: block; font-size: 12px; color: #7a4a2a; margin: 2px 0; }
+.pin-chg.new { color: #fff; background: #b3122e; border-radius: 8px; padding: 2px 8px; font-weight: 700; }
+/* día 11: lupa encima del dedo */
+.mz-loupe { position: fixed; z-index: 9999; pointer-events: none; border-radius: 50%; border: 4px solid #f2c14e;
+  box-shadow: 0 0 0 2px #7a1020, 0 8px 20px #0006, inset 0 0 0 2px #fff; background: #f4e7cc; }
+
+/* V18.8 · actividades: pregunta con 4 respuestas */
+.aq-box { margin: 14px 0 6px; border: 2px solid #e8c77a; border-radius: 18px; background: #fffaf0; overflow: hidden; }
+.aq-toggle { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px 16px; border: 0; cursor: pointer; text-align: left;
+  font: 800 17px var(--font-ui); color: #fff; background: linear-gradient(120deg, #1f6b45, #2f8f5b 50%, #c99a2e); box-shadow: inset 0 -4px 0 #0002; }
+.aq-toggle small { font-weight: 500; font-size: 13px; opacity: .92; }
+.aq-body { display: none; padding: 12px 14px 14px; flex-direction: column; gap: 8px; }
+.aq-box.open .aq-body { display: flex; }
+.aq-lbl { font: 700 14px var(--font-ui); color: #7a1020; margin-top: 4px; }
+.aq-q { width: 100%; box-sizing: border-box; font: 500 16px var(--font-ui); padding: 10px 12px; border-radius: 12px; border: 2px solid #e3cfa5; resize: vertical; }
+.aq-row { display: flex; align-items: center; gap: 10px; }
+.aq-opt { flex: 1; min-width: 0; font: 500 16px var(--font-ui); padding: 10px 12px; border-radius: 999px; border: 2px solid #e3cfa5; background: #fff; }
+.aq-mark { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 3px solid #c9b8a0; background: #fff; cursor: pointer; position: relative; }
+.aq-mark.on { border-color: #1f8a4c; background: #1f8a4c; box-shadow: 0 0 0 3px #bdecc9; }
+.aq-mark.on::after { content: '✓'; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font: 900 18px var(--font-ui); }
+
+.aq-play { position: relative; margin: 18px 0 6px; padding: 26px 14px 16px; border-radius: 22px; text-align: center;
+  background: radial-gradient(ellipse at top, #fffdf5 0%, #fff4dc 70%); border: 3px solid #e8b64c; box-shadow: 0 6px 18px #7a102022, inset 0 0 0 2px #fff; }
+.aq-garland { position: absolute; left: 14px; right: 14px; top: -9px; display: flex; justify-content: space-between; pointer-events: none; }
+.aq-garland i { width: 14px; height: 18px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; animation: aqTwinkle 1.6s ease-in-out infinite; animation-delay: calc(var(--i) * .18s);
+  background: hsl(calc(var(--i) * 47), 80%, 55%); box-shadow: 0 0 8px hsl(calc(var(--i) * 47), 90%, 60%); }
+.aq-garland i:nth-child(3n) { background: #e8b64c; box-shadow: 0 0 8px #ffd24a; } .aq-garland i:nth-child(3n+1) { background: #c8102e; box-shadow: 0 0 8px #ff4d6d; } .aq-garland i:nth-child(3n+2) { background: #1f8a4c; box-shadow: 0 0 8px #4ade80; }
+@keyframes aqTwinkle { 0%, 100% { opacity: .55; transform: scale(.9); } 50% { opacity: 1; transform: scale(1.1); } }
+.aq-question { margin: 0 0 14px; font-family: 'Mountains of Christmas', cursive; font-weight: 700; font-size: clamp(22px, 6vw, 30px); line-height: 1.15; color: #7a1020; }
+.aq-list { display: flex; flex-direction: column; gap: 12px; }
+.aq-ans { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; border: 0; border-radius: 999px; cursor: pointer; text-align: left;
+  font: 700 17px var(--font-ui); color: #5a1a10; background: linear-gradient(#fffefa, #fbeccc); box-shadow: 0 5px 0 #c99a2e, 0 8px 14px #7a102022, inset 0 0 0 2px #f2c14e;
+  transition: transform .45s cubic-bezier(.2,1.4,.4,1), box-shadow .3s, opacity .4s, filter .4s; animation: aqIn .5s backwards; animation-delay: calc(var(--k) * .12s); }
+@keyframes aqIn { from { opacity: 0; transform: translateY(14px) scale(.95); } }
+.aq-ans:active { transform: translateY(4px); box-shadow: 0 1px 0 #c99a2e, inset 0 0 0 2px #f2c14e; }
+.aq-ball { flex: none; width: 22px; height: 24px; border-radius: 50%; position: relative; background: radial-gradient(circle at 35% 35%, #ff8a9a, #c8102e 60%, #7a0a1c); box-shadow: 0 2px 4px #0003; }
+.aq-ball::before { content: ''; position: absolute; top: -5px; left: 7px; width: 8px; height: 6px; border-radius: 2px; background: #e8b64c; }
+.aq-ans:nth-child(2) .aq-ball { background: radial-gradient(circle at 35% 35%, #8ef0b0, #1f8a4c 60%, #0d4a28); }
+.aq-ans:nth-child(3) .aq-ball { background: radial-gradient(circle at 35% 35%, #fff1a8, #d4a017 60%, #8a6408); }
+.aq-ans:nth-child(4) .aq-ball { background: radial-gradient(circle at 35% 35%, #a8c8ff, #2453c8 60%, #10286a); }
+.aq-txt { flex: 1; }
+.aq-list.done .aq-ans { pointer-events: none; }
+.aq-list.done .aq-ans:not(.right):not(.wrong) { opacity: .45; filter: grayscale(.4); }
+.aq-ans.right { transform: scale(1.08); color: #fff; background: linear-gradient(120deg, #1f8a4c, #34c26f 50%, #e8b64c);
+  box-shadow: 0 0 0 3px #fff, 0 0 22px 6px #ffd24a, 0 0 40px 12px #ffd24a88; animation: aqGlow 1.2s ease-in-out infinite; }
+@keyframes aqGlow { 0%, 100% { box-shadow: 0 0 0 3px #fff, 0 0 18px 4px #ffd24a, 0 0 34px 10px #ffd24a77; } 50% { box-shadow: 0 0 0 3px #fff, 0 0 28px 10px #ffe680, 0 0 54px 18px #ffd24aaa; } }
+.aq-ans.wrong { transform: scale(.86); opacity: .8; filter: grayscale(.7); background: linear-gradient(#f4f4f4, #dcdcdc); box-shadow: 0 2px 0 #aaa; animation: aqShake .5s; }
+@keyframes aqShake { 0%, 100% { translate: 0; } 20% { translate: -8px; } 40% { translate: 7px; } 60% { translate: -5px; } 80% { translate: 3px; } }
+.aq-fb { max-height: 0; overflow: hidden; opacity: 0; margin-top: 0; transition: all .5s; font-family: 'Mountains of Christmas', cursive; font-weight: 700; font-size: clamp(22px, 6vw, 28px); }
+.aq-fb.show { max-height: 140px; opacity: 1; margin-top: 16px; }
+.aq-fb.good { color: #1f6b45; text-shadow: 0 0 10px #ffd24a; } .aq-fb.bad { color: #7a1020; }
+/* la actividad con pregunta es más larga: nada se monta encima, se baja con el dedo */
+.activity-body { justify-content: safe center; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.activity-body > * { flex-shrink: 0; }
+.activity-text.rich { width: 100%; }

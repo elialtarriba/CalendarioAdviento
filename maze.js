@@ -2,10 +2,10 @@
 // el camino. Al llegar a un regalo el camino se engancha (con sonido) y Papá Noel se queda allí. Si el dedo
 // atraviesa una pared o se levanta antes de llegar, el camino se borra poco a poco y se vuelve a empezar
 // desde Papá Noel. Cada vez que se desliza es un intento. Con los 3 regalos, Papá Noel tiene que llegar al trineo.
-import { el, sleep, confetti, toast } from './fx.js?v=18.5';
-import { getLang } from './i18n.js?v=18.5';
-import { pop, chime, fanfare, unlockAudio, snapSound, oops, jingle, christmasSong } from './sound.js?v=18.5';
-import { nextGame, rng, TOTAL } from './games25.js?v=18.5';
+import { el, sleep, confetti, toast } from './fx.js?v=18.8';
+import { getLang } from './i18n.js?v=18.8';
+import { pop, chime, fanfare, unlockAudio, snapSound, oops, jingle, christmasSong } from './sound.js?v=18.8';
+import { nextGame, rng, TOTAL } from './games25.js?v=18.8';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const C = 9, R = 11; // columnas y filas
@@ -64,9 +64,9 @@ export function render(body, ctx) {
   const startBtn = el('button', { class: 'btn btn-big no-delay' }, '▶️ ' + L('¡A jugar!', 'A jugar!', 'Let’s play!'));
   const howto = el('div', { class: 'mz-how' },
     el('h3', {}, '📖 ' + L('Cómo se juega', 'Com es juga', 'How to play')),
-    el('p', {}, L('Pon el dedo sobre Papá Noel y, sin levantarlo, deslízalo por los caminos: se irá pintando. Lleva a Papá Noel hasta un regalo: el camino se engancha y Papá Noel se queda allí. Desde allí, ve a buscar el siguiente.',
-      'Posa el dit sobre el Pare Noel i, sense aixecar-lo, llisca’l pels camins: s’anirà pintant. Porta el Pare Noel fins a un regal: el camí s’enganxa i el Pare Noel s’hi queda. Des d’allà, ves a buscar el següent.',
-      'Put your finger on Santa and, without lifting it, slide along the paths: they get painted. Take Santa to a present: the path sticks and Santa stays there. From there, go and find the next one.')),
+    el('p', {}, L('Pon el dedo sobre Papá Noel y, sin levantarlo, deslízalo por los caminos: se irá pintando. Encima del dedo verás una lupa con el camino. Lleva a Papá Noel hasta un regalo: el camino se engancha y Papá Noel se queda allí. Desde allí, ve a buscar el siguiente.',
+      'Posa el dit sobre el Pare Noel i, sense aixecar-lo, llisca’l pels camins: s’anirà pintant. Damunt del dit veuràs una lupa amb el camí. Porta el Pare Noel fins a un regal: el camí s’enganxa i el Pare Noel s’hi queda. Des d’allà, ves a buscar el següent.',
+      'Put your finger on Santa and, without lifting it, slide along the paths: they get painted. Above your finger you’ll see a magnifier with the path. Take Santa to a present: the path sticks and Santa stays there. From there, go and find the next one.')),
     el('p', {}, L('Si atraviesas una pared o levantas el dedo antes de llegar, el camino se borra poco a poco y vuelves a empezar desde Papá Noel. Cada vez que deslizas el dedo es un intento. Coge los 3 regalos (en el orden que quieras) y después lleva a Papá Noel al trineo.',
       'Si travesses una paret o aixeques el dit abans d’arribar, el camí s’esborra a poc a poc i tornes a començar des del Pare Noel. Cada vegada que llisques el dit és un intent. Agafa els 3 regals (en l’ordre que vulguis) i després porta el Pare Noel al trineu.',
       'If you cross a wall or lift your finger before arriving, the path fades away and you start again from Santa. Every slide is one try. Collect the 3 presents (in any order) and then take Santa to the sleigh.')), startBtn);
@@ -142,6 +142,7 @@ export function render(body, ctx) {
     })();
   }
   function cut(sound = true) {
+    hideLoupe();
     if (!active) return;
     if (active.length > 1) ghosts.push({ path: active, a: 1 }); active = null; fadeLoop();
     if (sound) oops();
@@ -153,15 +154,45 @@ export function render(body, ctx) {
     return [Math.floor((e.clientY - r.top) / k / cs), Math.floor((e.clientX - r.left) / k / cs)]; };
   const same = (a, b) => a[0] === b[0] && a[1] === b[1];
   let pid = null;
+  // lupa: encima del dedo se ve, en grande, el trozo de laberinto que queda debajo (el dedo ya no tapa el camino)
+  const LS = 130, ZOOM = 1.6;
+  let loupe = null;
+  function showLoupe(e) {
+    if (e.pointerType === 'mouse') return;
+    if (!loupe) { loupe = el('canvas', { class: 'mz-loupe' }); document.body.append(loupe); }
+    const dpr = Math.min(2, devicePixelRatio || 1);
+    if (loupe.width !== LS * dpr) { loupe.width = loupe.height = LS * dpr; loupe.style.width = loupe.style.height = LS + 'px'; }
+    const r = stage.getBoundingClientRect(), k = r.width / (C * cs) || 1;
+    const x = (e.clientX - r.left) / k, y = (e.clientY - r.top) / k; // punto del dedo en el laberinto
+    const half = LS / 2 / ZOOM, sc = LS / (2 * half);
+    const g = loupe.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, LS, LS); g.save(); g.beginPath(); g.arc(LS / 2, LS / 2, LS / 2 - 1, 0, 7); g.clip();
+    g.fillStyle = '#f4e7cc'; g.fillRect(0, 0, LS, LS);
+    const cdpr = cv.width / (C * cs);
+    g.drawImage(cv, (x - half) * cdpr, (y - half) * cdpr, 2 * half * cdpr, 2 * half * cdpr, 0, 0, LS, LS);
+    // regalos, trineo y Papá Noel también se ven en la lupa
+    const put = (img, [rr, cc], f) => { if (!img?.complete) return; const s2 = cs * f * sc; const cx = (cc * cs + cs / 2 - (x - half)) * sc, cy = (rr * cs + cs / 2 - (y - half)) * sc; g.drawImage(img, cx - s2 / 2, cy - s2 / 2, s2, s2); };
+    put(sleighEl.firstChild, M.sleigh, .98); M.gifts.forEach((q, i) => { if (!taken[i]) put(giftEls[i].firstChild, q, .84); }); put(santa.firstChild, anchor, .92);
+    // la punta del camino: un punto rojo en el centro
+    g.fillStyle = '#e63946'; g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.arc(LS / 2, LS / 2, 6, 0, 7); g.fill(); g.stroke();
+    g.restore();
+    let L0 = e.clientX - LS / 2, T0 = e.clientY - LS - 70; // por encima del dedo
+    if (T0 < 6) { T0 = Math.max(6, e.clientY - LS / 2); L0 = e.clientX + (e.clientX < innerWidth / 2 ? 60 : -60 - LS); } // arriba del todo: al lado
+    loupe.style.left = Math.max(4, Math.min(innerWidth - LS - 4, L0)) + 'px'; loupe.style.top = T0 + 'px';
+  }
+  const hideLoupe = () => { loupe?.remove(); loupe = null; };
   stage.addEventListener('pointerdown', e => {
     if (done) return; unlockAudio();
     const p = cellAt(e);
     if (!same(p, anchor)) { toast('🎅 ' + L('Pon el dedo sobre Papá Noel para empezar el camino.', 'Posa el dit sobre el Pare Noel per començar el camí.', 'Put your finger on Santa to start the path.'), 2400); santa.classList.remove('nudge'); void santa.offsetWidth; santa.classList.add('nudge'); return; }
     e.preventDefault(); try { stage.setPointerCapture(e.pointerId); } catch {}
-    pid = e.pointerId; active = [anchor.slice()]; nTries++; paintHud(); santa.classList.add('drag'); pop(); draw();
+    pid = e.pointerId; active = [anchor.slice()]; nTries++; paintHud(); santa.classList.add('drag'); pop(); draw(); showLoupe(e);
   });
   stage.addEventListener('pointermove', e => {
     if (!active || e.pointerId !== pid) return;
+    move(e); if (active) showLoupe(e); else hideLoupe();
+  });
+  function move(e) {
     const p = cellAt(e), last = active[active.length - 1];
     if (same(p, last)) return;
     if (active.length > 1 && same(p, active[active.length - 2])) { active.pop(); draw(); return; } // volver atrás
@@ -175,7 +206,7 @@ export function render(body, ctx) {
     }
     if (!M.open(last[0], last[1], p[0], p[1])) return cut(); // ¡pared!
     step(p);
-  });
+  }
   // avanza una casilla; devuelve true si se ha acabado el trazo
   function step(p) {
     if (active.some(q => same(q, p))) { while (!same(active[active.length - 1], p)) active.pop(); draw(); return false; } // ha vuelto sobre su camino
@@ -192,7 +223,7 @@ export function render(body, ctx) {
   stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
 
   async function reach(p, gi) {
-    const path = active; active = null; pid = null; locked.push(path); santa.classList.remove('drag');
+    const path = active; active = null; pid = null; locked.push(path); santa.classList.remove('drag'); hideLoupe();
     snapSound(); chime(); draw();
     // Papá Noel recorre el camino hasta el regal
     for (let i = 1; i < path.length; i++) { posEl(santa, path[i], .92); await sleep(Math.max(18, 160 / path.length)); }
@@ -206,7 +237,7 @@ export function render(body, ctx) {
 
   // ---- ¡al trineo! Papá Noel se va volando con los regalos
   let music = null;
-  ctx.cleanup = () => { try { music?.stop(1); } catch {} };
+  ctx.cleanup = () => { hideLoupe(); try { music?.stop(1); } catch {} };
   async function win() {
     done = true;
     if (!ctx.prev && !win.sent) { win.sent = true; ctx.submit({ answer: '🛷 ' + L(`Laberinto en ${nTries} intentos`, `Laberint en ${nTries} intents`, `Maze in ${nTries} tries`), status: 'correct' }); }

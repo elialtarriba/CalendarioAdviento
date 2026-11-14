@@ -1,7 +1,7 @@
 // Día 20: la ruleta del disparate
-import { t, tx } from './i18n.js?v=18.5';
-import { el, confetti } from './fx.js?v=18.5';
-import { chime, pop } from './sound.js?v=18.5';
+import { t, tx } from './i18n.js?v=18.8';
+import { el, confetti } from './fx.js?v=18.8';
+import { chime, pop } from './sound.js?v=18.8';
 
 export const R_COLS = ['#e63946', '#2a9d62', '#ffb703', '#3a86ff', '#9b5de5', '#f15bb5', '#00b4d8', '#fb8500', '#06d6a0', '#8338ec'];
 const COLS = R_COLS;

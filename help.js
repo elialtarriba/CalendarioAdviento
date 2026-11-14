@@ -1,10 +1,10 @@
 // Guía de la app (para la administradora): pantalla completa, índice, dibujos y zoom con dos dedos
-import { el } from './fx.js?v=18.5';
-import { getLang } from './i18n.js?v=18.5';
-import { PORTADAS, PAPERS } from './defaults.js?v=18.5';
-import { figure, S } from './app.js?v=18.5';
-import { store } from './store.js?v=18.5';
-import { toast } from './fx.js?v=18.5';
+import { el } from './fx.js?v=18.8';
+import { getLang } from './i18n.js?v=18.8';
+import { PORTADAS, PAPERS } from './defaults.js?v=18.8';
+import { figure, S } from './app.js?v=18.8';
+import { store } from './store.js?v=18.8';
+import { toast } from './fx.js?v=18.8';
 // una ventanita del calendario (recortada del tema «Cosas Navidad»), como las de la portada
 function doorCrop(d = 1, cls = '') {
   const v = PORTADAS[0].variants.find(x => /movil/.test(x.img)) || PORTADAS[0].variants[0];
@@ -30,7 +30,7 @@ const sw = (on, label) => el('span', { class: 'hg-switch' + (on ? ' on' : '') },
 
 const SECTIONS = [
   { id: 'app', ico: '🎄', title: 'Cómo funciona el calendario', color: '#b3122e', body: () => [
-    P('Cada persona entra con su ', B('correo y contraseña'), '. Ve un calendario con ', B('25 casillas'), ' (del 1 al 25 de diciembre). Cada casilla se puede abrir a partir de las ', B('00:00 de ese día'), ' (hora de España). Antes, la casilla tiembla y no se abre.'),
+    P('Todos entran por la pantalla de la nieve: cada jugador con su ', B('nombre y un PIN de 4 números'), ' (se lo inventa la primera vez; tú lo ves en «Usuarios»). Tú, con «🔑 Soy la administradora». Ve un calendario con ', B('25 casillas'), ' (del 1 al 25 de diciembre). Cada casilla se puede abrir a partir de las ', B('00:00 de ese día'), ' (hora de España). Antes, la casilla tiembla y no se abre.'),
     mock('Portada', el('div', { class: 'hg-board' }, ...Array.from({ length: 10 }, (_, i) => el('span', { class: 'hg-door' + (i < 3 ? ' done' : '') }, i + 1)))),
     P('Al abrir una casilla, la puerta se ilumina, se abre y sale una ', B('nota'), ' con el reto del día: una pregunta, un juego, un vídeo…'),
     el('h4', {}, 'La figura de cada persona'),
@@ -394,7 +394,7 @@ function userSections() {
         el('div', { class: 'hg-papers' }, ...PAPERS.map(p => el('div', {}, el('div', { class: 'note-mini paper paper-' + p.id }, el('b', { class: 'note-day' }, '🎄 1'), el('p', {}, 'Ho, ho, ho!')), el('small', {}, p.name))))]),
       acc('🖼️', L('Diferentes temas', 'Diferents temes', 'Different themes'), () => [el('small', {}, L('Ves todos los calendarios en pequeño y tocas el que quieras:', 'Veus tots els calendaris en petit i toques el que vulguis:', 'You see all the calendars small and tap the one you want:')),
         el('div', { class: 'hg-themes' }, ...PORTADAS.map(p => { const v = p.variants.find(x => /movil/.test(x.img)) || p.variants[0]; return el('figure', {}, el('img', { src: v.img, alt: '', loading: 'lazy' }), el('figcaption', {}, p.name)); }))]),
-      acc('🔑', L('Contraseña', 'Contrasenya', 'Password'), () => [el('div', { class: 'hg-pw' }, el('span', {}, '•••••••• 👁️'), btn(L('Cambiar', 'Canviar', 'Change'))), el('small', {}, L('Escribes la actual y la nueva dos veces.', 'Escrius l’actual i la nova dues vegades.', 'You type the current one and the new one twice.'))]),
+      acc('🔑', 'PIN', () => [el('div', { class: 'hg-pw' }, el('span', {}, '•••• 👁️'), btn(L('Cambiar', 'Canviar', 'Change'))), el('small', {}, L('Con 👁️ ves tu PIN. Para cambiarlo escribes el actual y el nuevo dos veces.', 'Amb 👁️ veus el teu PIN. Per canviar-lo escrius l’actual i el nou dues vegades.', 'With 👁️ you see your PIN. To change it, type the current one and the new one twice.'))]),
       acc('🚪', L('Cerrar sesión', 'Tancar la sessió', 'Sign out'), () => [btn('🚪 ' + L('Cerrar sesión', 'Tancar la sessió', 'Sign out')), el('small', {}, L('Está abajo del todo.', 'És a baix de tot.', 'It is at the very bottom.'))])),
     P(L('Los botones ', 'Els botons ', 'The '), btn(L('Cancelar', 'Cancel·lar', 'Cancel')), L(' y ', ' i ', ' and '), btn(L('Guardar', 'Desar', 'Save'), 'red'), L(' están arriba y no se mueven aunque bajes.', ' són a dalt i no es mouen encara que baixis.', ' buttons are at the top and stay put while you scroll.')),
   ] },
@@ -402,7 +402,7 @@ function userSections() {
     el('div', { class: 'hg-list' },
       item('🔊', L('No se oye nada', 'No se sent res', 'No sound'), L('Sube el volumen y toca la pantalla. En iPhone ningún sonido funciona hasta que tocas la pantalla.', 'Apuja el volum i toca la pantalla. A l’iPhone cap so funciona fins que toques la pantalla.', 'Turn the volume up and tap the screen. On iPhone no sound plays until you tap the screen.')),
       item('🔄', L('Algo se ve raro', 'Alguna cosa es veu estranya', 'Something looks odd'), L('Cierra la app (o la pestaña) y vuelve a abrirla.', 'Tanca l’app (o la pestanya) i torna-la a obrir.', 'Close the app (or the tab) and open it again.')),
-      item('🔑', L('He olvidado la contraseña', 'He oblidat la contrasenya', 'I forgot my password'), L('En la pantalla de entrada pulsa «¿Has olvidado la contraseña?» y te llegará un correo.', 'A la pantalla d’entrada prem «Has oblidat la contrasenya?» i et arribarà un correu.', 'On the sign-in screen tap “Forgot your password?” and you’ll get an email.')),
+      item('🔑', L('He olvidado mi PIN', 'He oblidat el meu PIN', 'I forgot my PIN'), L('Pídeselo a la administradora: ella lo puede ver.', 'Demana’l a l’administradora: ella el pot veure.', 'Ask the admin: she can see it.')),
       item('🔒', L('La casilla no se abre', 'La casella no s’obre', 'The box won’t open'), L('Todavía no es su día: se abre a las 00:00.', 'Encara no és el seu dia: s’obre a les 00:00.', 'It isn’t its day yet: it opens at 00:00.'))),
     el('div', { class: 'hg-end' }, L('🎄 ¡Feliz Navidad! 🎄', '🎄 Bon Nadal! 🎄', '🎄 Merry Christmas! 🎄')),
   ] },

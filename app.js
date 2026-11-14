@@ -1,11 +1,11 @@
-import { initStore, store, DEMO } from './store.js?v=18.5';
-import { t, tx, setLang, getLang } from './i18n.js?v=18.5';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=18.5';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=18.5';
-import { typeRich, gallery, lightbox } from './richact.js?v=18.5';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=18.5';
+import { initStore, store, DEMO, nameKey, isPlayerEmail } from './store.js?v=18.8';
+import { t, tx, setLang, getLang } from './i18n.js?v=18.8';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=18.8';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=18.8';
+import { typeRich, gallery, lightbox } from './richact.js?v=18.8';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=18.8';
 
-export const APP_VERSION = 'V18.5';
+export const APP_VERSION = 'V18.8';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -23,8 +23,12 @@ export function madridToday() {
 const testKey = () => 'adv_test_' + (S.user?.uid || '');
 export const testMode = () => { try { return localStorage.getItem(testKey()) === '1'; } catch { return false; } };
 export const setTestMode = on => { try { on ? localStorage.setItem(testKey(), '1') : localStorage.removeItem(testKey()); } catch {} };
+// 1 de diciembre a las 00:00 (hora de Madrid) del año del calendario
+const decStart = () => Date.UTC(S.config.year, 11, 1, -1);
+const decStarted = () => { const { y, m } = madridToday(); const Y = S.config.year; return y > Y || (y === Y && m === 12); };
 function canOpen(n) {
-  if (testMode()) return true;
+  if (testMode()) return true; // modo prueba (solo la administradora)
+  if (S.config?.openAll && !decStarted()) return true; // «abrir todas a todos»: solo antes de diciembre
   const { y, m, d } = madridToday(); const Y = S.config.year;
   return y > Y || (y === Y && m === 12 && d >= n);
 }
@@ -45,7 +49,7 @@ export async function loadDay(n) {
   const def = defaultDay(n);
   const day = { ...def, ...(c || {}), type: def.type }; // el tipo de juego de cada día es fijo
   // lo que el administrador escribe en español se traduce solo al idioma elegido (si no lo ha escrito él)
-  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=18.5')).localizeDay(day, def, getLang()); } catch {} }
+  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=18.8')).localizeDay(day, def, getLang()); } catch {} }
   return day;
 }
 export function applyPaper(node) {
@@ -58,7 +62,7 @@ export function applyPaper(node) {
 function splashCfg() {
   try { return { ...SPLASH_DEFAULT, ...(JSON.parse(localStorage.getItem('adv_splash')) || {}) }; } catch { return SPLASH_DEFAULT; }
 }
-function splash(checkName = async () => true) {
+function splash(enter = async () => null, sessP = Promise.resolve([])) {
   const cfg = splashCfg();
   if (cfg.show === false) return Promise.resolve(); // la pantalla de nieve sale siempre al abrir la app
   return new Promise(resolve => {
@@ -75,10 +79,23 @@ function splash(checkName = async () => true) {
     const nameIn = el('input', { type: 'text', class: 'splash-name', maxlength: 30, value: saved, autocomplete: 'given-name',
       placeholder: ({ es: 'Escribe tu nombre', ca: 'Escriu el teu nom', en: 'Write your name' }[getLang()] || 'Escribe tu nombre') });
     const nameErr = el('div', { class: 'splash-err' });
-    const upd = () => { skip.disabled = nameIn.value.trim().length < 2; nameErr.textContent = ''; };
-    nameIn.addEventListener('input', upd); upd();
-    nameIn.addEventListener('keydown', e => { if (e.key === 'Enter' && !skip.disabled) skip.click(); });
-    const form = el('div', { class: 'splash-form' }, el('label', {}, '🎅 ' + ({ es: '¿Cómo te llamas?', ca: 'Com et dius?', en: 'What is your name?' }[getLang()] || '¿Cómo te llamas?')), nameIn, nameErr, skip);
+    // PIN de 4 números: la primera vez se lo inventa; después solo hace falta en otro aparato
+    const pinIn = el('input', { type: 'password', class: 'splash-name splash-pin', inputmode: 'numeric', pattern: '[0-9]*', maxlength: 4, autocomplete: 'off',
+      placeholder: L3('Tu PIN (4 números)', 'El teu PIN (4 números)', 'Your PIN (4 numbers)') });
+    const pinHint = el('small', { class: 'splash-pin-hint' }, L3('¿Primera vez? Inventa 4 números y recuérdalos.', 'Primer cop? Inventa’t 4 números i recorda’ls.', 'First time? Make up 4 numbers and remember them.'));
+    const pinWrap = el('div', { class: 'splash-pin-wrap' }, pinIn, pinHint);
+    let known = saved ? [saved] : []; // nombres con los que este aparato ya ha entrado
+    sessP.then(k => { known = k || []; upd(); }).catch(() => {});
+    const needPin = () => !known.some(k => k && nameKey(k) === nameKey(nameIn.value));
+    const upd = () => {
+      const np = needPin(); pinWrap.classList.toggle('hide', !np);
+      pinIn.value = pinIn.value.replace(/\D/g, '').slice(0, 4);
+      skip.disabled = nameIn.value.trim().length < 2 || (np && pinIn.value.length !== 4); nameErr.textContent = '';
+    };
+    nameIn.addEventListener('input', upd); pinIn.addEventListener('input', upd); upd();
+    [nameIn, pinIn].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter' && !skip.disabled) skip.click(); }));
+    const adminLink = el('button', { type: 'button', class: 'splash-admin no-delay', onclick: () => { unlockAudio(); finish('admin'); } }, '🔑 ' + L3('Soy la administradora', 'Soc l’administradora', 'I am the admin'));
+    const form = el('div', { class: 'splash-form' }, el('label', {}, '🎅 ' + ({ es: '¿Cómo te llamas?', ca: 'Com et dius?', en: 'What is your name?' }[getLang()] || '¿Cómo te llamas?')), nameIn, pinWrap, nameErr, skip, adminLink);
     msg.append(form); // todo en una columna centrada: árbol, título y la tarjeta del nombre
     const box = el('div', { class: 'splash' }, cv, msg);
     document.body.append(box);
@@ -124,19 +141,20 @@ function splash(checkName = async () => true) {
       if (el_ >= secs && !shown) { shown = true; box.classList.add('show-msg'); }
       requestAnimationFrame(loop);
     })(t0);
-    function finish() {
+    function finish(val) {
       if (done) return; done = true; removeEventListener('resize', size);
-      box.classList.add('out'); setTimeout(() => { box.remove(); resolve(); }, 700);
+      box.classList.add('out'); setTimeout(() => { box.remove(); resolve(val); }, 700);
       setTimeout(() => music?.stop(4), 7000); // sigue sonando unos segundos con la portada abierta
     }
     skip.onclick = async () => {
       const name = nameIn.value.trim(); if (name.length < 2) return;
       unlockAudio(); if (!music?.playing) { try { music?.stop(0); music = christmasSong(); } catch {} }
       skip.disabled = true; skip.classList.add('go');
-      const ok = await Promise.race([checkName(name), sleep(5000).then(() => true)]).catch(() => true);
-      if (!ok) {
-        skip.classList.remove('go'); skip.disabled = false; nameIn.focus();
-        nameErr.textContent = '⚠️ ' + ({ es: `El nombre «${name}» ya existe. Escoge otro (por ejemplo, con tu apellido).`, ca: `El nom «${name}» ja existeix. Tria’n un altre (per exemple, amb el cognom).`, en: `The name “${name}” already exists. Choose another (for example with your surname).` }[getLang()]);
+      const pin = needPin() ? pinIn.value : '';
+      const errMsg = await enter({ name, pin }).catch(e => '⚠️ ' + (e.code || e.message));
+      if (errMsg) {
+        skip.classList.remove('go'); skip.disabled = false;
+        nameErr.textContent = errMsg; (/PIN/.test(errMsg) ? pinIn : nameIn).focus();
         return;
       }
       try { localStorage.setItem('adv_who', name); } catch {}
@@ -148,20 +166,44 @@ function splash(checkName = async () => true) {
 async function boot() {
   setLang(localStorage.getItem('adv_lang') || 'es');
   const storeP = initStore().then(() => null, e => e);
-  // el nombre no se puede repetir (se comprueba si ya ha entrado antes en este móvil)
-  await splash(async name => {
-    if (await storeP) return true;
-    const u = await store.authReady(); if (!u) return true;
-    const { keyOf } = await import('./presence.js?v=18.5');
-    const cur = await store.getName(keyOf(name)).catch(() => null);
-    return !cur || cur.uid === u.uid;
-  });
+  // nombres con los que este aparato ya está dentro (entonces no hace falta el PIN)
+  const sessP = storeP.then(async e => {
+    if (e) return [];
+    const u = await store.authReady(); if (!u) return [];
+    const p = await store.getProfile(u.uid).catch(() => null);
+    let w = ''; try { w = localStorage.getItem('adv_who') || ''; } catch {}
+    return [p?.name, p?.who, w].filter(Boolean);
+  }).catch(() => []);
+  let newPin = '';
+  // todos entran por la nieve: los jugadores con nombre + PIN; la administradora, con su correo
+  const mode = await splash(async ({ name, pin }) => {
+    if (await storeP) return null; // sin conexión: el aviso sale después
+    const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
+    if (!pin) return null; // ya está dentro en este aparato con este nombre
+    if (await store.authReady()) { try { (await import('./presence.js?v=18.8')).stopPresence(S); } catch {} await store.signOut(); }
+    let r;
+    try { r = await store.playerEnter(name, nameKey(name), pin, getLang()); }
+    catch (er) {
+      const c = String(er.code || er.message || '');
+      return '⚠️ ' + (c.includes('too-many') ? L('Demasiados intentos. Espera un par de minutos y vuelve a probar.', 'Massa intents. Espera un parell de minuts i torna-ho a provar.', 'Too many tries. Wait a couple of minutes and try again.')
+        : c.includes('network') ? L('No hay conexión a internet.', 'No hi ha connexió a internet.', 'No internet connection.') : c);
+    }
+    if (r === 'badpin') return '⚠️ ' + L(`Ese PIN no es el de «${name}». Si lo has olvidado, pídeselo a la administradora.`, `Aquest PIN no és el de «${name}». Si l’has oblidat, demana’l a l’administradora.`, `That PIN is not ${name}’s. If you forgot it, ask the admin.`);
+    if (r === 'taken') return '⚠️ ' + L(`El nombre «${name}» ya lo usa otra persona. Escribe otro (por ejemplo, con tu apellido).`, `El nom «${name}» ja el fa servir una altra persona. Escriu-ne un altre (per exemple, amb el cognom).`, `The name “${name}” is already used. Write another one (for example with your surname).`);
+    if (r === 'new') newPin = pin;
+    return null;
+  }, sessP);
+  const wantAdmin = mode === 'admin';
+  if (wantAdmin) { // si este aparato estaba dentro como jugador, se sale para entrar con el correo
+    const u = await store.authReady().catch(() => null);
+    if (u && isPlayerEmail(u.email)) await store.signOut().catch(() => {});
+  }
   try { const e = await storeP; if (e) throw e; } catch (e) {
     app.innerHTML = `<div class="fatal">No se ha podido conectar con Firebase. Revisa js/firebase-config.js.<br><small>${esc(e.message)}</small></div>`; return;
   }
   store.onAuth(async u => {
     S.user = u;
-    if (!u) { S.isAdmin = false; return renderLogin(); }
+    if (!u) { S.isAdmin = false; return wantAdmin ? renderLogin() : goStart(); } // sin cuenta: se vuelve a la nieve
     app.innerHTML = '<div class="loading">❄</div>';
     const [profile, settings, answers, config, card] = await Promise.all([
       store.getProfile(u.uid), store.getSettings(u.uid).catch(() => null), store.getAnswers(u.uid).catch(() => ({})),
@@ -178,11 +220,30 @@ async function boot() {
     let pick = null; try { pick = localStorage.getItem('adv_lang_pick'); localStorage.removeItem('adv_lang_pick'); } catch {}
     if (pick && pick !== S.profile.lang) { S.profile.lang = pick; store.saveProfile(u.uid, { lang: pick }).catch(() => {}); }
     setLang(S.profile.lang || 'es');
+    if (S.profile.player) { try { localStorage.setItem('adv_who', S.profile.name); } catch {} }
+    await resetPractice(u.uid);
     renderHome();
-    import('./presence.js?v=18.5').then(m => m.startPresence(S)).catch(e => console.warn(e));
-    import('./admin.js?v=18.5').catch(() => {});
-    import('./surprise.js?v=18.5').then(m => m.showSurprise(u.uid)).catch(() => {});
+    if (newPin) { const p = newPin; newPin = ''; setTimeout(() => popup(`<h2>🎄 ${esc(S.profile.name)}</h2><p style="font-size:18px">${L3('Tu PIN es', 'El teu PIN és', 'Your PIN is')}</p><p class="pin-show">${esc(p)}</p><p>${L3('Recuérdalo: lo necesitarás si entras desde otro móvil, tableta u ordenador.', 'Recorda’l: el necessitaràs si entres des d’un altre mòbil, tauleta o ordinador.', 'Remember it: you will need it on another phone, tablet or computer.')}</p>`, { buttons: [{ label: 'OK', value: true }] }), 600); }
+    import('./presence.js?v=18.8').then(m => m.startPresence(S)).catch(e => console.warn(e));
+    import('./admin.js?v=18.8').catch(() => {});
+    import('./surprise.js?v=18.8').then(m => m.showSurprise(u.uid)).catch(() => {});
   });
+}
+
+// al empezar diciembre, todo lo que se hizo antes (casillas abiertas para probar) se borra: se empieza de 0
+async function resetPractice(uid) {
+  const { y, m } = madridToday();
+  if (!(y === S.config.year && m === 12)) return;
+  const cut = decStart();
+  const old = Object.keys(S.answers).filter(d => (S.answers[d]?.at || 0) < cut);
+  if (!old.length) return;
+  const gone = [];
+  for (const d of old) { try { await store.deleteAnswer(uid, d); delete S.answers[d]; gone.push(d); } catch (e) { console.warn('reset', d, e); } }
+  if (!gone.length) return;
+  const ad = { ...(S.profile.actDone || {}) }; gone.forEach(d => delete ad[d]);
+  S.profile.actDone = ad; await store.setActDone(uid, ad).catch(e => console.warn(e));
+  try { localStorage.removeItem('adv_prizes_' + uid); } catch {}
+  if (S.card) { await store.deleteCard(uid).catch(() => {}); S.card = null; }
 }
 
 // ------------------------------------------------------------------ login
@@ -195,7 +256,7 @@ function renderLogin(mode = 'login') {
   // idioma, antes de entrar
   const langSel = el('div', { class: 'login-langs' }, ...[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([v, l]) =>
     el('button', { type: 'button', class: 'login-lang no-delay' + (v === getLang() ? ' on' : ''), onclick: () => { setLang(v); try { localStorage.setItem('adv_lang_pick', v); } catch {} renderLogin(mode); } }, l)));
-  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=18.5').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
+  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=18.8').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
     '📖 ' + ({ es: 'Cómo funciona', ca: 'Com funciona', en: 'How it works' }[getLang()] || 'Cómo funciona'));
   const submit = async e => {
     e.preventDefault(); errBox.textContent = ''; unlockAudio();
@@ -237,7 +298,7 @@ function renderLogin(mode = 'login') {
 }
 
 // ------------------------------------------------------------------ portada
-let fullView = false, boardObserver = null;
+let fullView = false, boardObserver = null, stripObserver = null;
 function currentTheme() {
   return PORTADAS.find(p => p.id === S.profile.portada) || PORTADAS.find(p => p.id === DEFAULT_PORTADA) || PORTADAS[0];
 }
@@ -310,7 +371,7 @@ function glowConfetti(parent) {
 // texto escrito por la administradora: sale en español y se cambia por la traducción al idioma elegido
 function tEl(tag, cls, text) {
   const n = el(tag, { class: cls }, text || '');
-  if (text && getLang() !== 'es') import('./translate.js?v=18.5').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
+  if (text && getLang() !== 'es') import('./translate.js?v=18.8').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
   return n;
 }
 // el regalo: una caja que se abre y dentro el premio (texto, mensaje y foto que pone el administrador)
@@ -329,7 +390,7 @@ async function revealPrize(g) {
   const gift = box.querySelector('.pzr-gift');
   await new Promise(r => { gift.onclick = r; setTimeout(r, 9000); });
   gift.onclick = null; box.querySelector('.pzr-hint').textContent = '✨';
-  try { const { jingle } = await import('./sound.js?v=18.5'); jingle(1); } catch {}
+  try { const { jingle } = await import('./sound.js?v=18.8'); jingle(1); } catch {}
   gift.classList.add('shake'); await sleep(900); gift.classList.add('open'); chime(); confetti(220);
   await sleep(700);
   const photo = await photoP;
@@ -441,7 +502,7 @@ export function renderHome() {
           el('button', { class: 'icon-btn', title: L3('Inicio', 'Inici', 'Start'), onclick: goStart }, '❄️'),
           sndBtn(),
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=18.5')).openAdmin() }, '🔒')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=18.8')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -478,9 +539,14 @@ export function renderHome() {
   if (!fullView) bars.push(el('button', { class: 'zoom-bar no-delay', onclick: () => { fullView = true; renderHome(); } }, '🔍 ' + t('zoomBar')));
   const exitBtn = fullView ? el('button', { class: 'exit-full', onclick: () => { fullView = false; renderHome(); } }, '✕ ' + t('exitFull')) : null;
   document.body.classList.toggle('full-view', fullView);
-  app.replaceChildren(header, ...bars, ...(strip ? [strip] : []), ...(marquee ? [marquee] : []), board, ...(exitBtn ? [exitBtn] : []));
+  app.replaceChildren(header, ...bars, ...(strip && !fullView ? [strip] : []), ...(marquee ? [marquee] : []), board, ...(strip && fullView ? [strip] : []), ...(exitBtn ? [exitBtn] : []));
 
   fitTitle(); document.fonts?.ready?.then(fitTitle);
+  // en grande, la fila de figuras queda abajo y el calendario ocupa el resto
+  stripObserver?.disconnect(); stripObserver = null;
+  const setStripH = () => document.body.style.setProperty('--fv-strip', (fullView && strip ? strip.offsetHeight : 0) + 'px');
+  if (fullView && strip) { stripObserver = new ResizeObserver(setStripH); stripObserver.observe(strip); }
+  setStripH();
   boardObserver?.disconnect();
   boardObserver = new ResizeObserver(() => layoutBoard(board, theme));
   boardObserver.observe(board);
@@ -578,7 +644,7 @@ async function openDoor(n, door, mode = null) {
     { opacity: 1, offset: .25 },
     { transform: 'translate(0,0) scale(1) rotate(0)', opacity: 1 },
   ], { duration: 1500, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' });
-  setTimeout(() => speak(t('welcome', n), getLang()), n === 25 ? 3200 : 0);
+  setTimeout(() => speak(t('welcome', n), getLang()), n === 25 ? 4800 : 0); // después del ho, ho, ho (en el iPhone la voz corta el sonido)
 
   let closed = false;
   const ctx = {
@@ -607,7 +673,7 @@ async function openDoor(n, door, mode = null) {
     // juegos que se pueden repetir: se juegan de nuevo, pero la respuesta guardada (y los premios) no cambian
     if (ctx.prev && ['hats', 'reindeer', 'differences', 'memory', 'goodcheck'].includes(content.type)) { ctx.replay = true; ctx.prev = null; }
     if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=18.5`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=18.8`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   busy = false;
 }
@@ -658,6 +724,7 @@ async function runActivity(n, layer) {
 }
 
 async function closeDay(n, layer, note, door, later = false) {
+  fullView = true; // al salir de cualquier casilla: el calendario en grande (con la fila de figuras abajo)
   const fig = figure();
   const done = !!S.answers[n];
   speechSynthesis?.cancel?.();
@@ -671,7 +738,7 @@ async function closeDay(n, layer, note, door, later = false) {
   // día 25 con la foto hecha: final del calendario con la bola de nieve que cobra vida
   // al acabar el día 25: el resumen de todo el mes
   let next = null;
-  if (!later && n === 25 && done) { try { next = await (await import('./summary.js?v=18.5')).monthSummary({ menu: menu25() }); fullView = true; } catch (e) { console.error(e); } }
+  if (!later && n === 25 && done) { try { next = await (await import('./summary.js?v=18.8')).monthSummary({ menu: menu25() }); fullView = true; } catch (e) { console.error(e); } }
   creak(false);
   layer.classList.add('fade-out');
   await sleep(700);
@@ -686,7 +753,7 @@ const allDone25 = () => Array.from({ length: 25 }, (_, i) => i + 1).every(d => S
 const menu25 = () => (allDone25() ? { act: figure() !== 'galleta' } : null);
 async function day25Menu() {
   let r = null;
-  try { r = await (await import('./summary.js?v=18.5')).monthSummary({ menu: menu25() }); } catch (e) { console.error(e); }
+  try { r = await (await import('./summary.js?v=18.8')).monthSummary({ menu: menu25() }); } catch (e) { console.error(e); }
   if (r) go25(r);
 }
 async function go25(r) {
@@ -695,7 +762,7 @@ async function go25(r) {
   if (r === 'act') {
     const layer = el('div', { class: 'note-layer' }); document.body.append(layer);
     const res = await runActivity(25, layer);
-    creak(false); layer.classList.add('fade-out'); await sleep(700); layer.remove(); renderHome();
+    fullView = true; creak(false); layer.classList.add('fade-out'); await sleep(700); layer.remove(); renderHome();
     if (res === 'done') setTimeout(day25Menu, 300);
   }
 }
@@ -881,7 +948,7 @@ async function showActivity(n, layer, simple = false) {
   crumpleSound();
   let choice = null; const decided = new Promise(r => { btn.onclick = () => r('done'); later.onclick = () => { choice = 'later'; r('later'); }; });
   // algunos días tienen una actividad especial interactiva (día 23: regalos; día 24: el regalo de Papá Noel)
-  const sp = await import('./acts.js?v=18.5').then(m => m.special(n, key)).catch(() => null);
+  const sp = await import('./acts.js?v=18.8').then(m => m.special(n, key)).catch(() => null);
   if (!simple) await withTimeout(crumpleAnim(note, false), 3500);
   // la nota tiene que verse siempre, pase lo que pase con la animación
   clearCrumples(); note.style.visibility = ''; note.style.opacity = '';
@@ -892,6 +959,8 @@ async function showActivity(n, layer, simple = false) {
     sp(textBox).then(v => { btn.disabled = false; if (v === 'keep') btn.onclick(); }).catch(() => { btn.disabled = false; });
   } else {
     await Promise.race([typeRich(textBox, text, 24), decided]);
+    const qz = content[key + 'Q']?.[getLang()] || content[key + 'Q']?.es;
+    if (qz?.q && !choice) { await Promise.race([actQuiz(textBox, qz, n, key), decided]); }
     btn.disabled = false;
   }
   const res = choice || await decided;
@@ -903,6 +972,37 @@ async function showActivity(n, layer, simple = false) {
   // al terminar, el papel se vuelve a arrugar y se hace pequeño
   await crumpleAway(note);
   return res;
+}
+// pregunta con 4 respuestas al final de la actividad: se elige una; la correcta brilla y crece, la incorrecta se encoge
+function actQuiz(box, qz, n, key) {
+  return new Promise(resolve => {
+    const opts = qz.opts.map((o, i) => ({ o, i })).filter(x => x.o);
+    const fb = el('div', { class: 'aq-fb' });
+    const list = el('div', { class: 'aq-list' });
+    const card = el('div', { class: 'aq-play' },
+      el('div', { class: 'aq-garland' }, ...Array.from({ length: 9 }, (_, i) => el('i', { style: `--i:${i}` }))),
+      el('p', { class: 'aq-question' }, qz.q), list, fb);
+    let answered = false;
+    opts.forEach(({ o, i }, k) => list.append(el('button', { type: 'button', class: 'aq-ans no-delay', style: `--k:${k}`, onclick: ev => {
+      if (answered) return; answered = true;
+      const b = ev.currentTarget, good = i === qz.ok;
+      list.classList.add('done'); b.classList.add(good ? 'right' : 'wrong');
+      if (good) {
+        fanfare(); const r = b.getBoundingClientRect(); confetti(160, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
+        fb.className = 'aq-fb show good'; fb.textContent = L3('¡Muy bien! ¡Has acertado! ¡Enhorabuena!', 'Molt bé! Ho has encertat! Enhorabona!', 'Well done! That’s right! Congratulations!');
+      } else {
+        sadTrombone();
+        fb.className = 'aq-fb show bad'; fb.textContent = L3('¡Oh! No era esa… ¡Otra vez será!', 'Oh! No era aquesta… Una altra vegada serà!', 'Oh! That wasn’t it… Better luck next time!');
+      }
+      const res = { pick: i, ok: good, at: Date.now() };
+      S.profile.actQuiz = { ...(S.profile.actQuiz || {}), [n]: res };
+      store.saveProfile(S.user.uid, { actQuiz: { [n]: res } }).catch(e => console.warn(e));
+      setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 200);
+      setTimeout(resolve, 900);
+    } }, el('span', { class: 'aq-ball' }), el('span', { class: 'aq-txt' }, o))));
+    box.append(card);
+    setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+  });
 }
 const actPending = n => {
   if (figure() === 'galleta' || !S.answers[n]) return false;
@@ -967,7 +1067,7 @@ function openUserSettings() {
   }));
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=18.5').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=18.8').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('div', { class: 'pick-label' }, t('paper')), paperGrid,
@@ -1003,7 +1103,30 @@ function pwField(ph) {
   return { input: i, wrap: el('div', { class: 'pw-wrap' }, i, eye) };
 }
 
+// jugadores: su nombre y su PIN (se puede ver y cambiar)
+function pinSection() {
+  const logout = el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=18.8')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong'));
+  const pin = String(S.profile?.pin || '');
+  const dots = el('b', { class: 'dots' }, '••••');
+  const eye = el('button', { type: 'button', class: 'btn btn-ghost small-btn', onclick: () => { const h = dots.textContent === '••••'; dots.textContent = h ? (pin || '—') : '••••'; eye.textContent = h ? '🙈' : '👁️'; } }, '👁️');
+  const mk = ph => el('input', { type: 'password', inputmode: 'numeric', pattern: '[0-9]*', maxlength: 4, placeholder: ph, autocomplete: 'off', oninput: e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4); } });
+  const cur = mk(L3('PIN actual', 'PIN actual', 'Current PIN')), n1 = mk(L3('PIN nuevo', 'PIN nou', 'New PIN')), n2 = mk(L3('Repite el PIN nuevo', 'Repeteix el PIN nou', 'Repeat new PIN'));
+  const form = el('div', { class: 'pw-change', style: 'display:none' }, cur, n1, n2,
+    el('button', { type: 'button', class: 'btn small-btn', onclick: async () => {
+      if (n1.value.length !== 4) return toast(L3('El PIN tiene que tener 4 números.', 'El PIN ha de tenir 4 números.', 'The PIN must have 4 numbers.'));
+      if (n1.value !== n2.value) return toast(L3('Los dos PIN nuevos no son iguales.', 'Els dos PIN nous no són iguals.', 'The two new PINs are different.'));
+      try { await store.changePin(cur.value, n1.value); S.profile.pin = n1.value; toast('🔐 ' + L3('PIN cambiado', 'PIN canviat', 'PIN changed')); document.querySelector('.popup-back')?.remove(); }
+      catch (er) { const c = String(er.code || ''); toast(c.includes('wrong-password') || c.includes('invalid-credential') ? L3('El PIN actual no es correcto.', 'El PIN actual no és correcte.', 'The current PIN is wrong.') : '⚠️ ' + (er.code || er.message), 5000); }
+    } }, '💾 ' + L3('Guardar PIN', 'Desar PIN', 'Save PIN')));
+  return el('div', { class: 'account-box' },
+    el('div', { class: 'acc-row' }, el('span', {}, '👤 ' + L3('Nombre', 'Nom', 'Name')), el('b', {}, S.profile?.name || '')),
+    el('div', { class: 'acc-row' }, el('span', {}, '🔑 PIN'), dots, eye,
+      el('button', { type: 'button', class: 'btn btn-ghost small-btn', onclick: () => { form.style.display = form.style.display === 'none' ? '' : 'none'; } }, L3('Cambiar', 'Canviar', 'Change'))),
+    form, logout);
+}
+
 function accountSection() {
+  if (isPlayerEmail(S.user?.email)) return pinSection();
   const cur = pwField(t('currentPw')), n1 = pwField(t('newPw')), n2 = pwField(t('repeatPw'));
   const form = el('div', { class: 'pw-change', style: 'display:none' }, cur.wrap, n1.wrap, n2.wrap,
     el('button', { type: 'button', class: 'btn small-btn', onclick: async () => {
@@ -1017,7 +1140,7 @@ function accountSection() {
     el('div', { class: 'acc-row' }, el('span', {}, '🔑 ' + t('password')), el('b', { class: 'dots', title: t('pwHidden'), onclick: () => toast(t('pwHidden'), 6000) }, '•••••••• 👁️'),
       el('button', { type: 'button', class: 'btn btn-ghost small-btn', onclick: () => { form.style.display = form.style.display === 'none' ? '' : 'none'; } }, t('changePw'))),
     form,
-    el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=18.5')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong')));
+    el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=18.8')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong')));
 }
 
 // modo demo: no se pueden mandar correos, así que se pone una contraseña nueva aquí mismo
@@ -1058,7 +1181,7 @@ setInterval(() => {
 
 // Botones: se hunden, hacen «clic» y, después, hacen su acción
 document.addEventListener('click', e => {
-  const b = e.target.closest('.btn, .icon-btn, .q-opt, .prize-row2, .strip-score, .tb-btn');
+  const b = e.target.closest('.btn, .icon-btn, .q-opt, .prize-row2, .strip-score, .tb-btn, .adm-btn');
   if (!b || b.disabled) return;
   if (b._go) { b._go = false; return; } // segunda vez: ya toca hacer la acción
   clickSound();

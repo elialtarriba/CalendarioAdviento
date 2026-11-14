@@ -1,5 +1,5 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js?v=18.5';
+import { firebaseConfig } from './firebase-config.js?v=18.8';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {
@@ -10,6 +10,14 @@ export async function hashPw(pw) {
 export const openAtMs = (year, n) => Date.UTC(year, 11, n, -1, 0, 0);
 
 export const DEMO = !firebaseConfig.apiKey;
+
+// Jugadores: entran con su nombre y un PIN de 4 números (sin correo). Por dentro es una cuenta
+// con un correo inventado a partir del nombre (no se le manda nunca nada) y el PIN como contraseña.
+export const nameKey = n => String(n || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').replace(/[\/.#$\[\]]/g, '');
+export const PLAYER_DOMAIN = '@jugadores.example.com';
+export const playerEmail = key => (key.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'jugador') + PLAYER_DOMAIN;
+export const playerPw = pin => 'Adv-' + pin + '-nadal';
+export const isPlayerEmail = e => String(e || '').toLowerCase().endsWith(PLAYER_DOMAIN);
 let api;
 
 // ---------------------------------------------------------------- FIREBASE
@@ -26,7 +34,28 @@ async function firebaseApi() {
 
   return {
     onAuth: cb => A.onAuthStateChanged(auth, u => cb(u ? { uid: u.uid, email: u.email } : null)),
-    authReady: async () => { try { await auth.authStateReady(); } catch {} return auth.currentUser ? { uid: auth.currentUser.uid } : null; },
+    authReady: async () => { try { await auth.authStateReady(); } catch {} return auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null; },
+    // entra con nombre + PIN: si el nombre es nuevo, crea su cuenta con ese PIN
+    // devuelve 'in' (ya existía), 'new' (cuenta nueva), 'badpin' (PIN incorrecto) o 'taken' (el nombre es de otra cuenta)
+    playerEnter: async (name, key, pin, lang) => {
+      const e = playerEmail(key), p = playerPw(pin);
+      try { await A.signInWithEmailAndPassword(auth, e, p); return 'in'; }
+      catch (er) { if (!/invalid-credential|user-not-found|wrong-password|invalid-login|invalid-password/.test(er.code || '')) throw er; }
+      let c;
+      try { c = await A.createUserWithEmailAndPassword(auth, e, p); }
+      catch (er) { if (/email-already-in-use/.test(er.code || '')) return 'badpin'; throw er; }
+      const nm = await get('names', key).catch(() => null);
+      if (nm && nm.uid !== c.user.uid) { try { await A.deleteUser(c.user); } catch { await A.signOut(auth); } return 'taken'; }
+      await F.setDoc(d('names', key), { uid: c.user.uid, name, at: Date.now() }).catch(() => {});
+      await F.setDoc(d('users', c.user.uid), { email: e, name, who: name, pin, player: true, lang, paper: 'nordico', portada: 'regalos', createdAt: Date.now() });
+      return 'new';
+    },
+    changePin: async (oldPin, newPin) => {
+      const u = auth.currentUser;
+      await A.reauthenticateWithCredential(u, A.EmailAuthProvider.credential(u.email, playerPw(oldPin)));
+      await A.updatePassword(u, playerPw(newPin));
+      await F.setDoc(d('users', u.uid), { pin: newPin, pinPrev: oldPin, pinChangedAt: Date.now() }, { merge: true });
+    },
     signIn: (e, p) => A.signInWithEmailAndPassword(auth, e, p),
     signUp: async (e, p, name, lang) => {
       const c = await A.createUserWithEmailAndPassword(auth, e, p);
@@ -114,6 +143,8 @@ async function firebaseApi() {
       const out = []; qs.forEach(s => out.push({ uid: s.id, ...s.data() })); return out;
     },
     saveCard: (uid, img) => F.setDoc(d('cards', uid), { img, at: Date.now() }),
+    deleteCard: uid => F.deleteDoc(d('cards', uid)),
+    setActDone: (uid, actDone) => F.updateDoc(d('users', uid), { actDone }),
     getCard: async uid => (await get('cards', uid))?.img || null,
     // mensajes sorpresa: surprises/{uid}/msgs/{id} con { active, dates: ['AAAA-MM-DD', …], … }
     getSurprise: async (uid, date) => {
@@ -142,7 +173,24 @@ function demoApi() {
   const err = code => Object.assign(new Error(code), { code });
   return {
     onAuth: cb => { listener = cb; setTimeout(emit, 0); },
-    authReady: async () => { const c = cur(); return c ? { uid: c.uid } : null; },
+    authReady: async () => { const c = cur(); return c ? { uid: c.uid, email: c.email } : null; },
+    playerEnter: async (name, key, pin, lang) => {
+      const e = playerEmail(key), accts = ld('accounts', {}), a = accts[e];
+      if (a) { if (a.pw !== await hashPw(playerPw(pin))) return 'badpin'; sv('session', { uid: a.uid, email: e }); return 'in'; }
+      const nm = ld('names', {})[key];
+      if (nm) return 'taken';
+      const uid = 'u' + Math.random().toString(36).slice(2, 10);
+      accts[e] = { uid, pw: await hashPw(playerPw(pin)) }; sv('accounts', accts);
+      const users = ld('users', {}); users[uid] = { email: e, name, who: name, pin, player: true, lang, paper: 'nordico', portada: 'regalos', createdAt: Date.now() }; sv('users', users);
+      const n = ld('names', {}); n[key] = { uid, name, at: Date.now() }; sv('names', n);
+      sv('session', { uid, email: e }); return 'new';
+    },
+    changePin: async (oldPin, newPin) => {
+      const s = cur(); const accts = ld('accounts', {}); const a = accts[s.email];
+      if (!a || a.pw !== await hashPw(playerPw(oldPin))) throw err('auth/wrong-password');
+      a.pw = await hashPw(playerPw(newPin)); sv('accounts', accts);
+      const u = ld('users', {}); u[s.uid] = { ...(u[s.uid] || {}), pin: newPin, pinPrev: oldPin, pinChangedAt: Date.now() }; sv('users', u);
+    },
     signIn: async (e, p) => {
       const accts = ld('accounts', {}); const a = accts[e.toLowerCase()];
       if (!a || a.pw !== await hashPw(p)) throw err('auth/invalid-credential');
@@ -179,6 +227,8 @@ function demoApi() {
       a.pw = await hashPw(next); sv('accounts', accts);
     },
     getProfile: async uid => ld('users', {})[uid] || null,
+    deleteCard: async uid => { const c = ld('cards', {}); delete c[uid]; sv('cards', c); },
+    setActDone: async (uid, actDone) => { const u = ld('users', {}); u[uid] = { ...(u[uid] || {}), actDone }; sv('users', u); },
     saveProfile: async (uid, data) => { const u = ld('users', {}); u[uid] = { ...(u[uid] || {}), ...data }; sv('users', u); },
     getSettings: async uid => ld('settings', {})[uid] || null,
     setSettings: async (uid, data) => { const s = ld('settings', {}); s[uid] = { ...(s[uid] || {}), ...data }; sv('settings', s); },

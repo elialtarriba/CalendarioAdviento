@@ -283,7 +283,7 @@ function distantBells(at, secs = 5) {
 let hohoBuf = null, hohoLoading = null;
 function loadHoho() {
   if (hohoBuf) return Promise.resolve(hohoBuf);
-  if (!hohoLoading) hohoLoading = fetch('hohoho.mp3?v=2').then(r => r.arrayBuffer())
+  if (!hohoLoading) hohoLoading = fetch('hohoho.mp3?v=3').then(r => r.arrayBuffer())
     .then(ab => new Promise((res, rej) => ac().decodeAudioData(ab, res, rej))).then(b => (hohoBuf = b)).catch(e => { hohoLoading = null; throw e; });
   return hohoLoading;
 }
@@ -296,18 +296,17 @@ export function hohoho() {
   try {
     unlockAudio();
     const c = ac(), at = c.currentTime + .08;
-    jingleShake(at, 3.8);
+    jingleShake(at, 4.2, .03); // cascabeles suaves, por debajo de la voz
     distantBells(at, 5);
     loadHoho().then(buf => {
-      const src = c.createBufferSource(); src.buffer = buf; src.playbackRate.value = .86; // más grave, voz de Papá Noel
-      const body = c.createBiquadFilter(); body.type = 'lowshelf'; body.frequency.value = 220; body.gain.value = 7;
-      const air = c.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 5000; air.gain.value = -4;
-      const g = c.createGain(); g.gain.value = 1.5;
-      src.connect(body); body.connect(air); air.connect(g); g.connect(c.destination);
+      // la grabación de Papá Noel tal cual (ya viene con todos los «ho» al mismo volumen)
+      const src = c.createBufferSource(); src.buffer = buf;
+      const g = c.createGain(); g.gain.value = 1;
+      src.connect(g); g.connect(c.destination);
       src.start(Math.max(c.currentTime, at + .15));
     }).catch(() => {
       // si no se puede cargar el archivo: se intenta con el reproductor normal
-      const a = new Audio('hohoho.mp3?v=2'); a.play().catch(() => {});
+      const a = new Audio('hohoho.mp3?v=3'); a.play().catch(() => {});
     });
   } catch {}
 }

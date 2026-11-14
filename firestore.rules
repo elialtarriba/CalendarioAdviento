@@ -9,6 +9,8 @@ service cloud.firestore {
     function secret() { return get(/databases/$(database)/documents/adminSecret/main).data.hash; }
     // Es administrador quien ha entrado con la contraseña de configuración vigente
     function isOwner() { return signedIn() && request.auth.token.email == 'elialtarriba@gmail.com'; }
+    // «Abrir todas las casillas a todos» (lo activa la administradora)
+    function openAll() { return get(/databases/$(database)/documents/config/public).data.get('openAll', false) == true; }
     function isAdmin() {
       return signedIn()
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
@@ -33,15 +35,18 @@ service cloud.firestore {
       allow read: if me(uid) || isAdmin();
       allow create: if me(uid) && request.resource.data.status in ['pending', 'correct', 'incorrect'];
       allow create, update, delete: if isAdmin();
+      // en diciembre, cada persona borra lo que hizo antes (al probar en noviembre) para empezar de 0
+      allow delete: if me(uid) && request.time.month() == 12
+        && resource.data.at < timestamp.date(request.time.year(), 12, 1).toMillis() - 3600000;
     }
 
     // Contenido de cada día: solo visible a partir de su fecha (la administradora lo ve siempre)
     match /content/{day}/media/{id} {
-      allow read: if signedIn() && (isAdmin() || request.time >= get(/databases/$(database)/documents/content/$(day)).data.openAt);
+      allow read: if signedIn() && (isAdmin() || openAll() || request.time >= get(/databases/$(database)/documents/content/$(day)).data.openAt);
       allow write: if isAdmin();
     }
     match /content/{day} {
-      allow read: if signedIn() && (resource == null || request.time >= resource.data.openAt || isAdmin());
+      allow read: if signedIn() && (resource == null || request.time >= resource.data.openAt || isAdmin() || openAll());
       allow write: if isAdmin();
     }
 
