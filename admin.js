@@ -1,11 +1,11 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store, DEMO } from './store.js?v=22.2';
-import { t, tx } from './i18n.js?v=22.2';
-import { el, popup, toast, esc, searchBox } from './fx.js?v=22.2';
-import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode, celebrateStart } from './app.js?v=22.2';
-import { openActEditor, plain, shrink } from './richact.js?v=22.2';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=22.2';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=22.2';
+import { store, DEMO } from './store.js?v=22.5';
+import { t, tx } from './i18n.js?v=22.5';
+import { el, popup, toast, esc, searchBox } from './fx.js?v=22.5';
+import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode, celebrateStart } from './app.js?v=22.5';
+import { openActEditor, plain, shrink } from './richact.js?v=22.5';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=22.5';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=22.5';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -19,6 +19,26 @@ const CFG_KEY = 'adv_cfgpw';
 const rememberCfg = pw => { try { localStorage.setItem(CFG_KEY, pw); } catch {} };
 export const savedPw = () => { try { return localStorage.getItem('adv_pw_' + (S.user?.email || '').toLowerCase()) || ''; } catch { return ''; } };
 const savedCfg = () => { try { return localStorage.getItem(CFG_KEY) || ''; } catch { return ''; } };
+// recuadro para cambiar una contraseña: actual + nueva dos veces, cada una con su ojo
+function pwChangeCard(title, help, save, done) {
+  const field = ph => { const i = el('input', { type: 'password', placeholder: ph, autocomplete: 'off' });
+    const eye = el('button', { type: 'button', class: 'ow-eye no-delay', onclick: () => { i.type = i.type === 'password' ? 'text' : 'password'; eye.textContent = i.type === 'password' ? '👁️' : '🙈'; } }, '👁️');
+    return { i, row: el('div', { class: 'ow-row' }, i, eye) }; };
+  const cur = field('Contraseña actual'), n1 = field('Contraseña nueva'), n2 = field('Repite la contraseña nueva');
+  const msg = el('p', { class: 'ow-err' });
+  const form = el('div', { class: 'settings-form pwc-form', style: 'display:none' }, cur.row, n1.row, n2.row, msg,
+    el('button', { type: 'button', class: 'btn small-btn no-delay', onclick: async e => {
+      msg.textContent = '';
+      if (n1.i.value.length < 6) return (msg.textContent = '✍️ La nueva tiene que tener al menos 6 caracteres');
+      if (n1.i.value !== n2.i.value) return (msg.textContent = '✍️ Las dos contraseñas nuevas no son iguales');
+      e.target.disabled = true;
+      try { await save(cur.i.value, n1.i.value); toast('🔐 Contraseña cambiada', 4000); done(); }
+      catch (er) { msg.textContent = '⚠️ ' + er.message; }
+      e.target.disabled = false;
+    } }, '💾 Guardar la contraseña nueva'));
+  return el('div', { class: 'card pwc-card' }, el('h3', {}, title), el('p', { class: 'muted' }, help),
+    el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay', onclick: () => { form.style.display = form.style.display === 'none' ? '' : 'none'; } }, '✏️ Cambiar'), form);
+}
 function pwShow(label, value) {
   const dots = el('b', { class: 'pw-dots' }, value ? '••••••••' : '—');
   const eye = el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay pw-eye', onclick: () => {
@@ -60,19 +80,26 @@ async function askPassword() {
 }
 
 async function forgotAdmin() {
+  // por seguridad, ya no basta con haber entrado en la cuenta: hay que hacerlo desde Firebase (que solo abre ella)
   if ((S.user.email || '').toLowerCase() !== OWNER_EMAIL) {
-    return popup(`<h2>🔐</h2><p>Solo la administradora (${OWNER_EMAIL}) puede crear una contraseña nueva. Pídesela a ella.</p>`);
+    return popup(`<h2>🔐</h2><p>Solo la administradora puede crear una contraseña de configuración nueva.</p>`);
   }
+  const ok = await popup(`<h2>🔐 Contraseña de configuración olvidada</h2>
+    <p>Para que nadie más pueda cambiarla, se hace desde Firebase (solo tú puedes entrar ahí):</p>
+    <ol style="text-align:left"><li>Entra en <b>console.firebase.google.com</b> → tu proyecto → <b>Firestore Database → Datos</b>.</li>
+    <li>Abre la colección <b>adminSecret</b> → documento <b>main</b> → los tres puntitos ⋮ → <b>Eliminar documento</b>.</li>
+    <li>Vuelve aquí y pulsa «Ya lo he borrado».</li></ol>`,
+    { cls: 'small', buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: 'Ya lo he borrado', value: true }] });
+  if (!ok) return false;
   const n1 = el('input', { type: 'password', placeholder: 'Contraseña nueva', autocomplete: 'new-password' });
   const n2 = el('input', { type: 'password', placeholder: 'Repite la contraseña nueva', autocomplete: 'new-password' });
-  const ok = await popup(el('div', { class: 'settings-form' }, el('h2', {}, '🔐 Contraseña olvidada'),
-    el('p', {}, 'Como has entrado con la cuenta de la administradora (' + OWNER_EMAIL + '), puedes poner una contraseña de configuración nueva:'), n1, n2),
+  const ok2 = await popup(el('div', { class: 'settings-form' }, el('h2', {}, '🔐 Contraseña nueva'), n1, n2),
     { buttons: [{ label: t('cancel'), value: false, cls: 'btn-ghost' }, { label: 'Guardar', value: true }] });
-  if (!ok) return false;
+  if (!ok2) return false;
   if (n1.value.length < 6) { toast('Mínimo 6 caracteres'); return false; }
   if (n1.value !== n2.value) { toast('Las contraseñas no coinciden'); return false; }
   try { await store.adminOwnerReset(S.user.uid, n1.value); rememberCfg(n1.value); toast('🔐 Contraseña nueva guardada'); return true; }
-  catch (e) { toast('Error: ' + (e.code || e.message), 6000); return false; }
+  catch (e) { toast('⚠️ No se ha podido: ¿has borrado el documento adminSecret/main en Firebase? (' + (e.code || e.message) + ')', 8000); return false; }
 }
 
 function showPanel() {
@@ -98,9 +125,10 @@ function showPanel() {
   const usersBtn = B('👥', 'Usuarios', 'Nombres, PIN, galleta / árbol / gnomo y sus días', root => VIEWS.users(root).then(() => usersBtn.querySelector('.adm-badge')?.remove()));
   store.listUsers().then(us => { const n = us.filter(pinNew).length; if (n) usersBtn.append(el('span', { class: 'adm-badge' }, `🔄 ${n} PIN ${n > 1 ? 'nuevos' : 'nuevo'}`)); }).catch(() => {});
   const btns = [
-    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=22.2').then(m => m.presenceAdmin(root))) : null,
-    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=22.2').then(m => m.surpriseAdmin(root))),
-    B('❓', 'Preguntas sorpresa', 'Un popup con pregunta, explicación, foto y comentarios para quien tú elijas, el día y la hora que quieras', root => import('./qpop.js?v=22.2').then(m => m.popsAdmin(root))),
+    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=22.5').then(m => m.presenceAdmin(root))) : null,
+    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=22.5').then(m => m.surpriseAdmin(root))),
+    B('👪', 'Palabra secreta de la familia', 'Solo puede entrar quien la sabe (se pide una vez a cada uno)', root => VIEWS.family(root)),
+    B('❓', 'Preguntas sorpresa', 'Un popup con pregunta, explicación, foto y comentarios para quien tú elijas, el día y la hora que quieras', root => import('./qpop.js?v=22.5').then(m => m.popsAdmin(root))),
     B('📨', 'Respuestas', 'Lo que han contestado y lo que tienes que corregir', root => VIEWS.answers(root)),
     usersBtn,
     B('📅', 'Contenido de los días', 'Lo que sale en cada casilla y las actividades 1 y 2', root => VIEWS.days(root)),
@@ -108,7 +136,7 @@ function showPanel() {
     B('🎁', 'Regalo sorpresa', 'La web que se abre con el botón «Regalo sorpresa» (días 24 y 25)', root => VIEWS.gift(root)),
     B('🎰', 'Máquina de regalos', 'Las 5 opciones de la tragaperras del día 25 (solo gnomos)', root => VIEWS.slot(root)),
     B('🏆', 'Premios y ajustes', 'Premios, abrir todas las casillas, modo prueba, contraseña…', root => VIEWS.general(root)),
-    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=22.2').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=22.5').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'adm-btn-ico' }, '📖'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos'))),
     el('button', { class: 'adm-btn', onclick: () => { document.querySelectorAll('.popup-back').forEach(x => x.remove()); celebrateStart(true); } },
       el('span', { class: 'adm-btn-ico' }, '🎆'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Probar la explosión del día 1'), el('small', {}, 'Cómo lo verán todos al entrar el 1 de diciembre (fuegos artificiales y «¡A empezar!»)'))),
@@ -146,7 +174,7 @@ async function loadAll(force) {
 const VIEWS = {
   // ---------------------------------------------------------------- Casilla 11 · Gnomos: los 3 premios del laberinto
   async maze11(root) {
-    const { mazePrizes } = await import('./maze.js?v=22.2');
+    const { mazePrizes } = await import('./maze.js?v=22.5');
     const cur = mazePrizes(S.config);
     const ins = cur.map((v, i) => el('input', { type: 'text', value: v, maxlength: 40, placeholder: i ? `Ej.: 2 o «una chocolatina»` : 'Ej.: 5 o «un abrazo»' }));
     const prev = el('p', { class: 'mz-adm-prev' });
@@ -165,8 +193,28 @@ const VIEWS = {
       } }, '💾 Guardar premios')));
   },
   // ---------------------------------------------------------------- Máquina de regalos (día 25)
+  async family(root) {
+    const on = await store.hasFamilyWord();
+    const w = el('input', { type: 'text', autocomplete: 'off', autocapitalize: 'none', placeholder: 'Ej.: turron2026', maxlength: 40 });
+    const eye = null; void eye;
+    root.replaceChildren(el('div', { class: 'card' },
+      el('h3', {}, '👪 Palabra secreta de la familia'),
+      el('p', {}, on ? '✅ Ahora mismo HAY palabra secreta: solo entra quien la sabe.' : '⚠️ Ahora mismo NO hay palabra secreta: cualquiera con el enlace puede entrar.'),
+      el('p', { class: 'muted' }, 'Cuando la pongas, a cada persona se le pedirá UNA vez (al entrar por primera vez o la próxima vez que abra la app). Sin la palabra no puede ver nada. Da igual mayúsculas, acentos o espacios. No se guarda la palabra, solo su «huella»: si la olvidas, pon una nueva (los que ya han entrado tendrán que escribir la nueva). Tú no la necesitas para entrar.'),
+      el('label', {}, on ? 'Cambiar la palabra:' : 'Palabra secreta:', w),
+      el('div', { class: 'row' },
+        el('button', { class: 'btn small-btn no-delay', onclick: async () => {
+          const v = w.value.trim(); if (v.length < 4) return toast('✍️ Pon al menos 4 letras o números', 4000);
+          if (!await popup(`<h2>👪</h2><p>¿Poner «<b>${esc(v)}</b>» como palabra secreta? Apúntatela y pásasela a la familia (por WhatsApp, por ejemplo).</p>`, { cls: 'small', buttons: [{ label: 'No', value: false, cls: 'btn-ghost' }, { label: 'Sí', value: true }] })) return;
+          try { await store.setFamilyWord(S.user.uid, v); toast('👪 Palabra secreta puesta', 4000); VIEWS.family(root); } catch (e) { toast('⚠️ ' + (e.code || e.message) + ' (¿has publicado las reglas nuevas de Firebase?)', 7000); }
+        } }, '💾 Guardar la palabra'),
+        on ? el('button', { class: 'btn btn-ghost small-btn no-delay', onclick: async () => {
+          if (!await popup('<h2>🔓</h2><p>¿Quitar la palabra secreta? Cualquiera con el enlace podrá volver a entrar.</p>', { cls: 'small', buttons: [{ label: 'No', value: false, cls: 'btn-ghost' }, { label: 'Sí, quitar', value: true }] })) return;
+          try { await store.delFamilyWord(); toast('🔓 Palabra secreta quitada'); VIEWS.family(root); } catch (e) { toast('⚠️ ' + (e.code || e.message), 6000); }
+        } }, '🔓 Quitarla') : null)));
+  },
   async slot(root) {
-    const { FX_TYPES, FX_DEFAULT, testFx, openSlot } = await import('./slot.js?v=22.2');
+    const { FX_TYPES, FX_DEFAULT, testFx, openSlot } = await import('./slot.js?v=22.5');
     const cur = S.config.slot?.opts || [], fx = S.config.slot?.fx || [];
     const rows = [0, 1, 2, 3, 4].map(i => {
       const inp = el('input', { type: 'text', placeholder: `Opción ${i + 1} (ej.: ¡Has ganado 2 Euros! - A canjear en el grupo familiar)`, value: cur[i] || '', maxlength: 120 });
@@ -215,7 +263,26 @@ const VIEWS = {
       el('div', { class: 'pw-show-row' }, el('span', {}, '📧 Correo para entrar'), el('b', { class: 'pw-dots' }, S.user?.email || '—')),
       pwShow('🔑 Contraseña para entrar', savedPw()),
       pwShow('🔒 Contraseña de configuración', savedCfg()),
-      el('p', { class: 'muted', style: 'margin-top:10px' }, 'Pulsa el ojo 👁️ para ver cada contraseña. Solo se recuerdan en este aparato (no se guardan en internet): en otro móvil u ordenador se verán después de haberlas escrito allí una vez. Para cambiarlas: la de entrar en ⚙️ Mis opciones; la de configuración en «Premios y ajustes».')));
+      el('p', { class: 'muted', style: 'margin-top:10px' }, 'Pulsa el ojo 👁️ para ver cada contraseña. Solo se recuerdan en este aparato (no se guardan en internet): en otro móvil u ordenador se verán después de haberlas escrito allí una vez.')),
+      // la de entrar se cambia SOLO por email: hace falta tener acceso a tu correo
+      (() => {
+        const msg = el('p', { class: 'muted' });
+        const btn = el('button', { type: 'button', class: 'btn small-btn no-delay', onclick: async () => {
+          if (!await popup('<h2>📧</h2><p>Te voy a enviar un correo a tu Gmail con un enlace para poner una contraseña nueva. ¿Lo envío?</p>', { cls: 'small', buttons: [{ label: 'No', value: false, cls: 'btn-ghost' }, { label: '📧 Sí, envíalo', value: true }] })) return;
+          btn.disabled = true;
+          try { await store.resetPassword(S.user.email); msg.innerHTML = '✅ <b>Correo enviado.</b> Ábrelo (mira también en «Spam» o «Promociones»), pulsa el enlace y escribe la contraseña nueva. Después, la próxima vez que entres en la app, usa la nueva.'; }
+          catch (e) { msg.textContent = '⚠️ No se ha podido enviar: ' + (e.code || e.message); }
+          btn.disabled = false;
+        } }, '📧 Enviarme el correo para cambiarla');
+        return el('div', { class: 'card pwc-card' }, el('h3', {}, '🔑 Cambiar la contraseña para entrar'),
+          el('p', { class: 'muted' }, 'La que escribes después del PIN 1970 para entrar en la app. Por seguridad, se cambia desde tu correo: te llega un enlace de Google y allí pones la nueva. Al cambiarla, se cierra la sesión en tus otros aparatos en menos de 1 hora.'),
+          btn, msg);
+      })(),
+      pwChangeCard('🔒 Cambiar la contraseña de configuración', 'La que te pide al entrar en 🔒 Configuración.',
+        async (cur, nw) => {
+          if (!(await store.adminLogin(S.user.uid, cur))) throw new Error('La contraseña actual no es correcta');
+          await store.adminChangePw(S.user.uid, nw); rememberCfg(nw);
+        }, () => VIEWS.me(root)));
   },
   async answers(root, tab = 'people') {
     const { all } = await loadAll();
@@ -481,7 +548,7 @@ const VIEWS = {
             if (!(await store.adminLogin(S.user.uid, cur.value))) return toast('La contraseña actual no es correcta');
             try { await store.adminChangePw(S.user.uid, n1.value); rememberCfg(n1.value); [cur, n1, n2].forEach(x => x.value = ''); toast('🔐 Contraseña cambiada'); } catch (e) { toast('Error: ' + e.message, 5000); }
           } }, 'Cambiar'),
-          el('p', { class: 'muted', style: 'margin-top:8px' }, `Si la olvidas: entra con la cuenta ${OWNER_EMAIL}, pulsa 🔒 y luego «¿Has olvidado la contraseña de configuración?».`));
+          el('p', { class: 'muted', style: 'margin-top:8px' }, `Si la olvidas: pulsa 🔒 y luego «¿Has olvidado la contraseña de configuración?» (te explica cómo hacerlo desde Firebase).`));
       })(),
       el('div', { class: 'card' }, el('h3', {}, '🚪 Cerrar sesión'),
         el('p', { class: 'muted' }, 'Sales de tu cuenta en este móvil u ordenador. Para volver a entrar necesitarás tu correo y tu contraseña.'),
@@ -512,6 +579,7 @@ const ST_TXT = { correct: '✅ Correcta', incorrect: '❌ Incorrecta', pending: 
 const when = t => t && t !== true ? new Date(t).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
 async function personAnswers(root, u, a) {
   const set = await store.getSettings(u.uid).catch(() => null) || {};
+  const once = await store.getOnce(u.uid, 'slot').catch(() => null); u = { ...u, slot: once || null };
   const fig = set.figure || 'galleta', act = { arbol: 'actividad 1', gnomo: 'actividad 2' }[fig];
   const actDone = u.actDone || {};
   const vals = Object.values(a);
@@ -673,12 +741,13 @@ function marqueeCard() {
 async function resetDays(u, days) {
   try {
     for (const d of days) await store.deleteAnswer(u.uid, d);
+    if (days.map(Number).includes(25)) { await store.delOnce(u.uid, 'slot').catch(() => {}); await store.saveProfile(u.uid, { slot: null }).catch(() => {}); if (u.uid === S.user.uid && S.profile) S.profile.slot = null; } // la máquina también vuelve a estar por tirar
     clearCache();
     // sus juegos vuelven a empezar desde la partida 1 (en su móvil, la próxima vez que entre)
     await store.setSettings(u.uid, { resetAt: Date.now() }).catch(e => console.warn(e));
     if (u.uid === S.user.uid) {
       days.forEach(d => delete S.answers[d]);
-      (await import('./app.js?v=22.2')).applyReset(true);
+      (await import('./app.js?v=22.5')).applyReset(true);
     }
     toast(days.length === 1 ? `↺ Día ${days[0]} reiniciado` : `↺ ${days.length} días reiniciados`);
   } catch (e) { toast('Error: ' + (e.code || e.message), 6000); }

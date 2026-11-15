@@ -1,5 +1,5 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js?v=22.2';
+import { firebaseConfig } from './firebase-config.js?v=22.5';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {
@@ -13,6 +13,12 @@ export const DEMO = !firebaseConfig.apiKey;
 
 // Jugadores: entran con su nombre y un PIN de 4 números (sin correo). Por dentro es una cuenta
 // con un correo inventado a partir del nombre (no se le manda nunca nada) y el PIN como contraseña.
+// huella de la palabra secreta de la familia (sin mayúsculas, acentos ni espacios de más)
+export async function famKey(word) {
+  const w = String(word || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('adv-fam-' + w));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
 export const nameKey = n => String(n || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').replace(/[\/.#$\[\]]/g, '');
 export const PLAYER_DOMAIN = '@jugadores.example.com';
 export const playerEmail = key => (key.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'jugador') + PLAYER_DOMAIN;
@@ -37,17 +43,28 @@ async function firebaseApi() {
     authReady: async () => { try { await auth.authStateReady(); } catch {} return auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null; },
     // entra con nombre + PIN: si el nombre es nuevo, crea su cuenta con ese PIN
     // devuelve 'in' (ya existía), 'new' (cuenta nueva), 'badpin' (PIN incorrecto) o 'taken' (el nombre es de otra cuenta)
-    playerEnter: async (name, key, pin, lang) => {
+    playerEnter: async (name, key, pin, lang, askFam) => {
       const e = playerEmail(key), p = playerPw(pin);
       try { await A.signInWithEmailAndPassword(auth, e, p); return 'in'; }
       catch (er) { if (!/invalid-credential|user-not-found|wrong-password|invalid-login|invalid-password/.test(er.code || '')) throw er; }
       let c;
       try { c = await A.createUserWithEmailAndPassword(auth, e, p); }
       catch (er) { if (/email-already-in-use/.test(er.code || '')) return 'badpin'; throw er; }
+      const undo = async () => { try { await A.deleteUser(c.user); } catch { await A.signOut(auth); } };
       const nm = await get('names', key).catch(() => null);
-      if (nm && nm.uid !== c.user.uid) { try { await A.deleteUser(c.user); } catch { await A.signOut(auth); } return 'taken'; }
+      if (nm && nm.uid !== c.user.uid) { await undo(); return 'taken'; }
+      // la ficha: si la familia tiene palabra secreta, Firebase solo la deja crear con la palabra buena
+      const base = { email: e, name, who: name, pin, player: true, lang, paper: 'nordico', portada: 'regalos', createdAt: Date.now() };
+      let fam = '', wrong = false;
+      for (;;) {
+        try { await F.setDoc(d('users', c.user.uid), fam ? { ...base, famKey: fam } : base); break; }
+        catch (er) {
+          if (!/permission/.test(er.code || '') || !askFam) { await undo(); throw er; }
+          fam = await askFam(wrong); wrong = true;
+          if (!fam) { await undo(); return 'cancel'; }
+        }
+      }
       await F.setDoc(d('names', key), { uid: c.user.uid, name, at: Date.now() }).catch(() => {});
-      await F.setDoc(d('users', c.user.uid), { email: e, name, who: name, pin, player: true, lang, paper: 'nordico', portada: 'regalos', createdAt: Date.now() });
       return 'new';
     },
     changePin: async (oldPin, newPin) => {
@@ -96,6 +113,15 @@ async function firebaseApi() {
     addMedia: async (n, item) => { const r = F.doc(F.collection(db, 'content', String(n), 'media')); await F.setDoc(r, item); return r.id; },
     deleteMedia: (n, id) => F.deleteDoc(d('content', String(n), 'media', id)),
     getConfig: () => get('config', 'public'),
+    // palabra secreta de la familia (solo se guarda su huella; nadie la puede leer)
+    setFamilyWord: async (uid, word) => { const h = await famKey(word); await F.setDoc(d('famSecret', 'main'), { hash: h, at: Date.now() }); await F.setDoc(d('famInfo', 'main'), { on: true, at: Date.now() }); await F.setDoc(d('users', uid), { famKey: h }, { merge: true }); },
+    delFamilyWord: async () => { await F.deleteDoc(d('famSecret', 'main')); await F.setDoc(d('famInfo', 'main'), { on: false, at: Date.now() }); },
+    hasFamilyWord: async () => { try { return !!(await get('famInfo', 'main'))?.on; } catch { return false; } },
+    setFamInfo: on => F.setDoc(d('famInfo', 'main'), { on }),
+    // cosas que solo se pueden hacer UNA vez (la tirada de la máquina): Firebase no deja cambiarlas
+    getOnce: (uid, id) => get('once/' + uid + '/items', id),
+    createOnce: (uid, id, data) => F.setDoc(d('once/' + uid + '/items', id), data),
+    delOnce: (uid, id) => F.deleteDoc(d('once/' + uid + '/items', id)),
     getConfigDoc: name => get('config', name),
     setConfigDoc: (name, data) => F.setDoc(d('config', name), data),
     delConfigDoc: name => F.deleteDoc(d('config', name)),
@@ -103,6 +129,9 @@ async function firebaseApi() {
     // quién está dentro de la app (para la administradora principal)
     presencePing: (uid, data) => F.setDoc(d('presence', uid), data, { merge: true }),
     watchPresence: (uid, cb) => F.onSnapshot(d('presence', uid), s => cb(s.exists() ? s.data() : null), () => {}),
+    // registro de entradas en la cuenta de la administradora (no se puede borrar ni cambiar)
+    logAdmin: entry => F.setDoc(F.doc(F.collection(db, 'adminLog')), entry),
+    listAdminLog: async () => { const qs = await F.getDocs(F.collection(db, 'adminLog')); const out = []; qs.forEach(x => out.push({ id: x.id, ...x.data() })); return out.sort((a, b) => b.at - a.at); },
     listPresence: async () => { const qs = await F.getDocs(F.collection(db, 'presence')); const out = []; qs.forEach(x => out.push({ uid: x.id, ...x.data() })); return out; },
     kickUser: uid => F.setDoc(d('presence', uid), { kick: true, kickAt: Date.now() }, { merge: true }),
     // nombres únicos: names/{nombre en minúsculas} = { uid, name }
@@ -190,14 +219,17 @@ function demoApi() {
   return {
     onAuth: cb => { listener = cb; setTimeout(emit, 0); },
     authReady: async () => { const c = cur(); return c ? { uid: c.uid, email: c.email } : null; },
-    playerEnter: async (name, key, pin, lang) => {
+    playerEnter: async (name, key, pin, lang, askFam) => {
       const e = playerEmail(key), accts = ld('accounts', {}), a = accts[e];
       if (a) { if (a.pw !== await hashPw(playerPw(pin))) return 'badpin'; sv('session', { uid: a.uid, email: e }); return 'in'; }
       const nm = ld('names', {})[key];
       if (nm) return 'taken';
+      // como en Firebase: si hay palabra secreta, hay que saberla
+      let fam = '', wrong = false;
+      while (ld('famHash', '') && fam !== ld('famHash', '')) { if (!askFam) throw err('permission-denied'); fam = await askFam(wrong); wrong = true; if (!fam) return 'cancel'; }
       const uid = 'u' + Math.random().toString(36).slice(2, 10);
       accts[e] = { uid, pw: await hashPw(playerPw(pin)) }; sv('accounts', accts);
-      const users = ld('users', {}); users[uid] = { email: e, name, who: name, pin, player: true, lang, paper: 'nordico', portada: 'regalos', createdAt: Date.now() }; sv('users', users);
+      const users = ld('users', {}); users[uid] = { email: e, name, who: name, pin, player: true, lang, paper: 'nordico', portada: 'regalos', createdAt: Date.now(), ...(fam ? { famKey: fam } : {}) }; sv('users', users);
       const n = ld('names', {}); n[key] = { uid, name, at: Date.now() }; sv('names', n);
       sv('session', { uid, email: e }); return 'new';
     },
@@ -258,7 +290,16 @@ function demoApi() {
     getMedia: async n => (ld('media', {})[n] || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0)),
     addMedia: async (n, item) => { const m = ld('media', {}); const id = 'm' + Date.now() + Math.random().toString(36).slice(2, 6); (m[n] = m[n] || []).push({ id, ...item }); sv('media', m); return id; },
     deleteMedia: async (n, id) => { const m = ld('media', {}); m[n] = (m[n] || []).filter(x => x.id !== id); sv('media', m); },
-    getConfig: async () => ld('config', null),
+    getConfig: async () => { const h = ld('famHash', ''), c = cur(); if (h && c && !/^elialtarriba@/.test(c.email) && (ld('users', {})[c.uid]?.famKey || '') !== h) throw err('permission-denied'); return ld('config', null); },
+    setFamilyWord: async (uid, word) => { const h = await famKey(word); sv('famHash', h); sv('famInfo', true); const u = ld('users', {}); u[uid] = { ...(u[uid] || {}), famKey: h }; sv('users', u); },
+    delFamilyWord: async () => { sv('famHash', ''); sv('famInfo', false); },
+    hasFamilyWord: async () => !!ld('famInfo', false),
+    setFamInfo: async on => sv('famInfo', on),
+    getOnce: async (uid, id) => ld('once', {})[uid + '/' + id] || null,
+    logAdmin: async entry => { const l = ld('adminLog', []); l.push({ id: 'l' + Date.now(), ...entry }); sv('adminLog', l); },
+    listAdminLog: async () => ld('adminLog', []).slice().sort((a, b) => b.at - a.at),
+    createOnce: async (uid, id, data) => { const o = ld('once', {}); if (o[uid + '/' + id]) throw err('permission-denied'); o[uid + '/' + id] = data; sv('once', o); },
+    delOnce: async (uid, id) => { const o = ld('once', {}); delete o[uid + '/' + id]; sv('once', o); },
     getConfigDoc: async name => ld('cfgdocs', {})[name] || null,
     setConfigDoc: async (name, data) => { const c = ld('cfgdocs', {}); c[name] = data; sv('cfgdocs', c); },
     delConfigDoc: async name => { const c = ld('cfgdocs', {}); delete c[name]; sv('cfgdocs', c); },

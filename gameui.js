@@ -2,8 +2,8 @@
 // · minutesPopup: elegir los minutos del COMPTADOR tocando el reloj de arriba (antes de empezar)
 // · fullBtn: botón ⛶ para ver el tablero en grande, a pantalla completa, y volver
 // · howStrip: explicación con dibujos y muy poca letra
-import { el, popup } from './fx.js?v=22.2';
-import { getLang } from './i18n.js?v=22.2';
+import { el, popup } from './fx.js?v=22.5';
+import { getLang } from './i18n.js?v=22.5';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 

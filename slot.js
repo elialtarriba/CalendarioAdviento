@@ -2,12 +2,12 @@
 // Se tira de la palanca, el rodillo va pasando las 5 opciones que la administradora pone en
 // Configuración → «🎰 Máquina de regalos», y al tocar el rodillo se para y se ilumina el resultado.
 // Solo cuenta la primera tirada (se guarda en el perfil) y se puede compartir por WhatsApp en una imagen.
-import { el, popup, confetti, toast } from './fx.js?v=22.2';
-import { getLang } from './i18n.js?v=22.2';
-import { pop, fanfare, chime, unlockAudio, jingle, hohoho, sadTrombone, christmasSong } from './sound.js?v=22.2';
-import { TROLL } from './catch.js?v=22.2';
-import { S } from './app.js?v=22.2';
-import { store } from './store.js?v=22.2';
+import { el, popup, confetti, toast } from './fx.js?v=22.5';
+import { getLang } from './i18n.js?v=22.5';
+import { pop, fanfare, chime, unlockAudio, jingle, hohoho, sadTrombone, christmasSong } from './sound.js?v=22.5';
+import { TROLL } from './catch.js?v=22.5';
+import { S } from './app.js?v=22.5';
+import { store } from './store.js?v=22.5';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const IMG = 'maquina25.webp';
@@ -39,6 +39,8 @@ export async function openSlot({ test = false } = {}) {
       el('p', {}, L('Mamá Noel todavía está llenando la máquina de regalos. ¡Vuelve pronto!', 'La Mare Noel encara està omplint la màquina de regals. Torna aviat!', 'Mrs Claus is still filling the gift machine. Come back soon!'))),
       { cls: 'small', buttons: [{ label: '🎄 OK', value: true }] });
   }
+  // la tirada buena la guarda Firebase en un sitio que solo se puede escribir una vez
+  if (!test) { const once = await store.getOnce(S.user.uid, 'slot').catch(() => null); if (once) S.profile.slot = once; else if (S.profile?.slot && !S.profile.slot.locked) S.profile.slot = null; }
   const first = () => S.profile?.slot || null;
   const items = el('div', { class: 'sl-items' });
   const reel = el('div', { class: 'sl-reel' }, items);
@@ -95,9 +97,15 @@ export async function openSlot({ test = false } = {}) {
     fanfare(); setTimeout(chime, 500);
     const r = machine.getBoundingClientRect(); confetti(200, { x: r.left + r.width / 2, y: r.top + r.height * .45 });
     if (!first() && !test) {
-      const res = { text: won, at: Date.now() };
-      S.profile.slot = res; store.saveProfile(S.user.uid, { slot: res }).catch(() => {});
-      toast('🎁 ' + L('¡Esta es tu tirada buena!', 'Aquesta és la teva tirada bona!', 'This is your official spin!'), 3500);
+      const res = { text: won, at: Date.now(), locked: true };
+      S.profile.slot = res;
+      store.createOnce(S.user.uid, 'slot', res).then(() => {
+        store.saveProfile(S.user.uid, { slot: res }).catch(() => {});
+        toast('🎁 ' + L('¡Esta es tu tirada buena!', 'Aquesta és la teva tirada bona!', 'This is your official spin!'), 3500);
+      }).catch(async () => { // ya había una tirada guardada: esa es la que vale
+        const old = await store.getOnce(S.user.uid, 'slot').catch(() => null);
+        if (old) { S.profile.slot = old; paintInfo(); toast('🎁 ' + L(`Tu tirada buena ya era: ${old.text}`, `La teva tirada bona ja era: ${old.text}`, `Your official spin was: ${old.text}`), 5000); }
+      });
     }
     paintInfo();
     const fx = slotFx(won); if (fx.on && fx.type !== 'none') setTimeout(() => playFx(fx.type, won), 1300);
