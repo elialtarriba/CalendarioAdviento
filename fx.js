@@ -104,3 +104,18 @@ export function svgEl(attrs, inner) {
   d.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" ${attrs}>${inner}</svg>`;
   return d.firstElementChild;
 }
+
+// Buscador para listas de personas: filtra los elementos (sel) de target por su texto, sin tener en cuenta acentos
+const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+export function searchBox(target, sel, placeholder = '🔍 Buscar persona…', value = '') {
+  const inp = el('input', { type: 'search', class: 'sp-search who-search', placeholder, value, autocomplete: 'off' });
+  const empty = el('p', { class: 'muted who-empty', style: 'display:none' }, 'No hay nadie con ese nombre.');
+  inp.apply = () => {
+    const f = norm(inp.value.trim()); let n = 0;
+    target.querySelectorAll(sel).forEach(x => { const ok = !f || norm(x.textContent).includes(f); x.style.display = ok ? '' : 'none'; if (ok) n++; });
+    empty.style.display = n ? 'none' : ''; if (!empty.isConnected) target.after(empty);
+  };
+  inp.addEventListener('input', inp.apply);
+  setTimeout(inp.apply, 0);
+  return inp;
+}

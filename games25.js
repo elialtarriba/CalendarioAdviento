@@ -6,6 +6,10 @@ export function nextGame(name) {
   try { i = +(localStorage.getItem('adv_g25_' + name) || 0) % TOTAL; localStorage.setItem('adv_g25_' + name, String((i + 1) % TOTAL)); } catch { i = Math.floor(Math.random() * TOTAL); }
   return i; // 0..24
 }
+// al reiniciar, todos los juegos vuelven a la partida 1
+export function clearLocalGames() {
+  try { Object.keys(localStorage).filter(k => k.startsWith('adv_g25_')).forEach(k => localStorage.removeItem(k)); } catch {}
+}
 // generador de números al azar con semilla (mulberry32)
 export function rng(seed) {
   let a = (seed * 2654435761) >>> 0;

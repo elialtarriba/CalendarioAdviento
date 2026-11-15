@@ -1,6 +1,6 @@
 // Actividades con texto enriquecido (títulos de colores, emojis) y fotos/vídeos
-import { el, sleep, popup, toast } from './fx.js?v=20.4';
-import { store } from './store.js?v=20.4';
+import { el, sleep, popup, toast } from './fx.js?v=22.0';
+import { store } from './store.js?v=22.0';
 
 // ---------- limpieza del HTML (solo etiquetas y estilos seguros)
 const OK_TAGS = new Set(['H2', 'H3', 'P', 'DIV', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'FONT', 'UL', 'OL', 'LI']);
@@ -153,9 +153,26 @@ export function openActEditor({ day, actKey, title, html, langName, quiz = null 
       marks.push(mk); ins.push(inp); mk.classList.toggle('on', i === okIdx);
       return el('div', { class: 'aq-row' }, mk, inp);
     });
+    // explicación (opcional): un párrafo y una foto; al jugar sale un botón «💡 Explicación» después de contestar
+    const expText = el('textarea', { rows: 4, class: 'aq-exp', maxlength: 700, placeholder: 'Opcional. Ej.: Rudolf tiene la nariz roja porque… (un párrafo como máximo)' }, quiz?.exp || '');
+    const expCount = el('small', { class: 'muted aq-count' });
+    const cnt = () => { expCount.textContent = `${expText.value.length}/700`; }; expText.addEventListener('input', cnt); cnt();
+    let expImg = quiz?.expImg || '';
+    const imgBox = el('div', { class: 'aq-imgbox' });
+    const imgIn = el('input', { type: 'file', accept: 'image/*', style: 'display:none', onchange: async () => {
+      const f = imgIn.files[0]; imgIn.value = ''; if (!f) return;
+      try { expImg = await shrink(f, 900, 260000); drawImg(); toast('📷 Foto puesta (se guarda al pulsar «Guardar»)'); } catch (e) { toast('No se ha podido usar esa foto', 5000); }
+    } });
+    const drawImg = () => imgBox.replaceChildren(expImg
+      ? el('div', { class: 'aq-thumb' }, el('img', { src: expImg, alt: '', onclick: () => lightbox([{ kind: 'img', src: expImg }], 0) }),
+          el('button', { type: 'button', class: 'ed-del no-delay', title: 'Quitar la foto', onclick: () => { expImg = ''; drawImg(); } }, '✕'))
+      : el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay', onclick: () => imgIn.click() }, '📷 Añadir una foto'), imgIn);
+    drawImg();
     const qBody = el('div', { class: 'aq-body' }, el('label', { class: 'aq-lbl' }, 'Pregunta'), qText,
       el('label', { class: 'aq-lbl' }, 'Respuestas (toca el círculo de la correcta)'), ...rows,
-      el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay', onclick: () => { qText.value = ''; ins.forEach(x => x.value = ''); okIdx = -1; marks.forEach(m => m.classList.remove('on')); qBox.classList.remove('open'); } }, '🗑️ Quitar la pregunta'));
+      el('label', { class: 'aq-lbl' }, '💡 Explicación (sale en el botón «Explicación» después de contestar)'), expText, expCount,
+      el('label', { class: 'aq-lbl' }, '📷 Foto de la explicación (sale pequeña; al tocarla se hace grande)'), imgBox,
+      el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay', onclick: () => { qText.value = ''; ins.forEach(x => x.value = ''); okIdx = -1; marks.forEach(m => m.classList.remove('on')); expText.value = ''; cnt(); expImg = ''; drawImg(); qBox.classList.remove('open'); } }, '🗑️ Quitar la pregunta'));
     const qBox = el('div', { class: 'aq-box' + (quiz?.q ? ' open' : '') },
       el('button', { type: 'button', class: 'aq-toggle no-delay', onclick: () => qBox.classList.toggle('open') }, '❓ Pregunta con 4 respuestas', el('small', {}, 'Escribe una pregunta y 4 respuestas; marca la correcta')),
       qBody);
@@ -164,7 +181,8 @@ export function openActEditor({ day, actKey, title, html, langName, quiz = null 
       const opts = ins.map(x => x.value.trim());
       if (opts.filter(Boolean).length < 2) return { err: 'Escribe al menos 2 respuestas.' };
       if (okIdx < 0 || !opts[okIdx]) return { err: 'Toca el círculo de la respuesta correcta.' };
-      return { quiz: { q, opts, ok: okIdx } };
+      const exp = expText.value.trim().slice(0, 700);
+      return { quiz: { q, opts, ok: okIdx, ...(exp ? { exp } : {}), ...(expImg ? { expImg } : {}) } };
     };
     const box = el('div', { class: 'act-editor' },
       el('h2', {}, '✏️ ' + title),

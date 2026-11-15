@@ -1,15 +1,15 @@
 // Resumen del mes: al terminar el día 25 (con la actividad, si la tiene la figura),
 // una página muy navideña con los 25 días, cada uno en su cuadro: el reto, lo que contestaste
 // y la actividad de tu figura. Se puede guardar en PDF y volver al calendario.
-import { el, sleep, confetti, toast, popup } from './fx.js?v=20.4';
-import { t, tx, getLang } from './i18n.js?v=20.4';
-import { chime } from './sound.js?v=20.4';
-import { S, figure, loadDay } from './app.js?v=20.4';
-import { defaultDay } from './defaults.js?v=20.4';
-import { giftButton } from './gift.js?v=20.4';
+import { el, sleep, confetti, toast, popup } from './fx.js?v=22.0';
+import { t, tx, getLang } from './i18n.js?v=22.0';
+import { chime } from './sound.js?v=22.0';
+import { S, figure, loadDay } from './app.js?v=22.0';
+import { defaultDay } from './defaults.js?v=22.0';
+import { giftButton } from './gift.js?v=22.0';
 
 const TK = { hats: 'hatsTitle', reindeer: 'd4title', differences: 'd6title', tree: 'd8title', memory: 'd12title', goodcheck: 'd13title', diploma: 'd15title', roulette: 'd20title', dance: 'd24title', pairs: 'd25title', puzzle: 'puzzleTitle' };
-const typeTitle = ty => ty === 'maze' ? L('Los regalos perdidos (laberinto)', 'Els regals perduts (laberint)', 'The lost presents (maze)') : ty === 'sudoku' ? L('Sudoku de Navidad', 'Sudoku de Nadal', 'Christmas sudoku') : ty === 'simon' ? L('Papá Noel dice', 'El Pare Noel diu', 'Santa says') : ty === 'catch' ? L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents') : ty === 'ballsort' ? L('Ordena las bolas de Navidad', 'Ordena les boles de Nadal', 'Sort the Christmas baubles') : ty === 'slidepuzzle' ? L('Puzle deslizante', 'Puzle lliscant', 'Sliding puzzle') : ty === 'wordsearch' ? L('Sopa de letras de animales', 'Sopa de lletres d’animals', 'Animal word search') : ty === 'crossword' ? L('Crucigrama de Navidad', 'Mots encreuats de Nadal', 'Christmas crossword') : ty === 'ttt' ? L('Tres en raya navideño', 'Tres en ratlla de Nadal', 'Christmas noughts and crosses') : ty === 'puzzle' ? L('Haz el puzle y descubre qué imagen esconde', 'Fes el puzle i descobreix quina imatge amaga', 'Do the puzzle') : (TK[ty] && t(TK[ty])) || '';
+const typeTitle = ty => ty === 'mastermind' ? L('El código secreto de Papá Noel', 'El codi secret del Pare Noel', 'Santa’s secret code') : ty === 'colors' ? L('Desafío de colores', 'Desafiament de colors', 'Colour challenge') : ty === 'maze' ? L('Los regalos perdidos (laberinto)', 'Els regals perduts (laberint)', 'The lost presents (maze)') : ty === 'sudoku' ? L('Sudoku de Navidad', 'Sudoku de Nadal', 'Christmas sudoku') : ty === 'simon' ? L('Papá Noel dice', 'El Pare Noel diu', 'Santa says') : ty === 'catch' ? L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents') : ty === 'ballsort' ? L('Ordena las bolas de Navidad', 'Ordena les boles de Nadal', 'Sort the Christmas baubles') : ty === 'slidepuzzle' ? L('Puzle deslizante', 'Puzle lliscant', 'Sliding puzzle') : ty === 'wordsearch' ? L('Sopa de letras de animales', 'Sopa de lletres d’animals', 'Animal word search') : ty === 'crossword' ? L('Crucigrama de Navidad', 'Mots encreuats de Nadal', 'Christmas crossword') : ty === 'ttt' ? L('Tres en raya navideño', 'Tres en ratlla de Nadal', 'Christmas noughts and crosses') : ty === 'puzzle' ? L('Haz el puzle y descubre qué imagen esconde', 'Fes el puzle i descobreix quina imatge amaga', 'Do the puzzle') : (TK[ty] && t(TK[ty])) || '';
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const PIC = { 25: 'bola25.webp', 1: 'ilu-gorro.webp', 8: 'ilu-abeto.webp', 13: 'ilu-17.webp', 15: 'ilu-bola-roja.webp', 16: 'ilu-15.webp', 22: 'ilu-gl.webp', 24: 'ilu-gr.webp' };
 const pic = n => PIC[n] || `ilu-${n}.webp`;
@@ -41,7 +41,8 @@ export async function monthSummary(opts = {}) {
         extra.push(el('div', { class: 'sum-gifts' }, ...[['hug', '🤗', L('Abrazo', 'Abraçada', 'Hug')], ['thanks', '💌', L('Gracias', 'Gràcies', 'Thank you')], ['kitchen', '🍽️', L('Cocina', 'Cuina', 'Kitchen')]]
           .filter(([k]) => g[k]).map(([k, e, w]) => el('span', {}, `${e} ${w} → `, el('b', {}, g[k])))));
       }
-      return el('article', { class: `sum-card st-${st}`, style: `--d:${(i % 6) * .08}s` },
+      return el('article', { class: `sum-card st-${st}`, style: `--d:${(i % 6) * .08}s`, title: L('Toca para abrir esta casilla', 'Toca per obrir aquesta casella', 'Tap to open this door'),
+        onclick: () => { if (document.querySelector('.sum-pdf-holder')) return; wrap.classList.add('out'); document.body.classList.remove('sum-open'); setTimeout(() => { wrap.remove(); resolve('day:' + n); }, 450); } },
         el('div', { class: 'sum-pic' }, el('img', { src: pic(n), alt: '', loading: 'lazy' }), el('b', { class: 'sum-n' }, n)),
         el('div', { class: 'sum-body' },
           el('div', { class: 'sum-day' }, t('dayN', n), el('span', { class: 'sum-badge' }, badge[0] + ' ' + badge[1])),
@@ -95,7 +96,7 @@ export async function monthSummary(opts = {}) {
       if (pdf.disabled) return; pdf.disabled = true; const label = pdf.textContent;
       pdf.textContent = '⏳ ' + L('Preparando el PDF…', 'Preparant el PDF…', 'Preparing the PDF…');
       let file = null;
-      try { file = await makePdf(page, cards, { year, name: S.profile?.name || '' }); } catch (e) { console.error(e); }
+      try { file = await makePdf(page, cards, { year, name: S.profile?.name || '' }, (i, n) => { pdf.textContent = '⏳ ' + L('Preparando el PDF…', 'Preparant el PDF…', 'Preparing the PDF…') + ` ${i}/${n}`; }); } catch (e) { console.error(e); }
       pdf.disabled = false; pdf.textContent = label;
       if (!file) { toast('⚠️ ' + L('No se ha podido crear el PDF', 'No s’ha pogut crear el PDF', 'The PDF could not be created'), 4000); return; }
       // el móvil solo deja compartir con un toque directo: por eso un segundo botón
@@ -116,7 +117,8 @@ export async function monthSummary(opts = {}) {
 
 // ---- PDF: cada cuadro se fotografía (html2canvas) y se colocan en hojas A4 con fondo navideño (jsPDF)
 const loadScript = src => new Promise((res, rej) => { if (document.querySelector(`script[data-src="${src}"]`)) return res(); const sc = document.createElement('script'); sc.src = src; sc.dataset.src = src; sc.onload = res; sc.onerror = rej; document.head.append(sc); });
-async function makePdf(page, cards, { year, name }) {
+async function makePdf(page, cards, { year, name }, onStep) {
+  let done = 0;
   await loadScript('lib-html2canvas.js?v=1'); await loadScript('lib-jspdf.js?v=1');
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
@@ -142,8 +144,11 @@ async function makePdf(page, cards, { year, name }) {
   try {
     for (const card of cards) {
       const clone = card.cloneNode(true); clone.style.animation = 'none'; clone.style.width = '640px'; holder.replaceChildren(clone);
-      await Promise.all([...clone.querySelectorAll('img')].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
-      const shot = await window.html2canvas(clone, { scale: 1.6, backgroundColor: null, useCORS: true, logging: false });
+      // las imágenes «lazy» no se cargan nunca fuera de la pantalla: se fuerzan y, como mucho, se esperan 3 s
+      clone.querySelectorAll('img').forEach(im => { im.loading = 'eager'; im.removeAttribute('loading'); });
+      await Promise.all([...clone.querySelectorAll('img')].map(im => im.complete && im.naturalWidth ? 0 : Promise.race([new Promise(r => { im.onload = im.onerror = r; }), new Promise(r => setTimeout(r, 3000))])));
+      onStep?.(++done, cards.length);
+      const shot = await window.html2canvas(clone, { scale: 1.3, backgroundColor: null, useCORS: true, logging: false, imageTimeout: 4000 });
       const h = cw * shot.height / shot.width;
       if (y + h > PH - M) { doc.addPage(); bg(); y = M + 6; }
       doc.addImage(shot.toDataURL('image/jpeg', .88), 'JPEG', M, y, cw, h); y += h + 10;

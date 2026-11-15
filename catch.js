@@ -1,9 +1,9 @@
 // Día 14: atrapa los regalos. Caen cosas de Navidad (y trolls gruñones). Se coge un objeto con el dedo
 // y se arrastra hasta el saco de Papá Noel: suma puntos (cada cosa vale distinto). Las cosas se van
 // desvaneciendo mientras caen. Tocar un troll: gruñido, vibración, explota y resta puntos. Meta: 100 puntos.
-import { el, sleep, popup, toast } from './fx.js?v=20.4';
-import { getLang } from './i18n.js?v=20.4';
-import { pop, chime, unlockAudio, grumble, boom, sackDrop, wishSong } from './sound.js?v=20.4';
+import { el, sleep, popup, toast } from './fx.js?v=22.0';
+import { getLang } from './i18n.js?v=22.0';
+import { pop, chime, unlockAudio, grumble, boom, sackDrop, wishSong } from './sound.js?v=22.0';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const GOAL = 100, TROLL_PTS = 10;
@@ -14,7 +14,7 @@ const ITEMS = [
   ['ilu-21.webp', 7, 1.1, 5], ['ilu-4.webp', 8, 1.1, 4], ['estrella8.webp', 10, 1.05, 3],
 ];
 // troll gruñón (dibujo propio)
-const TROLL = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 130">
+export const TROLL = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 130">
 <defs><radialGradient id="s" cx=".45" cy=".35"><stop offset="0" stop-color="#b9a7d6"/><stop offset=".7" stop-color="#7d68a8"/><stop offset="1" stop-color="#4d3b72"/></radialGradient></defs>
 <path d="M30 30 L22 6 L42 24Z M90 30 L98 6 L78 24Z" fill="#e8d9b0" stroke="#7a6a45" stroke-width="2"/>
 <path d="M18 56 Q4 50 6 70 Q14 66 20 70Z M102 56 Q116 50 114 70 Q106 66 100 70Z" fill="#8d79b8" stroke="#3d2d5c" stroke-width="2"/>

@@ -1,5 +1,5 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js?v=20.4';
+import { firebaseConfig } from './firebase-config.js?v=22.0';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {
@@ -72,7 +72,7 @@ async function firebaseApi() {
     getProfile: uid => get('users', uid),
     saveProfile: (uid, data) => F.setDoc(d('users', uid), data, { merge: true }),
     getSettings: uid => get('settings', uid),
-    setSettings: (uid, data) => F.setDoc(d('settings', uid), data),
+    setSettings: (uid, data) => F.setDoc(d('settings', uid), data, { merge: true }),
 
     getAnswers: async uid => {
       const qs = await F.getDocs(F.collection(db, 'answers', uid, 'items'));
@@ -96,6 +96,9 @@ async function firebaseApi() {
     addMedia: async (n, item) => { const r = F.doc(F.collection(db, 'content', String(n), 'media')); await F.setDoc(r, item); return r.id; },
     deleteMedia: (n, id) => F.deleteDoc(d('content', String(n), 'media', id)),
     getConfig: () => get('config', 'public'),
+    getConfigDoc: name => get('config', name),
+    setConfigDoc: (name, data) => F.setDoc(d('config', name), data),
+    delConfigDoc: name => F.deleteDoc(d('config', name)),
     saveConfig: data => F.setDoc(d('config', 'public'), data, { merge: true }),
     // quién está dentro de la app (para la administradora principal)
     presencePing: (uid, data) => F.setDoc(d('presence', uid), data, { merge: true }),
@@ -157,6 +160,7 @@ async function firebaseApi() {
     saveCard: (uid, img) => F.setDoc(d('cards', uid), { img, at: Date.now() }),
     deleteCard: uid => F.deleteDoc(d('cards', uid)),
     setActDone: (uid, actDone) => F.updateDoc(d('users', uid), { actDone }),
+    setActQuiz: (uid, actQuiz) => F.updateDoc(d('users', uid), { actQuiz }),
     getCard: async uid => (await get('cards', uid))?.img || null,
     // mensajes sorpresa: surprises/{uid}/msgs/{id} con { active, dates: ['AAAA-MM-DD', …], … }
     getSurprise: async (uid, date) => {
@@ -241,6 +245,7 @@ function demoApi() {
     getProfile: async uid => ld('users', {})[uid] || null,
     deleteCard: async uid => { const c = ld('cards', {}); delete c[uid]; sv('cards', c); },
     setActDone: async (uid, actDone) => { const u = ld('users', {}); u[uid] = { ...(u[uid] || {}), actDone }; sv('users', u); },
+    setActQuiz: async (uid, actQuiz) => { const u = ld('users', {}); u[uid] = { ...(u[uid] || {}), actQuiz }; sv('users', u); },
     saveProfile: async (uid, data) => { const u = ld('users', {}); u[uid] = { ...(u[uid] || {}), ...data }; sv('users', u); },
     getSettings: async uid => ld('settings', {})[uid] || null,
     setSettings: async (uid, data) => { const s = ld('settings', {}); s[uid] = { ...(s[uid] || {}), ...data }; sv('settings', s); },
@@ -254,6 +259,9 @@ function demoApi() {
     addMedia: async (n, item) => { const m = ld('media', {}); const id = 'm' + Date.now() + Math.random().toString(36).slice(2, 6); (m[n] = m[n] || []).push({ id, ...item }); sv('media', m); return id; },
     deleteMedia: async (n, id) => { const m = ld('media', {}); m[n] = (m[n] || []).filter(x => x.id !== id); sv('media', m); },
     getConfig: async () => ld('config', null),
+    getConfigDoc: async name => ld('cfgdocs', {})[name] || null,
+    setConfigDoc: async (name, data) => { const c = ld('cfgdocs', {}); c[name] = data; sv('cfgdocs', c); },
+    delConfigDoc: async name => { const c = ld('cfgdocs', {}); delete c[name]; sv('cfgdocs', c); },
     saveConfig: async data => sv('config', { ...ld('config', {}), ...data }),
     presencePing: async (uid, data) => { const p = ld('presence', {}); p[uid] = { ...(p[uid] || {}), ...data }; sv('presence', p); },
     watchPresence: (uid, cb) => { const iv = setInterval(() => cb(ld('presence', {})[uid] || null), 3000); return () => clearInterval(iv); },

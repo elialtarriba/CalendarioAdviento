@@ -1,8 +1,8 @@
 // Quién está dentro de la app ahora mismo. Cada móvil avisa cada minuto (con el nombre que se escribe
 // en la pantalla de la nieve). La administradora principal ve la lista y puede echar a alguien.
-import { el, popup, toast } from './fx.js?v=20.4';
-import { getLang } from './i18n.js?v=20.4';
-import { store } from './store.js?v=20.4';
+import { el, popup, toast, searchBox } from './fx.js?v=22.0';
+import { getLang } from './i18n.js?v=22.0';
+import { store } from './store.js?v=22.0';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 export const OWNER = 'elialtarriba@gmail.com';
@@ -77,6 +77,8 @@ export const stopPresence = S => { if (S?.user) store.presencePing(S.user.uid, {
 const ago = ms => { const m = Math.round(ms / 60000); return m < 1 ? 'ahora mismo' : m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} días`; };
 export async function presenceAdmin(root) {
   let timer = null;
+  const statsBox = el('div', { class: 'pr-stats' }), listBox = el('div', { class: 'pr-list' });
+  const search = searchBox(listBox, '.pr-row');
   const draw = async () => {
     if (!root.isConnected) { clearInterval(timer); return; }
     let list = [];
@@ -106,11 +108,16 @@ export async function presenceAdmin(root) {
           el('small', { class: 'pr-when' }, p.st === 'on' ? '🟢 Dentro ahora' : p.st === 'away' ? '🟡 Con la app abierta en segundo plano · ' + ago(now - p.lastSeen) : '⚪ Fuera · ' + ago(now - (p.lastSeen || 0)))),
         p.st !== 'off' && !p.kick ? kick : p.kick ? el('small', { class: 'pr-kicking' }, 'saliendo…') : null);
     });
-    root.replaceChildren(el('div', { class: 'card' },
-      el('h3', {}, '🟢 Quién está en la app'),
-      el('p', { class: 'muted' }, 'Cada persona escribe su nombre al entrar (en la pantalla de la nieve). Aquí ves quién tiene la app abierta ahora y puedes sacar a quien la haya dejado abierta. Se actualiza solo cada 15 segundos.'),
-      el('div', { class: 'pr-stats' }, el('div', {}, el('b', {}, on), el('small', {}, 'dentro ahora')), el('div', {}, el('b', {}, away), el('small', {}, 'en segundo plano')), el('div', {}, el('b', {}, list.length), el('small', {}, 'personas en total'))),
-      el('div', { class: 'pr-list' }, ...(rows.length ? rows : [el('p', { class: 'muted' }, 'Todavía no ha entrado nadie con esta versión.')]))));
+    // la tarjeta y el buscador se hacen una vez; cada 15 s solo se repintan los números y la lista
+    if (!statsBox.isConnected) {
+      root.replaceChildren(el('div', { class: 'card' },
+        el('h3', {}, '🟢 Quién está en la app'),
+        el('p', { class: 'muted' }, 'Cada persona escribe su nombre al entrar (en la pantalla de la nieve). Aquí ves quién tiene la app abierta ahora y puedes sacar a quien la haya dejado abierta. Se actualiza solo cada 15 segundos.'),
+        statsBox, search, listBox));
+    }
+    statsBox.replaceChildren(el('div', {}, el('b', {}, on), el('small', {}, 'dentro ahora')), el('div', {}, el('b', {}, away), el('small', {}, 'en segundo plano')), el('div', {}, el('b', {}, list.length), el('small', {}, 'personas en total')));
+    listBox.replaceChildren(...(rows.length ? rows : [el('p', { class: 'muted' }, 'Todavía no ha entrado nadie con esta versión.')]));
+    search.apply();
   };
   await draw();
   timer = setInterval(draw, 15000);

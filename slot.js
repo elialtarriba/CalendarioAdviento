@@ -2,15 +2,25 @@
 // Se tira de la palanca, el rodillo va pasando las 5 opciones que la administradora pone en
 // Configuración → «🎰 Máquina de regalos», y al tocar el rodillo se para y se ilumina el resultado.
 // Solo cuenta la primera tirada (se guarda en el perfil) y se puede compartir por WhatsApp en una imagen.
-import { el, popup, confetti, toast } from './fx.js?v=20.4';
-import { getLang } from './i18n.js?v=20.4';
-import { pop, fanfare, chime, unlockAudio, jingle } from './sound.js?v=20.4';
-import { S } from './app.js?v=20.4';
-import { store } from './store.js?v=20.4';
+import { el, popup, confetti, toast } from './fx.js?v=22.0';
+import { getLang } from './i18n.js?v=22.0';
+import { pop, fanfare, chime, unlockAudio, jingle, hohoho, sadTrombone, christmasSong } from './sound.js?v=22.0';
+import { TROLL } from './catch.js?v=22.0';
+import { S } from './app.js?v=22.0';
+import { store } from './store.js?v=22.0';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const IMG = 'maquina25.webp';
 export const slotOptions = () => (S.config?.slot?.opts || []).map(x => String(x || '').trim()).filter(Boolean);
+// efecto de cada opción al parar la máquina (se configura en «🎰 Máquina de regalos»); por defecto, activado
+export const FX_TYPES = { vale: 'Imagen del vale (Art Bo) con fuegos artificiales', coins: 'Lluvia de monedas de oro', lose: '«¡Ohhhh! No has ganado!» y después Papá Noel', none: 'Sin efecto' };
+export const FX_DEFAULT = ['vale', 'coins', 'coins', 'coins', 'lose'];
+const slotFx = text => { const all = (S.config?.slot?.opts || []).map(x => String(x || '').trim()); const i = all.indexOf(text); const f = S.config?.slot?.fx?.[i] || {};
+  return { type: f.type || FX_DEFAULT[i] || 'none', on: f.on !== false }; };
+// en el rodillo solo sale la primera parte («¡Has ganado 2 Euros!»); el resto («A canjear…») sale en el efecto
+const neverWins = t => slotFx(t).type === 'lose' || /no has ganado|no has guanyat/i.test(String(t));
+const short = t => String(t).split(/\s+[-–—]\s+/)[0];
+const rest = t => String(t).split(/\s+[-–—]\s+/).slice(1).join(' – ');
 
 export function slotButton() {
   const b = el('button', { type: 'button', class: 'gift-btn slot-btn no-delay' },
@@ -21,7 +31,7 @@ export function slotButton() {
   return b;
 }
 
-export async function openSlot() {
+export async function openSlot({ test = false } = {}) {
   const opts = slotOptions();
   if (!opts.length) {
     return popup(el('div', { class: 'gift-pop' }, el('img', { class: 'gift-pop-img', src: IMG, alt: '' }),
@@ -49,7 +59,7 @@ export async function openSlot() {
 
   // ---- rodillo: las opciones pasan una detrás de otra (en bucle)
   const list = [...opts, ...opts, ...opts];
-  list.forEach(t => items.append(el('div', { class: 'sl-item' }, el('span', {}, t))));
+  list.forEach(t => items.append(el('div', { class: 'sl-item' }, el('span', {}, short(t)))));
   let pos = 0, speed = 0, state = 'idle', raf = 0, lastTick = 0, stopAt = null;
   const n = opts.length;
   const H = () => reel.clientHeight * .5; // alto de cada casilla del rodillo
@@ -75,6 +85,8 @@ export async function openSlot() {
   function stopSpin() {
     if (state !== 'spin') return;
     state = 'stopping'; stopAt = Math.ceil(pos) + 2; // frena y se queda en una opción
+    // «¡Ohhhh! No has ganado!» pasa por el rodillo (para dar emoción) pero nunca sale
+    for (let k = 0; k < n && neverWins(opts[((stopAt % n) + n) % n]); k++) stopAt++;
     paintInfo();
   }
   function landed() {
@@ -82,12 +94,13 @@ export async function openSlot() {
     const won = opts[((stopAt % n) + n) % n];
     fanfare(); setTimeout(chime, 500);
     const r = machine.getBoundingClientRect(); confetti(200, { x: r.left + r.width / 2, y: r.top + r.height * .45 });
-    if (!first()) {
+    if (!first() && !test) {
       const res = { text: won, at: Date.now() };
       S.profile.slot = res; store.saveProfile(S.user.uid, { slot: res }).catch(() => {});
       toast('🎁 ' + L('¡Esta es tu tirada buena!', 'Aquesta és la teva tirada bona!', 'This is your official spin!'), 3500);
     }
     paintInfo();
+    const fx = slotFx(won); if (fx.on && fx.type !== 'none') setTimeout(() => playFx(fx.type, won), 1300);
   }
   reel.addEventListener('click', () => (state === 'spin' ? stopSpin() : null));
   lever.addEventListener('click', startSpin);
@@ -157,3 +170,82 @@ async function shareSlot(res) {
     { cls: 'small g23-sharepop', buttons: [{ label: L('Cerrar', 'Tancar', 'Close'), value: false, cls: 'btn-ghost' }] });
   if (url) setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
+
+// ================================================================ efectos al ganar
+function fireworks(cv, ms = 6000) {
+  const g = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1);
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const COLS = ['#ffd24a', '#ff4d6d', '#4ade80', '#7dd3fc', '#ffffff', '#f2c14e', '#c084fc'];
+  let parts = [], last = 0, raf = 0; const t0 = performance.now();
+  const burst = () => { const x = innerWidth * (.1 + Math.random() * .8), y = innerHeight * (.1 + Math.random() * .45), c = COLS[Math.floor(Math.random() * COLS.length)];
+    for (let i = 0; i < 80; i++) { const a = Math.random() * 7, v = 1.5 + Math.random() * 4.5; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, c: Math.random() < .2 ? '#fff' : c }); } try { pop(); } catch {} };
+  (function f(t) {
+    if (t - t0 < ms && t - last > 420) { last = t; burst(); }
+    g.globalCompositeOperation = 'destination-out'; g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(0, 0, innerWidth, innerHeight);
+    g.globalCompositeOperation = 'lighter';
+    parts.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += .05; p.vx *= .985; p.vy *= .985; p.life -= .012; g.globalAlpha = Math.max(0, p.life); g.fillStyle = p.c; g.beginPath(); g.arc(p.x, p.y, 2.2, 0, 7); g.fill(); });
+    parts = parts.filter(p => p.life > 0); g.globalAlpha = 1;
+    if (cv.isConnected && (t - t0 < ms + 2500)) raf = requestAnimationFrame(f);
+  })(t0);
+  return () => cancelAnimationFrame(raf);
+}
+function coinRain(cv) {
+  const g = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1);
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const coins = Array.from({ length: 70 }, () => ({ x: Math.random() * innerWidth, y: -Math.random() * innerHeight * 1.5, r: 12 + Math.random() * 14, v: 2 + Math.random() * 3.5, a: Math.random() * 7, s: .05 + Math.random() * .12 }));
+  let raf = 0;
+  (function f() {
+    g.clearRect(0, 0, innerWidth, innerHeight);
+    coins.forEach(c => {
+      c.y += c.v; c.a += c.s; if (c.y > innerHeight + 40) { c.y = -40; c.x = Math.random() * innerWidth; }
+      const w = Math.abs(Math.cos(c.a)) * c.r; // gira
+      const gr = g.createRadialGradient(c.x - w * .3, c.y - c.r * .3, 1, c.x, c.y, c.r);
+      gr.addColorStop(0, '#fff6c2'); gr.addColorStop(.5, '#f2c14e'); gr.addColorStop(1, '#a8740a');
+      g.fillStyle = gr; g.strokeStyle = '#8a5d06'; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(c.x, c.y, Math.max(1.5, w), c.r, 0, 0, 7); g.fill(); g.stroke();
+      if (w > c.r * .45) { g.fillStyle = '#8a5d06'; g.font = `800 ${c.r}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('€', c.x, c.y + 1); }
+    });
+    if (cv.isConnected) raf = requestAnimationFrame(f);
+  })();
+  return () => cancelAnimationFrame(raf);
+}
+function fxLayer() {
+  const cv = el('canvas', { class: 'slfx-cv' });
+  const box = el('div', { class: 'slfx' }, el('div', { class: 'slfx-flash' }), cv);
+  document.body.append(box);
+  const close = () => new Promise(res => { box.classList.add('out'); setTimeout(() => { box.remove(); res(); }, 600); });
+  return { box, cv, close };
+}
+const waitTap = (box, btnLabel) => new Promise(res => {
+  const b = el('button', { type: 'button', class: 'btn btn-big no-delay slfx-btn' }, btnLabel);
+  b.onclick = res; box.append(b); setTimeout(() => b.classList.add('show'), 1200);
+});
+async function playFx(type, text) {
+  if (type === 'vale') {
+    const { box, cv, close } = fxLayer(); const stop = fireworks(cv, 7000);
+    try { fanfare(); confetti(200); } catch {}
+    let mus = null; setTimeout(() => { try { mus = christmasSong(); } catch {} }, 1500);
+    box.append(el('img', { class: 'slfx-vale', src: 'vale-artbo.webp', alt: '' }));
+    await waitTap(box, '🎁 ' + L('¡Gracias, Mamá Noel!', 'Gràcies, Mare Noel!', 'Thank you, Mrs Claus!'));
+    stop(); try { mus?.stop(1); } catch {} await close();
+  } else if (type === 'coins') {
+    const { box, cv, close } = fxLayer(); const stop = coinRain(cv);
+    try { fanfare(); jingle(2); } catch {}
+    box.append(el('div', { class: 'slfx-card' }, el('div', { class: 'slfx-deco' }, '✦ ❄ ✦'),
+      el('h2', {}, short(text)), rest(text) ? el('p', {}, rest(text)) : null,
+      el('small', {}, [S.profile?.name, L('Mamá Noel', 'Mare Noel', 'Mrs Claus')].filter(Boolean).join(' · '))));
+    await waitTap(box, '💰 ' + L('¡Genial!', 'Genial!', 'Great!'));
+    stop(); await close();
+  } else if (type === 'lose') {
+    try { sadTrombone(); } catch {}
+    await popup(el('div', { class: 'slfx-lose' }, el('img', { src: TROLL, alt: '' }), el('h2', {}, short(text) || L('¡Ohhhh! No has ganado!', 'Ohhhh! No has guanyat!', 'Ohhhh! You didn’t win!'))),
+      { cls: 'small', buttons: [{ label: '😢 OK', value: true }] });
+    const { box, cv, close } = fxLayer(); const stop = fireworks(cv, 7000);
+    try { hohoho(); } catch {} setTimeout(() => { try { confetti(180); fanfare(); } catch {} }, 1800);
+    box.append(el('div', { class: 'slfx-santa' }, el('img', { src: 'santa-navidad.webp', alt: '' }),
+      el('h2', {}, L('¡Pero siempre queda la Navidad!', 'Però sempre ens queda el Nadal!', 'But there’s always Christmas!'))));
+    await waitTap(box, '🎄 ' + L('¡Feliz Navidad!', 'Bon Nadal!', 'Merry Christmas!'));
+    stop(); await close();
+  }
+}
+export const testFx = (type, text) => playFx(type, text);

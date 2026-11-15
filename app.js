@@ -1,11 +1,12 @@
-import { initStore, store, DEMO, nameKey, isPlayerEmail } from './store.js?v=20.4';
-import { t, tx, setLang, getLang } from './i18n.js?v=20.4';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=20.4';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=20.4';
-import { typeRich, gallery, lightbox } from './richact.js?v=20.4';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=20.4';
+import { clearLocalGames } from './games25.js?v=22.0';
+import { initStore, store, DEMO, nameKey, isPlayerEmail } from './store.js?v=22.0';
+import { t, tx, setLang, getLang } from './i18n.js?v=22.0';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=22.0';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=22.0';
+import { typeRich, gallery, lightbox } from './richact.js?v=22.0';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=22.0';
 
-export const APP_VERSION = 'V20.4';
+export const APP_VERSION = 'V22';
 export const S = {
   user: null, profile: null, settings: null, answers: {}, config: null, card: null,
   isAdmin: false,
@@ -21,13 +22,22 @@ export function madridToday() {
 }
 // modo prueba: se recuerda en este aparato hasta que la administradora lo desactive
 const testKey = () => 'adv_test_' + (S.user?.uid || '');
-export const testMode = () => { try { return localStorage.getItem(testKey()) === '1'; } catch { return false; } };
-export const setTestMode = on => { try { on ? localStorage.setItem(testKey(), '1') : localStorage.removeItem(testKey()); } catch {} };
+// «casillas abiertas antes de tiempo»: lo elige la administradora para cada usuario (Usuarios → su ficha).
+// A los jugadores solo les vale antes de diciembre; a la administradora, siempre.
+export const testMode = () => {
+  if (S.settings?.earlyOpen && (S.isAdmin || !decStarted())) return true;
+  try { return localStorage.getItem(testKey()) === '1'; } catch { return false; }
+};
+export const setTestMode = on => {
+  try { on ? localStorage.setItem(testKey(), '1') : localStorage.removeItem(testKey()); } catch {}
+  if (S.settings) S.settings.earlyOpen = !!on;
+  if (S.user) store.setSettings(S.user.uid, { earlyOpen: !!on }).catch(e => console.warn(e));
+};
 // 1 de diciembre a las 00:00 (hora de Madrid) del año del calendario
 const decStart = () => Date.UTC(S.config.year, 11, 1, -1);
 const decStarted = () => { const { y, m } = madridToday(); const Y = S.config.year; return y > Y || (y === Y && m === 12); };
 function canOpen(n) {
-  if (testMode()) return true; // modo prueba (solo la administradora)
+  if (testMode()) return true; // casillas abiertas antes de tiempo (lo elige la administradora)
   if (S.config?.openAll && !decStarted()) return true; // «abrir todas a todos»: solo antes de diciembre
   const { y, m, d } = madridToday(); const Y = S.config.year;
   return y > Y || (y === Y && m === 12 && d >= n);
@@ -49,7 +59,7 @@ export async function loadDay(n) {
   const def = defaultDay(n);
   const day = { ...def, ...(c || {}), type: def.type }; // el tipo de juego de cada día es fijo
   // lo que el administrador escribe en español se traduce solo al idioma elegido (si no lo ha escrito él)
-  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=20.4')).localizeDay(day, def, getLang()); } catch {} }
+  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=22.0')).localizeDay(day, def, getLang()); } catch {} }
   return day;
 }
 export function applyPaper(node) {
@@ -130,7 +140,7 @@ function splash(enter = async () => null, sessP = Promise.resolve([])) {
     nameIn.addEventListener('input', upd); pinIn.addEventListener('input', upd); upd();
     [nameIn, pinIn].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter' && !skip.disabled) skip.click(); }));
     const adminLink = el('button', { type: 'button', class: 'splash-admin no-delay', onclick: () => { unlockAudio(); finish('admin'); } }, '🔑 ' + L3('Soy la administradora', 'Soc l’administradora', 'I am the admin'));
-    const guideBtn = el('button', { type: 'button', class: 'splash-guide no-delay', onclick: () => { unlockAudio(); import('./help.js?v=20.4').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)); } },
+    const guideBtn = el('button', { type: 'button', class: 'splash-guide no-delay', onclick: () => { unlockAudio(); import('./help.js?v=22.0').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)); } },
       '📖 ' + L3('Cómo funciona', 'Com funciona', 'How it works'));
     const form = el('div', { class: 'splash-form' }, el('label', {}, '🎅 ' + ({ es: '¿Cómo te llamas?', ca: 'Com et dius?', en: 'What is your name?' }[getLang()] || '¿Cómo te llamas?')), nameIn, pinWrap, nameErr, skip, guideBtn, adminLink);
     // «i» en la esquina: bienvenida de Elisabeth y su correo
@@ -235,7 +245,7 @@ async function boot() {
     if (await storeP) return null; // sin conexión: el aviso sale después
     const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
     if (!pin) return null; // ya está dentro en este aparato con este nombre
-    if (await store.authReady()) { try { (await import('./presence.js?v=20.4')).stopPresence(S); } catch {} await store.signOut(); }
+    if (await store.authReady()) { try { (await import('./presence.js?v=22.0')).stopPresence(S); } catch {} await store.signOut(); }
     let r;
     try { r = await store.playerEnter(name, nameKey(name), pin, getLang()); }
     catch (er) {
@@ -275,6 +285,7 @@ async function boot() {
     if (!profile && asPlayer && lastEnter?.name) store.claimName(nameKey(lastEnter.name), u.uid, lastEnter.name).catch(() => {});
     S.settings = settings || { figure: 'galleta', showProgress: true };
     S.answers = answers || {};
+    applyReset();
     S.config = { ...DEFAULT_CONFIG, ...(config || {}), prizes: { ...DEFAULT_CONFIG.prizes, ...(config?.prizes || {}) } };
     try { if (config?.splash) localStorage.setItem('adv_splash', JSON.stringify(config.splash)); } catch {}
     S.card = card;
@@ -288,10 +299,31 @@ async function boot() {
     const afterPin = () => setTimeout(startPopups, 500);
     if (!newPin) afterPin();
     if (newPin) { const p = newPin; newPin = ''; setTimeout(() => popup(`<h2>🎄 ${esc(S.profile.name)}</h2><p style="font-size:18px">${L3('Tu PIN es', 'El teu PIN és', 'Your PIN is')}</p><p class="pin-show">${esc(p)}</p><p>${L3('Este aparato ya te recuerda: a partir de ahora, aquí entrarás solo con tu nombre, sin escribir el PIN.', 'Aquest aparell ja et recorda: a partir d’ara, aquí entraràs només amb el teu nom, sense escriure el PIN.', 'This device now remembers you: from now on, here you will get in with just your name, without typing the PIN.')}</p><p><b>${L3('Guarda bien este PIN.', 'Guarda bé aquest PIN.', 'Keep this PIN safe.')}</b> ${L3('Si algún día entras desde otro móvil, una tableta o un ordenador, te lo pedirá para abrir tu calendario con todo lo que hayas hecho.', 'Si algun dia entres des d’un altre mòbil, una tauleta o un ordinador, te’l demanarà per obrir el teu calendari amb tot el que hagis fet.', 'If you ever use another phone, a tablet or a computer, you will need it to open your calendar with everything you have done.')}</p>`, { buttons: [{ label: 'OK', value: true }] }).then(afterPin), 600); }
-    import('./presence.js?v=20.4').then(m => m.startPresence(S)).catch(e => console.warn(e));
-    import('./admin.js?v=20.4').catch(() => {});
-    import('./surprise.js?v=20.4').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./presence.js?v=22.0').then(m => m.startPresence(S)).catch(e => console.warn(e));
+    import('./admin.js?v=22.0').catch(() => {});
+    import('./surprise.js?v=22.0').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./qpop.js?v=22.0').then(m => m.startPops()).catch(e => console.warn(e)); // preguntas sorpresa
   });
+}
+
+// la administradora ha reiniciado casillas: los juegos vuelven a la partida 1 y lo que dependía de ellas se borra
+export function applyReset(force = false) {
+  if (!S.user) return;
+  const k = 'adv_reset_seen_' + S.user.uid, at = +(S.settings?.resetAt || 0);
+  let seen = 0; try { seen = +(localStorage.getItem(k) || 0); } catch {}
+  if (!force && !(at > seen)) return;
+  clearLocalGames();
+  try { localStorage.setItem(k, String(Math.max(at, Date.now()))); localStorage.removeItem('adv_prizes_' + S.user.uid); } catch {}
+  const pf = {};
+  const ad = { ...(S.profile?.actDone || {}) }; let ch = false;
+  Object.keys(ad).forEach(d => { if (!S.answers[d]) { delete ad[d]; ch = true; } });
+  if (ch) { S.profile.actDone = ad; store.setActDone(S.user.uid, ad).catch(e => console.warn(e)); }
+  const aq = { ...(S.profile?.actQuiz || {}) }; let chq = false;
+  Object.keys(aq).forEach(d => { if (!S.answers[d]) { delete aq[d]; chq = true; } });
+  if (chq) { S.profile.actQuiz = aq; store.setActQuiz(S.user.uid, aq).catch(e => console.warn(e)); }
+  if (!S.answers[25] && S.profile?.slot) { pf.slot = null; S.profile.slot = null; }
+  if (!S.answers[24] && S.profile?.giftOpened) { pf.giftOpened = null; S.profile.giftOpened = null; }
+  if (Object.keys(pf).length) store.saveProfile(S.user.uid, pf).catch(e => console.warn(e));
 }
 
 // al empezar diciembre, todo lo que se hizo antes (casillas abiertas para probar) se borra: se empieza de 0
@@ -311,7 +343,10 @@ async function resetPractice(uid) {
   if (!gone.length) return;
   const ad = { ...(S.profile.actDone || {}) }; gone.forEach(d => delete ad[d]);
   S.profile.actDone = ad; await store.setActDone(uid, ad).catch(e => console.warn(e));
+  const aq = { ...(S.profile.actQuiz || {}) }; gone.forEach(d => delete aq[d]);
+  S.profile.actQuiz = aq; await store.setActQuiz(uid, aq).catch(e => console.warn(e));
   try { localStorage.removeItem('adv_prizes_' + uid); } catch {}
+  clearLocalGames();
   if (S.card) { await store.deleteCard(uid).catch(() => {}); S.card = null; }
 }
 
@@ -325,7 +360,7 @@ function renderLogin(mode = 'login') {
   // idioma, antes de entrar
   const langSel = el('div', { class: 'login-langs' }, ...[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([v, l]) =>
     el('button', { type: 'button', class: 'login-lang no-delay' + (v === getLang() ? ' on' : ''), onclick: () => { setLang(v); try { localStorage.setItem('adv_lang_pick', v); } catch {} renderLogin(mode); } }, l)));
-  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=20.4').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
+  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=22.0').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
     '📖 ' + ({ es: 'Cómo funciona', ca: 'Com funciona', en: 'How it works' }[getLang()] || 'Cómo funciona'));
   const submit = async e => {
     e.preventDefault(); errBox.textContent = ''; unlockAudio();
@@ -441,7 +476,7 @@ function glowConfetti(parent) {
 // texto escrito por la administradora: sale en español y se cambia por la traducción al idioma elegido
 function tEl(tag, cls, text) {
   const n = el(tag, { class: cls }, text || '');
-  if (text && getLang() !== 'es') import('./translate.js?v=20.4').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
+  if (text && getLang() !== 'es') import('./translate.js?v=22.0').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
   return n;
 }
 // el regalo: una caja que se abre y dentro el premio (texto, mensaje y foto que pone el administrador)
@@ -460,7 +495,7 @@ async function revealPrize(g) {
   const gift = box.querySelector('.pzr-gift');
   await new Promise(r => { gift.onclick = r; setTimeout(r, 9000); });
   gift.onclick = null; box.querySelector('.pzr-hint').textContent = '✨';
-  try { const { jingle } = await import('./sound.js?v=20.4'); jingle(1); } catch {}
+  try { const { jingle } = await import('./sound.js?v=22.0'); jingle(1); } catch {}
   gift.classList.add('shake'); await sleep(900); gift.classList.add('open'); chime(); confetti(220);
   await sleep(700);
   const photo = await photoP;
@@ -654,7 +689,7 @@ export function renderHome() {
           el('button', { class: 'icon-btn', title: L3('Inicio', 'Inici', 'Start'), onclick: goStart }, '❄️'),
           sndBtn(),
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=20.4')).openAdmin() }, '🔒')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=22.0')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -687,7 +722,9 @@ export function renderHome() {
       ...Array.from({ length: 8 }, () => el('span', {}, ((S.settings?.marqueeText || '').trim() || marqueeGeneral(mq)) + '\u2003✦\u2003'))));
   const bars = [];
   if (DEMO) bars.push(el('div', { class: 'demo-bar' }, t('demo')));
-  if (testMode()) bars.push(el('div', { class: 'demo-bar test' }, '🧪 Modo prueba: todas las casillas abiertas'));
+  if (testMode()) bars.push(el('div', { class: 'demo-bar test' }, '🔓 ' + L3('Modo prueba: todas las casillas abiertas', 'Mode prova: totes les caselles obertes', 'Test mode: all boxes open')));
+  // con la casilla 25 hecha: botón para ver el resumen de la Navidad (para todos)
+  if (!fullView && S.answers?.[25]) bars.push(el('button', { class: 'sum-bar', onclick: () => day25Menu() }, '📜 ' + L3('Ver el resumen de mi Navidad', 'Veure el resum del meu Nadal', 'See my Christmas summary')));
   if (!fullView) bars.push(el('button', { class: 'zoom-bar no-delay', onclick: () => { fullView = true; renderHome(); } }, '🔍 ' + t('zoomBar')));
   const exitBtn = fullView ? el('button', { class: 'exit-full', onclick: () => { fullView = false; renderHome(); } }, '✕ ' + t('exitFull')) : null;
   document.body.classList.toggle('full-view', fullView);
@@ -765,7 +802,7 @@ async function openDoor(n, door, mode = null) {
   unlockAudio();
   if (!canOpen(n)) { door.classList.add('shake'); setTimeout(() => door.classList.remove('shake'), 600); toast(t('locked', n)); return; }
   // día 25 ya hecho: siempre sale el resumen del mes, con «volver a jugar», «abrir la casilla desde el principio» o «hacer mi actividad»
-  if (n === 25 && !mode && allDone25()) return day25Menu(); // solo cuando ya están hechas TODAS las casillas (del 1 al 25)
+  if (n === 25 && !mode && S.answers[25]) return day25Menu(); // casilla 25 ya hecha: siempre el resumen del mes (con sus opciones)
   mode25 = n === 25 ? mode : null;
   busy = true;
   if (actPending(n) && !mode) {
@@ -803,7 +840,7 @@ async function openDoor(n, door, mode = null) {
 
   let closed = false;
   const ctx = {
-    day: n, content, lang: getLang(), prev: mode ? null : (S.answers[n] || null), note, body, finishBtn,
+    day: n, content, lang: getLang(), prev: mode && mode !== 'replay' ? null : (S.answers[n] || null), note, body, finishBtn,
     profile: S.profile, settings: S.settings, user: S.user, config: S.config,
     submit: async data => {
       if (S.answers[n]) return;
@@ -827,15 +864,15 @@ async function openDoor(n, door, mode = null) {
   try {
     // juegos que se pueden repetir: se juegan de nuevo, pero la respuesta guardada (y los premios) no cambian
     if (ctx.prev && ['hats', 'reindeer', 'differences', 'memory', 'goodcheck'].includes(content.type)) { ctx.replay = true; ctx.prev = null; }
-    if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=20.4`)).render(body, ctx);
+    if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze', 'colors', 'mastermind'].includes(content.type)) renderSummary(body, ctx);
+    else (await import(`./${content.type}.js?v=22.0`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   // casilla 25: el regalo sorpresa abajo del todo (si el juego se vuelve a pintar, se vuelve a poner)
   if (n === 25) {
     try {
-      const { giftButton } = await import('./gift.js?v=20.4');
+      const { giftButton } = await import('./gift.js?v=22.0');
       const gb = el('div', { class: 'gift-box25' }, giftButton());
-      if (figure() === 'gnomo') { const { slotButton } = await import('./slot.js?v=20.4'); gb.append(slotButton()); }
+      if (figure() === 'gnomo') { const { slotButton } = await import('./slot.js?v=22.0'); gb.append(slotButton()); }
       const keep = () => { if (!gb.isConnected && note.isConnected) body.append(gb); else if (gb !== body.lastElementChild && note.isConnected) body.append(gb); };
       body.append(gb); new MutationObserver(() => { if (body.lastElementChild !== gb) keep(); }).observe(body, { childList: true });
     } catch (e) { console.warn(e); }
@@ -903,7 +940,7 @@ async function closeDay(n, layer, note, door, later = false) {
   // día 25 con la foto hecha: final del calendario con la bola de nieve que cobra vida
   // al acabar el día 25: el resumen de todo el mes
   let next = null;
-  if (!later && n === 25 && done) { try { next = await (await import('./summary.js?v=20.4')).monthSummary({ menu: menu25() }); fullView = true; } catch (e) { console.error(e); } }
+  if (!later && n === 25 && done) { try { next = await (await import('./summary.js?v=22.0')).monthSummary({ menu: menu25() }); fullView = true; } catch (e) { console.error(e); } }
   creak(false);
   layer.classList.add('fade-out');
   await sleep(700);
@@ -915,15 +952,20 @@ async function closeDay(n, layer, note, door, later = false) {
 // ---- día 25: menú del resumen del mes
 let mode25 = null;
 const allDone25 = () => Array.from({ length: 25 }, (_, i) => i + 1).every(d => S.answers[d] && !actPending(d));
-const menu25 = () => (allDone25() ? { act: figure() !== 'galleta' } : null);
+const menu25 = () => (S.answers[25] ? { act: figure() !== 'galleta' } : null);
 async function day25Menu() {
   let r = null;
-  try { r = await (await import('./summary.js?v=20.4')).monthSummary({ menu: menu25() }); } catch (e) { console.error(e); }
+  try { r = await (await import('./summary.js?v=22.0')).monthSummary({ menu: menu25() }); } catch (e) { console.error(e); }
   if (r) go25(r);
 }
 async function go25(r) {
   const door = document.querySelector('.door.d25');
   if (r === 'play' || r === 'fresh') { if (door) openDoor(25, door, r); return; }
+  if (typeof r === 'string' && r.startsWith('day:')) { // desde el resumen: abrir esa casilla
+    const d = +r.slice(4), dd = document.querySelector(`.door[data-day="${d}"]`);
+    if (dd) setTimeout(() => openDoor(d, dd, d === 25 ? 'play' : null), 300);
+    return;
+  }
   if (r === 'act') {
     const layer = el('div', { class: 'note-layer' }); document.body.append(layer);
     const res = await runActivity(25, layer);
@@ -1113,7 +1155,7 @@ async function showActivity(n, layer, simple = false) {
   crumpleSound();
   let choice = null; const decided = new Promise(r => { btn.onclick = () => r('done'); later.onclick = () => { choice = 'later'; r('later'); }; });
   // algunos días tienen una actividad especial interactiva (día 23: regalos; día 24: el regalo de Papá Noel)
-  const sp = await import('./acts.js?v=20.4').then(m => m.special(n, key)).catch(() => null);
+  const sp = await import('./acts.js?v=22.0').then(m => m.special(n, key)).catch(() => null);
   if (!simple) await withTimeout(crumpleAnim(note, false), 3500);
   // la nota tiene que verse siempre, pase lo que pase con la animación
   clearCrumples(); note.style.visibility = ''; note.style.opacity = '';
@@ -1125,7 +1167,7 @@ async function showActivity(n, layer, simple = false) {
   } else {
     await Promise.race([typeRich(textBox, text, 24), decided]);
     const qz = content[key + 'Q']?.[getLang()] || content[key + 'Q']?.es;
-    if (qz?.q && !choice) { await Promise.race([actQuiz(textBox, qz, n, key), decided]); }
+    if (qz?.q && !choice) { await Promise.race([actQuiz(textBox, qz, n, key, content), decided]); }
     btn.disabled = false;
   }
   const res = choice || await decided;
@@ -1139,7 +1181,7 @@ async function showActivity(n, layer, simple = false) {
   return res;
 }
 // pregunta con 4 respuestas al final de la actividad: se elige una; la correcta brilla y crece, la incorrecta se encoge
-function actQuiz(box, qz, n, key) {
+function actQuiz(box, qz, n, key, content = {}) {
   return new Promise(resolve => {
     const opts = qz.opts.map((o, i) => ({ o, i })).filter(x => x.o);
     const fb = el('div', { class: 'aq-fb' });
@@ -1160,8 +1202,17 @@ function actQuiz(box, qz, n, key) {
         fb.className = 'aq-fb show bad'; fb.textContent = L3('¡Oh! No era esa… ¡Otra vez será!', 'Oh! No era aquesta… Una altra vegada serà!', 'Oh! That wasn’t it… Better luck next time!');
       }
       const res = { pick: i, ok: good, at: Date.now() };
-      S.profile.actQuiz = { ...(S.profile.actQuiz || {}), [n]: res };
-      store.saveProfile(S.user.uid, { actQuiz: { [n]: res } }).catch(e => console.warn(e));
+      if (!S.profile.actQuiz?.[n]) { // solo cuenta la primera vez; las demás son para divertirse
+        S.profile.actQuiz = { ...(S.profile.actQuiz || {}), [n]: res };
+        store.saveProfile(S.user.uid, { actQuiz: { [n]: res } }).catch(e => console.warn(e));
+      }
+      if (qz.exp || qz.expImg) { // botón «Explicación» (lo configura la administradora)
+        const q2 = content[key + 'Q']?.es || qz; const exp = qz.exp || q2.exp || '', img = qz.expImg || q2.expImg || '';
+        card.append(el('button', { type: 'button', class: 'btn aq-expbtn no-delay', onclick: () => popup(el('div', { class: 'aq-exppop' },
+          el('h2', {}, '💡 ' + L3('Explicación', 'Explicació', 'Explanation')), exp ? el('p', {}, exp) : null,
+          img ? el('button', { type: 'button', class: 'aq-expimg no-delay', onclick: () => lightbox([{ kind: 'img', src: img }], 0) }, el('img', { src: img, alt: '' }), el('small', {}, '🔍 ' + L3('Toca para verla en grande', 'Toca per veure-la en gran', 'Tap to enlarge'))) : null),
+          { cls: 'small', buttons: [{ label: '👍 OK', value: true }] }) }, '💡 ' + L3('Explicación', 'Explicació', 'Explanation')));
+      }
       setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 200);
       setTimeout(resolve, 900);
     } }, el('span', { class: 'aq-ball' }), el('span', { class: 'aq-txt' }, o))));
@@ -1184,7 +1235,7 @@ async function remindActivity(n) {
   const later = el('button', { class: 'btn btn-cancel' }, t('cancelLater'));
   // si el reto es un juego (no una pregunta), también se puede volver a jugar
   const game = defaultDay(n).type !== 'quiz' ? el('button', { class: 'btn btn-ghost remind-game no-delay' }, '🎮 ' + L3('Volver al juego del día', 'Tornar al joc del dia', 'Back to the day’s game')) : null;
-  note.append(el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, t('dayN', n))),
+  note.append(...[el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, t('dayN', n))),
     el('div', { class: 'note-body activity-body' },
       el('div', { class: 'remind-deco' }, '🎄 ⭐ 🎁 ⭐ 🎄'),
       el('p', { class: 'activity-text' }, t('remindDone', n)),
@@ -1192,7 +1243,7 @@ async function remindActivity(n) {
       el('p', { class: 'activity-text remind-small' }, t('remindAct', t(fig === 'arbol' ? 'activity1' : 'activity2'))),
       el('div', { class: 'remind-deco' }, '❄️ 🦌 🔔 🦌 ❄️')),
     game ? el('div', { class: 'remind-gamebox' }, game) : null,
-    el('div', { class: 'note-foot' }, later, go));
+    el('div', { class: 'note-foot' }, later, go)].filter(Boolean));
   layer.append(note);
   note.animate([{ transform: 'scale(.2)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
   chime();
@@ -1232,7 +1283,7 @@ function openUserSettings() {
   }));
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=20.4').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=22.0').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('div', { class: 'pick-label' }, t('paper')), paperGrid,
@@ -1270,7 +1321,7 @@ function pwField(ph) {
 
 // jugadores: su nombre y su PIN (se puede ver y cambiar)
 function pinSection() {
-  const logout = el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=20.4')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong'));
+  const logout = el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=22.0')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong'));
   const pin = String(S.profile?.pin || '');
   const dots = el('b', { class: 'dots' }, '••••');
   const eye = el('button', { type: 'button', class: 'btn btn-ghost small-btn', onclick: () => { const h = dots.textContent === '••••'; dots.textContent = h ? (pin || '—') : '••••'; eye.textContent = h ? '🙈' : '👁️'; } }, '👁️');
@@ -1305,7 +1356,7 @@ function accountSection() {
     el('div', { class: 'acc-row' }, el('span', {}, '🔑 ' + t('password')), el('b', { class: 'dots', title: t('pwHidden'), onclick: () => toast(t('pwHidden'), 6000) }, '•••••••• 👁️'),
       el('button', { type: 'button', class: 'btn btn-ghost small-btn', onclick: () => { form.style.display = form.style.display === 'none' ? '' : 'none'; } }, t('changePw'))),
     form,
-    el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=20.4')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong')));
+    el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=22.0')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong')));
 }
 
 // modo demo: no se pueden mandar correos, así que se pone una contraseña nueva aquí mismo
