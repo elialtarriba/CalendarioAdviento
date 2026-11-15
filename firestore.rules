@@ -11,6 +11,12 @@ service cloud.firestore {
     function isOwner() { return signedIn() && request.auth.token.email == 'elialtarriba@gmail.com'; }
     // «Abrir todas las casillas a todos» (lo activa la administradora)
     function openAll() { return get(/databases/$(database)/documents/config/public).data.get('openAll', false) == true; }
+    // «Casillas abiertas antes de tiempo» para una persona concreta (lo activa la administradora en su ficha; solo antes de diciembre)
+    function early() {
+      return request.time.month() != 12
+        && exists(/databases/$(database)/documents/settings/$(request.auth.uid))
+        && get(/databases/$(database)/documents/settings/$(request.auth.uid)).data.get('earlyOpen', false) == true;
+    }
     function isAdmin() {
       return signedIn()
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
@@ -43,11 +49,11 @@ service cloud.firestore {
 
     // Contenido de cada día: solo visible a partir de su fecha (la administradora lo ve siempre)
     match /content/{day}/media/{id} {
-      allow read: if signedIn() && (isAdmin() || openAll() || request.time >= get(/databases/$(database)/documents/content/$(day)).data.openAt);
+      allow read: if signedIn() && (isAdmin() || openAll() || early() || request.time >= get(/databases/$(database)/documents/content/$(day)).data.openAt);
       allow write: if isAdmin();
     }
     match /content/{day} {
-      allow read: if signedIn() && (resource == null || request.time >= resource.data.openAt || isAdmin() || openAll());
+      allow read: if signedIn() && (resource == null || request.time >= resource.data.openAt || isAdmin() || openAll() || early());
       allow write: if isAdmin();
     }
 

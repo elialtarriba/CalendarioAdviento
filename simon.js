@@ -1,9 +1,10 @@
 // Día 9: «Papá Noel dice» (Simón dice). Cuatro botones navideños se iluminan y suenan siguiendo una
 // secuencia; hay que repetirla. Cada ronda se añade uno más y va más rápido. Se juega hasta que se
 // acaba el tiempo (4 minutos por defecto; se puede elegir). Al acabar: «¡Tiempo!».
-import { el, sleep, confetti } from './fx.js?v=22.0';
-import { getLang } from './i18n.js?v=22.0';
-import { unlockAudio, oops, fanfare, chime } from './sound.js?v=22.0';
+import { el, sleep, confetti } from './fx.js?v=22.1';
+import { getLang } from './i18n.js?v=22.1';
+import { unlockAudio, oops, fanfare, chime } from './sound.js?v=22.1';
+import { minutesPopup, fullBtn, exitFull, howStrip } from './gameui.js?v=22.1';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const PADS = [
@@ -40,50 +41,34 @@ function timeUpSong() {
 export function render(body, ctx) {
   body.style.webkitUserSelect = body.style.userSelect = 'none';
   let minutes = 4;
+  let started = false;
   body.append(
     el('h2', { class: 'q-title cw-title' }, '🎅 ' + L('Papá Noel dice', 'El Pare Noel diu', 'Santa says') + ' 🎅'),
-    el('p', { class: 'game-help cw-help' }, L('Mira y escucha: los botones se iluminan y suenan en un orden. Después, tócalos tú en el mismo orden. Cada vez se añade uno más y va un poco más rápido. Si te equivocas, empiezas otra vez desde el principio, ¡pero el tiempo sigue corriendo!',
-      'Mira i escolta: els botons s’il·luminen i sonen en un ordre. Després, toca’ls tu en el mateix ordre. Cada vegada se n’afegeix un més i va una mica més ràpid. Si t’equivoques, tornes a començar, però el temps continua corrent!',
-      'Watch and listen: the buttons light up and play in an order. Then tap them in the same order. Each time one more is added and it gets a bit faster. If you make a mistake you start again, but the clock keeps ticking!')));
-
-  // ---- elegir el tiempo
-  // ---- selector de tiempo: bolas de Navidad con los minutos colgadas de una guirnalda; se desliza con el dedo
-  const BCOL = ['red', 'gold', 'green', 'blue', 'silver'];
-  const track = el('div', { class: 'sm-track' }, el('i', { class: 'sm-pad-end' }),
-    ...Array.from({ length: MAX - MIN + 1 }, (_, k) => el('button', { type: 'button', class: `sm-orn bs-ball bs-${BCOL[k % 5]} no-delay`, 'data-m': MIN + k, onclick: e => e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }) }, el('i'), el('b', {}, MIN + k))),
-    el('i', { class: 'sm-pad-end' }));
-  const lvl = el('div', { class: 'sm-lvl' });
-  const chips = el('div', { class: 'sm-picker' }, el('div', { class: 'sm-garland' }), track, el('div', { class: 'sm-sel' }, el('b', { class: 'sm-selmin' }), lvl));
-  const paintPick = () => {
-    const r = track.getBoundingClientRect(), mid = r.left + r.width / 2; let best = null, bd = 1e9;
-    track.querySelectorAll('.sm-orn').forEach(o => { const b = o.getBoundingClientRect(), d = Math.abs(b.left + b.width / 2 - mid); o.style.setProperty('--k', Math.min(1, d / (r.width / 2)).toFixed(3)); if (d < bd) { bd = d; best = o; } });
-    if (!best) return; const m = +best.dataset.m;
-    track.querySelectorAll('.sm-orn').forEach(o => o.classList.toggle('on', o === best));
-    if (m !== minutes) { minutes = m; bell(PADS[m % 4].f * 1.5, .15); }
-    chips.querySelector('.sm-selmin').textContent = L(`${m} minutos`, `${m} minuts`, `${m} minutes`);
-    const lv = LEVELS.find(x => m <= x[0]); lvl.textContent = lv[1] + ' ' + L(...lv[2]);
-  };
-  track.addEventListener('scroll', () => requestAnimationFrame(paintPick), { passive: true });
-  const centerPick = () => { const o = track.querySelector(`.sm-orn[data-m="${minutes}"]`); if (o) track.scrollLeft = o.offsetLeft + o.offsetWidth / 2 - track.clientWidth / 2; paintPick(); };
-  requestAnimationFrame(centerPick); setTimeout(centerPick, 300); setTimeout(centerPick, 900);
-  const startBtn = el('button', { class: 'btn btn-big no-delay' }, '▶️ ' + L('¡Empezar!', 'Comencem!', 'Start!'));
-  const intro = el('div', { class: 'sm-intro' },
-    el('p', {}, '⏱️ ' + L('Tienes 4 minutos para jugar. Si quieres otro tiempo, desliza las bolas (de 3 a 15 minutos). ¡Cuantos más minutos, más difícil!', 'Tens 4 minuts per jugar. Si vols un altre temps, llisca les boles (de 3 a 15 minuts). Com més minuts, més difícil!', 'You have 4 minutes to play. For another time, slide the baubles (3 to 15 minutes). The more minutes, the harder!')),
-    chips, startBtn);
+    howStrip([
+      { ic: '👀🔔', t: L('Mira y escucha', 'Mira i escolta', 'Watch and listen') },
+      { ic: '👆', t: L('Repite el mismo orden', 'Repeteix el mateix ordre', 'Repeat the order') },
+      { ic: '⏱️', t: L('Toca el comptador para elegir minutos', 'Toca el comptador per triar minuts', 'Tap the timer to choose minutes') },
+      { ic: '❄️🔄', t: L('Si fallas, vuelves a empezar', 'Si falles, tornes a començar', 'Miss and you start again') }]));
+  const lvlOf = m => { const lv = LEVELS.find(x => m <= x[0]); return lv[1] + ' ' + L(...lv[2]); };
+  const startBtn = el('button', { class: 'btn btn-big no-delay sm-startbtn' }, '▶️ ' + L('¡Empezar!', 'Comencem!', 'Start!'));
 
   // ---- tablero
-  const pads = PADS.map((p, i) => el('button', { type: 'button', class: `sm-pad sm-${p.c} no-delay`, 'data-i': i }, el('img', { src: p.img, alt: '' })));
-  const center = el('div', { class: 'sm-center' }, el('img', { src: 'estrella8.webp', alt: '' }), el('b', { class: 'sm-level' }, '0'), el('small', {}, L('ronda', 'ronda', 'round')));
+  const pads = PADS.map((p, i) => el('button', { type: 'button', class: `sm-pad sm-${p.c} no-delay`, 'data-i': i })); // sin dibujos: solo colores
+  const center = el('div', { class: 'sm-center' }, el('b', { class: 'sm-level' }, '0'), el('small', {}, L('ronda', 'ronda', 'round')));
   const ring = el('div', { class: 'sm-ring' }, ...pads, center);
-  const clock = el('div', { class: 'sm-clock' }), best = el('div', { class: 'sm-best' }), status = el('p', { class: 'sm-status' });
-  const top = el('div', { class: 'sm-top' }, clock, best);
-  const board = el('div', { class: 'cw-board sm-board' }, el('div', { class: 'cw-lights' }, ...Array.from({ length: 14 }, (_, i) => el('i', { style: `--i:${i}` }))), top, ring, status, intro);
+  const clock = el('button', { type: 'button', class: 'sm-clock no-delay' }), best = el('div', { class: 'sm-best' }), status = el('p', { class: 'sm-status' });
+  const wrap = el('div', { class: 'cw-wrap sm-wrap gm-wrap' });
+  const top = el('div', { class: 'sm-top' }, clock, best, fullBtn(wrap));
+  const board = el('div', { class: 'cw-board sm-board' }, el('div', { class: 'cw-lights' }, ...Array.from({ length: 14 }, (_, i) => el('i', { style: `--i:${i}` }))), top, ring, status, startBtn);
   const msg = el('div', { class: 'sp-msg' });
-  body.append(el('div', { class: 'cw-wrap sm-wrap' }, board, msg));
+  wrap.prepend(board); body.append(wrap, msg);
+  const paintIdle = () => { clock.replaceChildren(el('small', {}, '⏱️ ' + L('COMPTADOR', 'COMPTADOR', 'TIMER')), el('b', {}, `${minutes} min ✏️`)); clock.classList.add('pick'); };
+  clock.onclick = async () => { if (started) return; minutes = await minutesPopup(minutes, MIN, MAX, lvlOf); paintIdle(); };
 
+  paintIdle();
   let seq = [], pos = 0, record = 0, listening = false, playing = false, endAt = 0, tick = 0, alive = true, timeUp = false;
   const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  const paintClock = () => { const s = Math.max(0, Math.ceil((endAt - Date.now()) / 1000)); clock.textContent = '⏱️ ' + fmt(s); clock.classList.toggle('low', s <= 20); if (s <= 0 && !timeUp) finish(); };
+  const paintClock = () => { const s = Math.max(0, Math.ceil((endAt - Date.now()) / 1000)); clock.replaceChildren('⏱️ ', el('b', {}, fmt(s))); clock.classList.toggle('low', s <= 20); if (s <= 0 && !timeUp) finish(); };
   const paintBest = () => { best.textContent = '🏆 ' + L(`Récord: ${record}`, `Rècord: ${record}`, `Best: ${record}`); };
   const setStatus = t => { status.textContent = t; };
   const level = () => center.querySelector('.sm-level');
@@ -104,7 +89,8 @@ export function render(body, ctx) {
   }
   async function nextRound() {
     seq.push(Math.floor(Math.random() * 4));
-    if (seq.length === 1 && diff(minutes) > .55) seq.push(Math.floor(Math.random() * 4)); // en los niveles difíciles se empieza con 2 level().textContent = seq.length;
+    if (seq.length === 1 && diff(minutes) > .55) seq.push(Math.floor(Math.random() * 4)); // en los niveles difíciles se empieza con 2
+    level().textContent = seq.length;
     center.classList.remove('up'); void center.offsetWidth; center.classList.add('up');
     await playSeq();
   }
@@ -129,16 +115,16 @@ export function render(body, ctx) {
   });
 
   function start() {
-    unlockAudio(); try { ac().resume(); } catch {} intro.remove(); board.classList.add('on');
+    unlockAudio(); try { ac().resume(); } catch {} started = true; startBtn.remove(); clock.classList.remove('pick'); board.classList.add('on');
     seq = []; record = 0; timeUp = false; paintBest();
     endAt = Date.now() + minutes * 60000; paintClock(); clearInterval(tick); tick = setInterval(paintClock, 250);
     chime(); nextRound();
   }
   startBtn.onclick = start;
-  ctx.cleanup = () => { alive = false; clearInterval(tick); };
+  ctx.cleanup = () => { alive = false; clearInterval(tick); exitFull(wrap); };
 
   async function finish() {
-    timeUp = true; listening = false; clearInterval(tick); clock.textContent = '⏱️ 0:00';
+    timeUp = true; listening = false; clearInterval(tick); clock.replaceChildren('⏱️ ', el('b', {}, '0:00')); exitFull(wrap);
     if (!ctx.prev && !finish.sent) { finish.sent = true; ctx.submit({ answer: '🎅 ' + L(`Récord: ronda ${record}`, `Rècord: ronda ${record}`, `Best: round ${record}`), status: 'correct' }); }
     const fx = el('div', { class: 'sm-timeup' },
       el('div', { class: 'sm-tu-flakes' }, ...Array.from({ length: 34 }, () => el('i', { style: `left:${Math.random() * 100}%;--d:${4 + Math.random() * 5}s;--dl:${-Math.random() * 6}s;--s:${10 + Math.random() * 16}px;--x:${(Math.random() - .5) * 80}px` }, '❄'))),
@@ -151,7 +137,7 @@ export function render(body, ctx) {
     const out = el('button', { class: 'btn btn-ghost btn-big no-delay' }, '🎁 ' + L('Continuar', 'Continuar', 'Continue'));
     msg.replaceChildren(el('div', { class: 'ttt-fx-btns' }, again, out)); msg.classList.add('on');
     setTimeout(() => msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 800);
-    again.onclick = () => { fx.remove(); msg.classList.remove('on'); board.classList.remove('on'); setStatus(''); level().textContent = '0'; clock.textContent = ''; board.append(intro); };
+    again.onclick = () => { fx.remove(); msg.classList.remove('on'); board.classList.remove('on'); setStatus(''); level().textContent = '0'; started = false; paintIdle(); board.append(startBtn); };
     out.onclick = () => { ctx.cleanup(); ctx.finish(); };
   }
 }

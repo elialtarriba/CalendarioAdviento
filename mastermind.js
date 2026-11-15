@@ -1,12 +1,12 @@
 // Día 19: «El código secreto de Papá Noel» (Mastermind para jugar solo).
 // Papá Noel esconde una combinación de bolas de Navidad. Hay 10 intentos para adivinarla; después de cada
-// intento salen pistas: bola roja = color correcto en su sitio; copo blanco = color que está, pero en otro sitio.
+// intento sale una pista por bola, en el mismo orden: verde = color y sitio correctos; blanca = el color está en otro sitio.
 // Hay un reloj que cuenta lo que tardas. 3 niveles y 25 partidas distintas. Solo cuenta la primera partida:
 // al acabarla sale un cartel con todos los datos para enviarlo por WhatsApp al grupo de la familia.
-import { el, sleep, confetti, popup, toast } from './fx.js?v=22.0';
-import { getLang } from './i18n.js?v=22.0';
-import { unlockAudio, oops, fanfare, chime, pop, sadTrombone } from './sound.js?v=22.0';
-import { nextGame, rng, TOTAL } from './games25.js?v=22.0';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=22.1';
+import { getLang } from './i18n.js?v=22.1';
+import { unlockAudio, oops, fanfare, chime, pop, sadTrombone } from './sound.js?v=22.1';
+import { nextGame, rng, TOTAL } from './games25.js?v=22.1';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const COLORS = [
@@ -32,11 +32,13 @@ function makeCode(lv, seed) {
   while (out.length < lv.holes) { const c = Math.floor(R() * lv.colors); if (lv.rep || !out.includes(c)) out.push(c); }
   return out;
 }
+// pistas bola a bola (en el mismo orden que las bolas): 'ok' = color y sitio correctos (verde),
+// 'near' = ese color está pero en otro sitio (blanco), '' = ese color no está
 function score(code, guess) {
-  let red = 0, white = 0; const a = [], b = [];
-  code.forEach((c, i) => { if (guess[i] === c) red++; else { a.push(c); b.push(guess[i]); } });
-  b.forEach(g => { const k = a.indexOf(g); if (k >= 0) { white++; a.splice(k, 1); } });
-  return { red, white };
+  const res = guess.map((g, i) => g === code[i] ? 'ok' : '');
+  const left = code.filter((c, i) => guess[i] !== c);
+  guess.forEach((g, i) => { if (res[i]) return; const k = left.indexOf(g); if (k >= 0) { res[i] = 'near'; left.splice(k, 1); } });
+  return res;
 }
 
 export function render(body, ctx) {
@@ -54,10 +56,10 @@ export function render(body, ctx) {
         el('li', {}, L('Papá Noel ha escondido unas bolas de Navidad en unos regalos (🎁 🎁 🎁). Tienes que adivinar qué colores son y en qué orden.', 'El Pare Noel ha amagat unes boles de Nadal en uns regals (🎁 🎁 🎁). Has d’endevinar quins colors són i en quin ordre.', 'Santa has hidden some Christmas baubles in presents (🎁 🎁 🎁). Guess the colours and their order.')),
         el('li', {}, L('Toca los colores de abajo para llenar la fila que brilla. Si te equivocas, toca la bola de la fila para quitarla.', 'Toca els colors de baix per omplir la fila que brilla. Si t’equivoques, toca la bola de la fila per treure-la.', 'Tap the colours below to fill the glowing row. To remove one, tap it in the row.')),
         el('li', {}, L('Pulsa ✔︎ y mira las pistas a la derecha:', 'Prem ✔︎ i mira les pistes a la dreta:', 'Tap ✔︎ and look at the clues on the right:'),
-          el('div', { class: 'mm19-legend' }, el('span', {}, el('i', { class: 'mm19-pin red' }), ' ' + L('= color correcto y en su sitio', '= color correcte i al seu lloc', '= right colour, right place')),
+          el('div', { class: 'mm19-legend' }, el('span', {}, el('i', { class: 'mm19-pin green' }), ' ' + L('= color correcto y en su sitio', '= color correcte i al seu lloc', '= right colour, right place')),
             el('span', {}, el('i', { class: 'mm19-pin white' }), ' ' + L('= ese color está, pero en otro sitio', '= aquest color hi és, però en un altre lloc', '= that colour is there, but elsewhere')),
             el('span', {}, el('i', { class: 'mm19-pin' }), ' ' + L('= nada', '= res', '= nothing')))),
-        el('li', {}, L('Las pistas no dicen de qué bola son: ¡eso lo tienes que deducir tú! Tienes 10 intentos.', 'Les pistes no diuen de quina bola són: això ho has de deduir tu! Tens 10 intents.', 'The clues don’t say which bauble they refer to: you have to work it out! You have 10 tries.')),
+        el('li', {}, L('Cada pista va en el mismo orden que tus bolas: la 1.ª pista es de la 1.ª bola, la 2.ª de la 2.ª… Tienes 10 intentos.', 'Cada pista va en el mateix ordre que les teves boles: la 1a pista és de la 1a bola, la 2a de la 2a… Tens 10 intents.', 'Each clue is in the same order as your baubles: clue 1 is for bauble 1, and so on. You have 10 tries.')),
         el('li', {}, L('⏱️ Un reloj cuenta cuánto tardas en cada partida. Hay 3 niveles y 25 partidas distintas.', '⏱️ Un rellotge compta quant tardes a cada partida. Hi ha 3 nivells i 25 partides diferents.', '⏱️ A clock times each game. There are 3 levels and 25 different games.')),
         el('li', { class: 'mm19-important' }, '📲 ' + L('Importante: solo cuenta la PRIMERA partida. Al acabarla saldrá un cartel con tu resultado: envíalo por WhatsApp al grupo de la familia. Las demás partidas son para divertirte y no se envían.', 'Important: només compta la PRIMERA partida. Quan l’acabis sortirà un cartell amb el teu resultat: envia’l per WhatsApp al grup de la família. Les altres partides són per divertir-te i no s’envien.', 'Important: only the FIRST game counts. When you finish it, a card with your result will appear: send it on WhatsApp to the family group. Other games are just for fun.')))));
 
@@ -132,11 +134,14 @@ export function render(body, ctx) {
   async function submit() {
     if (over) return; const x = rows[cur]; x.check.disabled = true;
     const g = guess.slice(0, lv.holes), s = score(code, g);
-    const pins = [...Array(s.red).fill('red'), ...Array(s.white).fill('white')];
-    for (let k = 0; k < pins.length; k++) { await sleep(160); x.pins.children[k].className = 'mm19-pin ' + pins[k]; pop(); }
+    for (let k = 0; k < s.length; k++) {
+      await sleep(170); if (!s[k]) continue;
+      x.pins.children[k].className = 'mm19-pin ' + (s[k] === 'ok' ? 'green' : 'white');
+      x.holes[k].classList.add(s[k] === 'ok' ? 'hit' : 'near'); pop();
+    }
     x.check.style.visibility = 'hidden'; x.box.classList.add('done');
-    if (s.red === lv.holes) return end(true);
-    if (s.red + s.white === 0) oops(); else chime();
+    if (s.every(v => v === 'ok')) return end(true);
+    if (s.every(v => !v)) oops(); else chime();
     cur++; guess = [];
     if (cur >= TRIES) return end(false);
     tryChip.textContent = `🎯 ${cur + 1}/${TRIES}`; paintRow();

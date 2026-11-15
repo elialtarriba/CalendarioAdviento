@@ -1,6 +1,6 @@
-import { t, tx } from './i18n.js?v=22.0';
-import { el, sleep, confetti, borderLights } from './fx.js?v=22.0';
-import { chime, wrong } from './sound.js?v=22.0';
+import { t, tx } from './i18n.js?v=22.1';
+import { el, sleep, confetti, borderLights } from './fx.js?v=22.1';
+import { chime, wrong } from './sound.js?v=22.1';
 
 export function render(body, ctx) {
   const c = ctx.content;

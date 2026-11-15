@@ -2643,3 +2643,69 @@ body.full-view .cd-fab { bottom: calc(var(--fv-strip, 0px) + 10px); z-index: 32;
 .qp-optlist li.ok { font-weight: 800; color: #1f6b45; }
 .qp-qbody textarea { width: 100%; box-sizing: border-box; }
 .qp-qbody .aq-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+/* V22.1 · pistas del día 19 bola a bola (verde / blanca), en fila y en el mismo orden */
+.mm19-pins, .mm19-pins.h3 { display: flex; gap: 5px; grid-template-columns: none; }
+.mm19-pin.green { background: radial-gradient(circle at 35% 30%, #b7ffc6, #22c55e 60%, #0b5a26); box-shadow: 0 0 7px #4ade80; }
+.mm19-hole.hit { box-shadow: inset 0 3px 6px #000a, 0 0 0 3px #22c55e, 0 0 10px #4ade80; }
+.mm19-hole.near { box-shadow: inset 0 3px 6px #000a, 0 0 0 3px #f8fafc; }
+
+/* V22.1 · piezas comunes: comptador, pantalla completa, explicación con dibujos */
+.gm-how { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 auto 10px; max-width: 470px; }
+.gm-step { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px 8px; border-radius: 14px; text-align: center;
+  background: linear-gradient(#fffdf6, #f8ecd2); border: 2px solid #e8b64c; box-shadow: 0 3px 0 #d9bf86; animation: gmIn .5s ease calc(var(--i) * .12s) both; }
+@keyframes gmIn { from { opacity: 0; transform: translateY(8px); } }
+.gm-step small { font: 700 12px/1.2 'Fredoka', sans-serif; color: #4a2a1a; }
+.gm-ic { font-size: 26px; line-height: 1.1; }
+.gm-num { position: absolute; top: -8px; left: -6px; width: 20px; height: 20px; border-radius: 50%; background: #b3122e; color: #fff; font: 800 12px/20px 'Fredoka', sans-serif; }
+.gm-box { text-align: center; } .gm-clock { font-size: 44px; animation: c5Beat 1.4s infinite; }
+.gm-box h2 { margin: 0; font-family: 'Mountains of Christmas', cursive; color: #b3122e; font-size: 36px; text-transform: uppercase; }
+.gm-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 10px 0; }
+.gm-min { aspect-ratio: 1; border-radius: 50%; border: 3px solid #e8b64c; background: radial-gradient(circle at 35% 30%, #fff, #fbeccc); font: 800 19px 'Fredoka', sans-serif; color: #7a1020; cursor: pointer; }
+.gm-min.on { background: radial-gradient(circle at 35% 30%, #ff9a9a, #d01f2f 60%, #6e0a14); color: #fff; border-color: #f2c14e; transform: scale(1.1); box-shadow: 0 0 12px #ff4d6d; }
+.gm-info { font-weight: 700; color: #1f6b45; min-height: 20px; }
+.gm-full { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; border: 2px solid #f2c14e; background: #fffaf0; color: #7a1020; font-size: 20px; font-weight: 800; cursor: pointer; box-shadow: 0 3px 0 #b8862b; }
+.gm-back { display: none; }
+.gm-wrap.gm-on { position: fixed; inset: 0; z-index: 2600; width: auto; max-width: none; margin: 0; padding: env(safe-area-inset-top) 8px env(safe-area-inset-bottom); background: #0b1a2e; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.gm-wrap.gm-on > .c5-board, .gm-wrap.gm-on > .sm-board { flex: 1; display: flex; flex-direction: column; justify-content: center; border-radius: 18px; }
+.gm-wrap.gm-on .gm-back { display: block; margin: 0 auto 6px; padding: 10px 18px; border-radius: 999px; border: 2px solid #f2c14e; background: #fffaf0; color: #7a1020; font: 800 15px 'Fredoka', sans-serif; }
+html.gm-lock, html.gm-lock body { overflow: hidden; }
+
+/* V22.1 · Día 5 con cuadrados y solo luces */
+.c5-top { align-items: center; }
+.c5-clock { cursor: default; font: 800 17px 'Fredoka', sans-serif; } .c5-clock small { font-size: 11px; letter-spacing: .5px; }
+.c5-clock.pick { cursor: pointer; flex: 2; background: linear-gradient(#fff6d6, #f2c14e); animation: c5Beat 1.6s ease-in-out infinite; }
+.c5-grid { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: min(100%, 340px); aspect-ratio: 1; margin: 10px auto 0; }
+.gm-on .c5-grid { width: min(94vw, 64vh); }
+.c5-sq { border-radius: 26px; border: 6px solid #2a1206; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  background: linear-gradient(145deg, var(--a), var(--b) 60%, var(--d)); filter: brightness(.55) saturate(.8); transition: filter .1s, transform .1s, box-shadow .1s;
+  box-shadow: inset 0 6px 0 #ffffff33, 0 6px 0 #0006; }
+.c5-sq.lit { filter: brightness(1.35) saturate(1.25); transform: scale(1.04); box-shadow: inset 0 6px 0 #ffffff66, 0 0 26px 8px var(--a), 0 0 60px 12px var(--b); }
+.c5-sq.hint { animation: c5Hint .3s 3; } @keyframes c5Hint { 50% { filter: brightness(1.3); } }
+.c5-grid.watch .c5-sq { cursor: default; }
+.c5-grid .c5-center { width: 26%; height: 26%; }
+.c5-grid.spin { animation: c5Spin 26s linear infinite; } .c5-grid.spin .c5-center { animation: c5Spin 26s linear infinite reverse; }
+.c5-grid.wobble { animation: c5Wob 3.2s ease-in-out infinite; }
+.c5-grid.wrong { animation: aqShake .5s; } .c5-grid.good .c5-center { box-shadow: 0 0 0 6px #4ade80, 0 0 30px #4ade80; }
+.c5-start { position: relative; display: block; margin: 12px auto 0; }
+.c5-gametag { position: relative; text-align: center; margin: 8px 0 0; color: #fff6c2; font: 700 14px 'Fredoka', sans-serif; }
+.c5-extra { text-align: center; margin-top: 8px; } .c5-extra .c5-firstnote { color: #1f6b45 !important; font-weight: 700; }
+.c5-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; width: 34px; height: 34px; }
+.c5-mini i { border-radius: 5px; background: linear-gradient(145deg, var(--a), var(--b)); filter: brightness(.6); }
+.c5-mini i.on { filter: brightness(1.3); box-shadow: 0 0 8px var(--a); animation: c5Beat 1s infinite; }
+
+/* V22.1 · Día 9: comptador que se toca, sin dibujos, pantalla completa */
+.sm-top { gap: 8px; }
+.sm-clock { border: 2px solid #f2c14e; border-radius: 999px; padding: 6px 12px; background: #fffaf0; color: #7a1020; font: 800 17px 'Fredoka', sans-serif; text-shadow: none; box-shadow: 0 3px 0 #b8862b; }
+.sm-clock small { font-size: 11px; letter-spacing: .5px; }
+.sm-clock.pick { cursor: pointer; background: linear-gradient(#fff6d6, #f2c14e); animation: c5Beat 1.6s ease-in-out infinite; }
+.sm-best { flex: 1; text-align: center; }
+.sm-startbtn { position: relative; display: block; margin: 12px auto 4px; }
+.gm-on .sm-ring { width: min(94vw, 64vh); }
+/* V22.1 · ajustes del comptador y la pantalla completa */
+.c5-clock, .sm-clock { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; padding: 4px 10px; }
+.c5-clock small, .sm-clock small { font-size: 10px; letter-spacing: .6px; }
+.c5-top .c5-chip { min-width: 0; }
+.c5-top .c5-lvl { flex: .8; font-size: 13px; }
+.gm-on .c5-grid, .gm-on .sm-ring { width: min(100%, 60vh); }
+.c5-board .c5-gametag { background: none; box-shadow: none; padding: 0; color: #fff6c2; }
+.gm-on .sm-ring { width: min(90%, 56vh); } .gm-on .c5-grid { width: min(96%, 58vh); }
