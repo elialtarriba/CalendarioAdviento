@@ -2755,3 +2755,25 @@ html.gm-lock, html.gm-lock body { overflow: hidden; }
 .ttt-fx-title { font-size: clamp(34px, 10vw, 60px); text-align: center; line-height: 1.05; }
 .ttt-fx .ttt-dancer { max-height: 34vh; object-fit: contain; }
 .ttt-fx ~ .popup-back { z-index: 240; }
+.dinfo-fig.half { filter: grayscale(.55); opacity: .9; }
+/* V22.7 – puzle: tornar-lo a fer */
+.pz3-btns { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 12px 0 4px; }
+.pz3-btns .pz3-replay { margin: 0; }
+/* V22.7 – imprimir el certificat */
+.print-only { display: none; }
+@media print {
+  body.printing > *:not(.print-only) { display: none !important; }
+  body.printing .print-only { display: block !important; }
+  body.printing .print-only img { width: 100%; height: auto; display: block; }
+  body.printing { background: #fff !important; }
+}
+.pzr-choice { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.pzr-choice .btn { width: 100%; }
+.pzr-cert { width: 100%; border-radius: 10px; box-shadow: 0 4px 14px #0004; margin: 6px 0 10px; }
+.pz-namerow { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding: 8px; border-radius: 10px; background: #fff7e6; }
+.pz-namerow label { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.pz-namerow input[type=range] { flex: 1; }
+.pz-namerow canvas, .pz-namerow img { max-width: 100%; border-radius: 8px; border: 1px solid #e8b64c; }
+.prize-claim.opened { background: linear-gradient(#e9f8ec, #c9efd2); }
+.prize-why { font-weight: 700; color: #1d6b34; }
+.pzr-back ~ .popup-back { z-index: 230; }

@@ -1,7 +1,7 @@
 // Cartel navideño con el resultado de una partida (foto para el grupo de WhatsApp de la familia).
 // shareResult({ title, emoji, who, rows: [[etiqueta, valor]…], note, file, text })
-import { el, popup, toast } from './fx.js?v=22.6';
-import { getLang } from './i18n.js?v=22.6';
+import { el, popup, toast } from './fx.js?v=23';
+import { getLang } from './i18n.js?v=23';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const loadImg = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
@@ -24,17 +24,31 @@ export async function resultImage({ title, emoji = '🎄', who = '', rows = [], 
   const wrap = (txt, maxW) => { const words = String(txt).split(' '), lines = []; let cur = ''; words.forEach(w => { const t = cur ? cur + ' ' + w : w; if (g.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; }); if (cur) lines.push(cur); return lines; };
   let y = 380; wrap(title, W - 200).slice(0, 2).forEach(l => { g.fillText(l, W / 2, y); y += 86; });
   if (img) { const im = await loadImg(img); if (im) { const h = 230, w = im.width / im.height * h; g.drawImage(im, W / 2 - w / 2, y - 40, w, h); y += h; } }
-  // tarjeta con los datos
-  const top = Math.max(y, 560), cardH = Math.min(H - top - 150, 150 + rows.length * 92);
+  // tarjeta con los datos (V22.7: los textos largos se escriben enteros, en varias líneas)
   const rr = (x, yy, w, h, r) => { g.beginPath(); g.moveTo(x + r, yy); g.arcTo(x + w, yy, x + w, yy + h, r); g.arcTo(x + w, yy + h, x, yy + h, r); g.arcTo(x, yy + h, x, yy, r); g.arcTo(x, yy, x + w, yy, r); g.closePath(); };
+  const top0 = Math.max(y, 520), avail = H - top0 - 140;
+  const layout = vs => { let h = 170; const out = rows.map(([k, v]) => {
+      g.font = `800 ${vs}px Montserrat, sans-serif`; const one = g.measureText(String(v)).width <= 520 && !!String(k);
+      if (one) { h += Math.max(92, vs * 1.9); return { k, one, lines: [String(v)], h: Math.max(92, vs * 1.9) }; }
+      const lines = wrap(String(v), W - 320); const hh = (k ? 56 : 0) + lines.length * vs * 1.25 + 34; h += hh; return { k, one, lines, h: hh }; });
+    return { out, h }; };
+  let vs = 40, L2 = layout(vs);
+  while (L2.h > avail && vs > 22) { vs -= 2; L2 = layout(vs); }
+  const cardH = Math.min(avail, L2.h), top = top0 + Math.max(0, (avail - cardH) / 2) * .4;
   g.fillStyle = '#fffaf0'; g.strokeStyle = '#f2c14e'; g.lineWidth = 8; rr(110, top, W - 220, cardH, 46); g.fill(); g.stroke();
-  g.fillStyle = '#7a1020'; g.font = '700 70px "Mountains of Christmas", cursive'; g.fillText(who || '', W / 2, top + 90);
-  let ry = top + 170;
-  rows.forEach(([k, v]) => {
-    g.textAlign = 'left'; g.fillStyle = '#b8862b'; g.font = '700 34px Montserrat, sans-serif'; g.fillText(String(k), 160, ry);
-    g.textAlign = 'right'; g.fillStyle = '#b3122e'; g.font = '800 40px Montserrat, sans-serif';
-    let v2 = String(v); while (g.measureText(v2).width > 520 && v2.length > 4) v2 = v2.slice(0, -2) + '…'; g.fillText(v2, W - 160, ry);
-    ry += 92;
+  g.fillStyle = '#7a1020'; g.font = '700 70px "Mountains of Christmas", cursive'; g.textAlign = 'center'; g.fillText(who || '', W / 2, top + 90);
+  let ry = top + 165;
+  L2.out.forEach(r => {
+    if (r.one) {
+      g.textAlign = 'left'; g.fillStyle = '#b8862b'; g.font = '700 34px Montserrat, sans-serif'; g.fillText(String(r.k), 160, ry);
+      g.textAlign = 'right'; g.fillStyle = '#b3122e'; g.font = `800 ${vs}px Montserrat, sans-serif`; g.fillText(r.lines[0], W - 160, ry);
+    } else {
+      let yy = ry;
+      if (r.k) { g.textAlign = 'center'; g.fillStyle = '#b8862b'; g.font = '700 34px Montserrat, sans-serif'; g.fillText(String(r.k), W / 2, yy); yy += 56; }
+      g.textAlign = 'center'; g.fillStyle = '#b3122e'; g.font = `800 ${vs}px Montserrat, sans-serif`;
+      r.lines.forEach(l => { g.fillText(l, W / 2, yy); yy += vs * 1.25; });
+    }
+    ry += r.h;
   });
   g.textAlign = 'center'; g.fillStyle = '#fff6d6'; g.font = '700 44px "Mountains of Christmas", cursive';
   g.fillText(L('Calendario de Adviento', 'Calendari d’Advent', 'Advent Calendar') + (day ? ' · ' + L('Día', 'Dia', 'Day') + ' ' + day : ''), W / 2, H - 78);
@@ -81,4 +95,39 @@ export async function shareResult(opts) {
       : L('Se guardará la foto y se abrirá WhatsApp.', 'Es guardarà la foto i s’obrirà WhatsApp.', 'The picture will be saved and WhatsApp will open.')), send),
     { cls: 'small g23-sharepop', buttons: [{ label: L('Cerrar', 'Tancar', 'Close'), value: false, cls: 'btn-ghost' }] });
   if (url) setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+// (V22.7) escribe el nombre de la persona encima de una foto (p. ej. el certificado del premio).
+// yPct: altura de la línea donde va el nombre, en % de la foto (la base de las letras queda justo encima).
+export async function nameOnPhoto(src, name, yPct = 39) {
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  try { await document.fonts?.load('80px "Great Vibes"'); } catch {}
+  const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+  const g = cv.getContext('2d'); g.drawImage(img, 0, 0);
+  const W = cv.width, H = cv.height, maxW = W * .52;
+  let fs = Math.round(H * .105);
+  g.font = `${fs}px "Great Vibes", "Mountains of Christmas", cursive`;
+  while (g.measureText(name).width > maxW && fs > 10) { fs -= 2; g.font = `${fs}px "Great Vibes", "Mountains of Christmas", cursive`; }
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  const y = H * (+yPct || 39) / 100 - H * .008;
+  g.shadowColor = 'rgba(255,255,255,.9)'; g.shadowBlur = fs * .12;
+  g.fillStyle = '#8f1323'; g.fillText(name, W / 2, y);
+  return cv.toDataURL('image/jpeg', .92);
+}
+
+// (V22.7) imprimir o guardar una imagen
+export function printImage(src) {
+  document.querySelectorAll('.print-only').forEach(x => x.remove());
+  const box = document.createElement('div'); box.className = 'print-only';
+  const im = new Image(); im.src = src; box.append(im); document.body.append(box);
+  const go = () => { document.body.classList.add('printing'); setTimeout(() => { try { window.print(); } catch {} setTimeout(() => { document.body.classList.remove('printing'); box.remove(); }, 800); }, 120); };
+  im.complete ? go() : (im.onload = go);
+}
+export async function saveImage(src, file = 'certificado.jpg') {
+  try {
+    const blob = await (await fetch(src)).blob();
+    const f = new File([blob], file, { type: blob.type || 'image/jpeg' });
+    if (navigator.canShare?.({ files: [f] })) { await navigator.share({ files: [f] }); return; }
+  } catch (e) { if (e?.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = src; a.download = file; document.body.append(a); a.click(); a.remove();
 }

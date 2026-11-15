@@ -1,11 +1,11 @@
 // Regalo sorpresa: un botón que abre la web que la administradora pone en Configuración → «🎁 Regalo sorpresa».
 // Sale en las actividades 1 y 2 del día 24, abajo del todo de la casilla 25 y al final del resumen del día 25.
 // Árboles y gnomos ya lo reciben el día 24: en el 25 sale como «Regalo ya abierto» (se puede volver a abrir).
-import { el, popup, confetti } from './fx.js?v=22.6';
-import { getLang } from './i18n.js?v=22.6';
-import { chime, unlockAudio } from './sound.js?v=22.6';
-import { S, figure } from './app.js?v=22.6';
-import { store } from './store.js?v=22.6';
+import { el, popup, confetti } from './fx.js?v=23';
+import { getLang } from './i18n.js?v=23';
+import { chime, unlockAudio } from './sound.js?v=23';
+import { S, figure } from './app.js?v=23';
+import { store } from './store.js?v=23';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 export const giftUrl = () => String(S.config?.gift?.url || '').trim();
@@ -34,7 +34,7 @@ async function openGift(b) {
   // primero, un cartel que explica el regalo; el botón abre la web al momento (el móvil solo deja abrir otra web con un toque directo)
   chime(); try { const r = b.getBoundingClientRect(); confetti(120, { x: r.left + r.width / 2, y: r.top + r.height / 2 }); } catch {}
   const go = el('button', { type: 'button', class: 'btn btn-big no-delay gift-go', onclick: () => {
-    const w = window.open(fixUrl(url), '_blank', 'noopener'); if (!w) location.href = fixUrl(url);
+    openOutside(fixUrl(url));
     go.closest('.popup-back')?.remove();
   } }, '🎲 ' + L('¡Ir al Bingo de Navidad!', 'Anar al Bingo de Nadal!', 'Go to the Christmas Bingo!'));
   await popup(el('div', { class: 'gift-pop gift-bingo' },
@@ -55,4 +55,28 @@ async function openGift(b) {
   b.classList.add('opened');
   b.querySelector('b').textContent = L('Regalo ya abierto', 'Regal ja obert', 'Present already opened');
   b.querySelector('small').textContent = L('Tócalo para volver a verlo', 'Toca’l per tornar-lo a veure', 'Tap to see it again');
+}
+
+// (V23) abrir la web en Safari o Chrome de verdad, no dentro de la app
+export function openOutside(u) {
+  const ua = navigator.userAgent || '';
+  const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const android = /Android/i.test(ua);
+  const standalone = matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
+  const fallback = () => { const w = window.open(u, '_blank', 'noopener'); if (!w) location.href = u; };
+  if (iOS && /^https?:/i.test(u)) {
+    // iPhone/iPad: «x-safari-https://…» abre directamente Safari (iOS 17 o más nuevo)
+    let left = false; const onHide = () => { left = true; };
+    document.addEventListener('visibilitychange', onHide, { once: true });
+    location.href = 'x-safari-' + u;
+    setTimeout(() => { document.removeEventListener('visibilitychange', onHide); if (!left && !document.hidden) fallback(); }, 900);
+    return;
+  }
+  if (android && standalone && /^https?:/i.test(u)) {
+    // Android: se abre en Chrome
+    const m = u.match(/^(https?):\/\/(.*)$/i);
+    location.href = `intent://${m[2]}#Intent;scheme=${m[1].toLowerCase()};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(u)};end`;
+    return;
+  }
+  fallback();
 }

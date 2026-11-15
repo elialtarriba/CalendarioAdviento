@@ -1,8 +1,8 @@
 // Días 7 y 18: puzle de piezas (como de cartón, con relieve) que se mueven y se giran.
 // Al encajar cada pieza suena un «clac»; al acabar, el puzle cobra vida con el vídeo (con sonido y en bucle).
-import { el, sleep, confetti, toast } from './fx.js?v=22.6';
-import { getLang } from './i18n.js?v=22.6';
-import { snapSound, pop, chime, unlockAudio } from './sound.js?v=22.6';
+import { el, sleep, confetti, toast } from './fx.js?v=23';
+import { getLang } from './i18n.js?v=23';
+import { snapSound, pop, chime, unlockAudio } from './sound.js?v=23';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 // unas 15 piezas, casi cuadradas
@@ -12,7 +12,17 @@ const PUZ = {
 };
 const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
 
-export async function render(body, ctx) {
+export async function render(body0, ctx0) {
+  const root = el('div', { class: 'pz3-root' }); body0.append(root);
+  return renderInto(root, body0, ctx0);
+}
+// (V22.7) se puede volver a hacer el puzle siempre que se quiera (solo cuenta la primera vez)
+function replay(root, body0, ctx) {
+  const nr = el('div', { class: 'pz3-root' }); root.replaceWith(nr);
+  renderInto(nr, body0, { ...ctx, prev: null, practice: true, submit: () => {} });
+  setTimeout(() => nr.scrollIntoView?.({ behavior: 'smooth', block: 'start' }), 50);
+}
+async function renderInto(body, body0, ctx) {
   const P = PUZ[ctx.day] || PUZ[7];
   const stage = el('div', { class: 'pz3-stage' });
   const info = el('p', { class: 'game-help' }, ctx.prev
@@ -62,9 +72,12 @@ export async function render(body, ctx) {
   };
   if (ctx.prev) {
     stage.style.height = (by + BH + 16) + 'px';
+    pileBg.remove();
     const go = el('button', { class: 'btn btn-big no-delay pz3-replay' }, '▶️ ' + L('Verlo con sonido', 'Veure-ho amb so', 'Watch with sound'));
     go.onclick = () => { unlockAudio(); comeAlive(true); go.remove(); };
-    body.append(go); comeAlive(false);
+    const again = el('button', { class: 'btn btn-ghost no-delay pz3-again' }, '🔁 ' + L('Volver a hacer el puzle', 'Tornar a fer el puzle', 'Do the puzzle again'));
+    again.onclick = () => { try { video.pause(); } catch {} replay(body, body0, ctx); };
+    body.append(el('div', { class: 'pz3-btns' }, go, again)); comeAlive(false);
     const fin = ctx.finishBtn.onclick; ctx.finishBtn.onclick = () => { try { video.pause(); } catch {} fin(); };
     return;
   }
@@ -110,7 +123,7 @@ export async function render(body, ctx) {
   stage._pz = { pieces, CW, CH };
   const place = p => { p.el.style.transform = `translate(${p.x - CW / 2}px,${p.y - CH / 2}px) rotate(${p.rot}deg)`; };
   pieces.forEach(place);
-  body.style.webkitUserSelect = body.style.userSelect = 'none';
+  body0.style.webkitUserSelect = body0.style.userSelect = 'none';
   setTimeout(() => stage.scrollIntoView?.({ behavior: 'smooth', block: 'end' }), 600);
   let done = 0; const showCount = () => { count.textContent = `🧩 ${done} / ${pieces.length}`; }; showCount();
 
@@ -164,6 +177,7 @@ export async function render(body, ctx) {
     comeAlive(true); // dentro del toque: así el vídeo puede sonar
     chime(); confetti(260);
     info.textContent = L('¡Lo has conseguido! Mira cómo cobra vida 🎄', 'Ho has aconseguit! Mira com cobra vida 🎄', 'You did it! Watch it come to life 🎄');
+    if (ctx.practice) setTimeout(() => { const again = el('button', { class: 'btn btn-ghost no-delay pz3-again' }, '🔁 ' + L('Volver a hacer el puzle', 'Tornar a fer el puzle', 'Do the puzzle again')); again.onclick = () => { try { video.pause(); } catch {} replay(body, body0, ctx); }; body.append(el('div', { class: 'pz3-btns' }, again)); }, 1000);
     setTimeout(() => { pieces.forEach(p => p.el.classList.add('gone')); pileBg.remove(); thumb.remove(); stage.style.height = (by + BH + 16) + 'px'; }, 900);
     ctx.submit({ answer: '🧩', status: 'correct' });
     const fin = ctx.finishBtn.onclick; ctx.finishBtn.onclick = () => { try { video.pause(); } catch {} fin(); };

@@ -3,10 +3,10 @@
 // intento sale una pista por bola, en el mismo orden: verde = color y sitio correctos; blanca = el color está en otro sitio.
 // Hay un reloj que cuenta lo que tardas. 3 niveles y 25 partidas distintas. Solo cuenta la primera partida:
 // al acabarla sale un cartel con todos los datos para enviarlo por WhatsApp al grupo de la familia.
-import { el, sleep, confetti, popup, toast } from './fx.js?v=22.6';
-import { getLang } from './i18n.js?v=22.6';
-import { unlockAudio, oops, fanfare, chime, pop, sadTrombone } from './sound.js?v=22.6';
-import { nextGame, rng, TOTAL } from './games25.js?v=22.6';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=23';
+import { getLang } from './i18n.js?v=23';
+import { unlockAudio, oops, fanfare, chime, pop, sadTrombone } from './sound.js?v=23';
+import { nextGame, rng, TOTAL } from './games25.js?v=23';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const COLORS = [
