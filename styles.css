@@ -2709,3 +2709,12 @@ html.gm-lock, html.gm-lock body { overflow: hidden; }
 .gm-on .c5-grid, .gm-on .sm-ring { width: min(100%, 60vh); }
 .c5-board .c5-gametag { background: none; box-shadow: none; padding: 0; color: #fff6c2; }
 .gm-on .sm-ring { width: min(90%, 56vh); } .gm-on .c5-grid { width: min(96%, 58vh); }
+
+/* V22.2 · entrada de la administradora con PIN + contraseña */
+.ow-box { text-align: center; } .ow-key { font-size: 44px; }
+.ow-box h2 { margin: 0; font-family: 'Mountains of Christmas', cursive; color: #b3122e; font-size: 34px; }
+.ow-row { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+.ow-pw { flex: 1; min-width: 0; font-size: 18px; padding: 12px 14px; border-radius: 999px; border: 3px solid #e8b64c; background: #fffdf6; text-align: center; }
+.ow-eye { width: 46px; height: 46px; border-radius: 50%; border: 2px solid #e8b64c; background: #fffaf0; font-size: 20px; cursor: pointer; }
+.ow-err { min-height: 20px; color: #b3122e; font-weight: 700; font-size: 14px; }
+.ow-forgot { font-size: 14px; color: #7a5a2a; }

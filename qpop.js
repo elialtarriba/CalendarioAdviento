@@ -3,12 +3,12 @@
 // y el día y la hora. Cuando llega esa hora, a esas personas les sale el popup al entrar (o si ya están dentro).
 // Lo que contestan (y sus comentarios) lo ve la administradora en Configuración → «❓ Preguntas sorpresa».
 // Datos: la lista va en config/public.pops; cada foto en config/popimg_<id>; las respuestas en users/{uid}.popAns.
-import { el, popup, toast, confetti, searchBox } from './fx.js?v=22.1';
-import { store } from './store.js?v=22.1';
-import { shrink, lightbox } from './richact.js?v=22.1';
-import { chime, fanfare, sadTrombone, pop } from './sound.js?v=22.1';
-import { getLang } from './i18n.js?v=22.1';
-import { S } from './app.js?v=22.1';
+import { el, popup, toast, confetti, searchBox } from './fx.js?v=22.2';
+import { store } from './store.js?v=22.2';
+import { shrink, lightbox } from './richact.js?v=22.2';
+import { chime, fanfare, sadTrombone, pop } from './sound.js?v=22.2';
+import { getLang } from './i18n.js?v=22.2';
+import { S } from './app.js?v=22.2';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
