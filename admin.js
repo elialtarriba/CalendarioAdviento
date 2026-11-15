@@ -1,11 +1,11 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store, DEMO } from './store.js?v=22.5';
-import { t, tx } from './i18n.js?v=22.5';
-import { el, popup, toast, esc, searchBox } from './fx.js?v=22.5';
-import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode, celebrateStart } from './app.js?v=22.5';
-import { openActEditor, plain, shrink } from './richact.js?v=22.5';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=22.5';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=22.5';
+import { store, DEMO } from './store.js?v=22.6';
+import { t, tx } from './i18n.js?v=22.6';
+import { el, popup, toast, esc, searchBox } from './fx.js?v=22.6';
+import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode, celebrateStart } from './app.js?v=22.6';
+import { openActEditor, plain, shrink } from './richact.js?v=22.6';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=22.6';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=22.6';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -125,10 +125,10 @@ function showPanel() {
   const usersBtn = B('👥', 'Usuarios', 'Nombres, PIN, galleta / árbol / gnomo y sus días', root => VIEWS.users(root).then(() => usersBtn.querySelector('.adm-badge')?.remove()));
   store.listUsers().then(us => { const n = us.filter(pinNew).length; if (n) usersBtn.append(el('span', { class: 'adm-badge' }, `🔄 ${n} PIN ${n > 1 ? 'nuevos' : 'nuevo'}`)); }).catch(() => {});
   const btns = [
-    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=22.5').then(m => m.presenceAdmin(root))) : null,
-    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=22.5').then(m => m.surpriseAdmin(root))),
+    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=22.6').then(m => m.presenceAdmin(root))) : null,
+    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=22.6').then(m => m.surpriseAdmin(root))),
     B('👪', 'Palabra secreta de la familia', 'Solo puede entrar quien la sabe (se pide una vez a cada uno)', root => VIEWS.family(root)),
-    B('❓', 'Preguntas sorpresa', 'Un popup con pregunta, explicación, foto y comentarios para quien tú elijas, el día y la hora que quieras', root => import('./qpop.js?v=22.5').then(m => m.popsAdmin(root))),
+    B('❓', 'Preguntas sorpresa', 'Un popup con pregunta, explicación, foto y comentarios para quien tú elijas, el día y la hora que quieras', root => import('./qpop.js?v=22.6').then(m => m.popsAdmin(root))),
     B('📨', 'Respuestas', 'Lo que han contestado y lo que tienes que corregir', root => VIEWS.answers(root)),
     usersBtn,
     B('📅', 'Contenido de los días', 'Lo que sale en cada casilla y las actividades 1 y 2', root => VIEWS.days(root)),
@@ -136,13 +136,51 @@ function showPanel() {
     B('🎁', 'Regalo sorpresa', 'La web que se abre con el botón «Regalo sorpresa» (días 24 y 25)', root => VIEWS.gift(root)),
     B('🎰', 'Máquina de regalos', 'Las 5 opciones de la tragaperras del día 25 (solo gnomos)', root => VIEWS.slot(root)),
     B('🏆', 'Premios y ajustes', 'Premios, abrir todas las casillas, modo prueba, contraseña…', root => VIEWS.general(root)),
-    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=22.5').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=22.6').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'adm-btn-ico' }, '📖'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos'))),
     el('button', { class: 'adm-btn', onclick: () => { document.querySelectorAll('.popup-back').forEach(x => x.remove()); celebrateStart(true); } },
       el('span', { class: 'adm-btn-ico' }, '🎆'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Probar la explosión del día 1'), el('small', {}, 'Cómo lo verán todos al entrar el 1 de diciembre (fuegos artificiales y «¡A empezar!»)'))),
     B('🧝', 'Casilla 11 · Gnomos', 'Los 3 premios del laberinto (solo para los gnomos)', root => VIEWS.maze11(root)),
   ];
-  const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), el('div', { class: 'adm-menu' }, ...btns.filter(Boolean)));
+  // orden de los botones: se puede cambiar arrastrándolos (se recuerda en este aparato)
+  const ORD = 'adv_adm_order';
+  const list = btns.filter(Boolean);
+  list.forEach(b => { b.dataset.k = b.querySelector('b')?.textContent || ''; });
+  try { const ord = JSON.parse(localStorage.getItem(ORD) || '[]'); list.sort((a, b) => { const ia = ord.indexOf(a.dataset.k), ib = ord.indexOf(b.dataset.k); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); }); } catch {}
+  const menu = el('div', { class: 'adm-menu' }, ...list);
+  let sorting = false;
+  const sortBtn = el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay adm-sortbtn', onclick: () => {
+    sorting = !sorting; menu.classList.toggle('sorting', sorting);
+    sortBtn.textContent = sorting ? '✅ Listo (guardar el orden)' : '↕️ Cambiar el orden de los botones';
+    if (sorting) toast('☰ Mantén el dedo en un botón y arrástralo arriba o abajo', 4000);
+    else { try { localStorage.setItem(ORD, JSON.stringify([...menu.children].map(b => b.dataset.k))); } catch {} toast('💾 Orden guardado'); }
+  } }, '↕️ Cambiar el orden de los botones');
+  // mientras se ordena, los botones no se abren: se arrastran
+  menu.addEventListener('click', e => { if (sorting) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+  let drag = null;
+  menu.addEventListener('pointerdown', e => {
+    if (!sorting) return; const b = e.target.closest('.adm-btn'); if (!b) return;
+    e.preventDefault(); try { menu.setPointerCapture(e.pointerId); } catch {}
+    let sc = menu.parentElement; while (sc && sc !== document.body && !(sc.scrollHeight > sc.clientHeight + 4 && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+    drag = { b, id: e.pointerId, y0: e.clientY, top0: b.getBoundingClientRect().top, sc: sc && sc !== document.body ? sc : null, y: e.clientY }; b.classList.add('dragging');
+    // si el dedo está cerca del borde de arriba o de abajo, la lista se desplaza sola
+    const tick = () => { if (!drag) return; const sc = drag.sc; if (sc) { const r = sc.getBoundingClientRect(), z = 70; const v = drag.y < r.top + z ? -(r.top + z - drag.y) / 4 : drag.y > r.bottom - z ? (drag.y - (r.bottom - z)) / 4 : 0; if (v) { sc.scrollTop += v; move(drag.y); } } requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
+  menu.addEventListener('pointermove', e => { if (drag && e.pointerId === drag.id) { drag.y = e.clientY; move(e.clientY); } });
+  function move(y) {
+    const e = { clientY: y }; const { b } = drag;
+    const prev = b.previousElementSibling, next = b.nextElementSibling;
+    const mid = x => { const r = x.getBoundingClientRect(); return r.top + r.height / 2; };
+    if (prev && e.clientY < mid(prev)) menu.insertBefore(b, prev);
+    else if (next && e.clientY > mid(next)) menu.insertBefore(next, b);
+    // el botón sigue al dedo desde su sitio actual en la lista
+    b.style.transform = ''; const top = b.getBoundingClientRect().top;
+    b.style.transform = `translateY(${e.clientY - drag.y0 - (top - drag.top0)}px)`;
+  }
+  const endDrag = e => { if (!drag || e.pointerId !== drag.id) return; drag.b.classList.remove('dragging'); drag.b.style.transform = ''; drag = null; };
+  menu.addEventListener('pointerup', endDrag); menu.addEventListener('pointercancel', endDrag);
+  const box = el('div', { class: 'admin' }, el('h2', {}, '⚙️ Configuración'), menu, sortBtn);
   popup(box, { cls: 'wide', buttons: [{ label: t('close'), value: true }] }).then(async r => {
     if (r === 'logout') return;
     S.answers = await store.getAnswers(S.user.uid).catch(() => S.answers);
@@ -174,7 +212,7 @@ async function loadAll(force) {
 const VIEWS = {
   // ---------------------------------------------------------------- Casilla 11 · Gnomos: los 3 premios del laberinto
   async maze11(root) {
-    const { mazePrizes } = await import('./maze.js?v=22.5');
+    const { mazePrizes } = await import('./maze.js?v=22.6');
     const cur = mazePrizes(S.config);
     const ins = cur.map((v, i) => el('input', { type: 'text', value: v, maxlength: 40, placeholder: i ? `Ej.: 2 o «una chocolatina»` : 'Ej.: 5 o «un abrazo»' }));
     const prev = el('p', { class: 'mz-adm-prev' });
@@ -214,7 +252,7 @@ const VIEWS = {
         } }, '🔓 Quitarla') : null)));
   },
   async slot(root) {
-    const { FX_TYPES, FX_DEFAULT, testFx, openSlot } = await import('./slot.js?v=22.5');
+    const { FX_TYPES, FX_DEFAULT, testFx, openSlot } = await import('./slot.js?v=22.6');
     const cur = S.config.slot?.opts || [], fx = S.config.slot?.fx || [];
     const rows = [0, 1, 2, 3, 4].map(i => {
       const inp = el('input', { type: 'text', placeholder: `Opción ${i + 1} (ej.: ¡Has ganado 2 Euros! - A canjear en el grupo familiar)`, value: cur[i] || '', maxlength: 120 });
@@ -747,7 +785,7 @@ async function resetDays(u, days) {
     await store.setSettings(u.uid, { resetAt: Date.now() }).catch(e => console.warn(e));
     if (u.uid === S.user.uid) {
       days.forEach(d => delete S.answers[d]);
-      (await import('./app.js?v=22.5')).applyReset(true);
+      (await import('./app.js?v=22.6')).applyReset(true);
     }
     toast(days.length === 1 ? `↺ Día ${days[0]} reiniciado` : `↺ ${days.length} días reiniciados`);
   } catch (e) { toast('Error: ' + (e.code || e.message), 6000); }

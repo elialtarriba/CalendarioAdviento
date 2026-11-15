@@ -84,7 +84,9 @@ export function popup(content, { buttons = [{ label: 'OK', value: true }], cls =
     if (typeof content === 'string') box.innerHTML = content; else box.append(content);
     const bar = el('div', { class: 'popup-btns' + (top ? ' top' : '') });
     const back = el('div', { class: 'popup-back' }, box);
-    buttons.forEach(b => bar.append(el('button', { class: 'btn ' + (b.cls || ''), onclick: () => { back.remove(); res(b.value); } }, b.label)));
+    // al cerrar, un «escudo» invisible un momento: así el toque no «atraviesa» y abre lo que hay debajo (pasaba en el iPhone)
+    const shield = () => { const s = el('div', { class: 'ghost-shield' }); document.body.append(s); setTimeout(() => s.remove(), 380); };
+    buttons.forEach(b => bar.append(el('button', { class: 'btn ' + (b.cls || ''), onclick: () => { back.remove(); shield(); res(b.value); } }, b.label)));
     if (buttons.length) top ? box.prepend(bar) : box.append(bar);
     if (outside) back.addEventListener('click', e => { if (e.target === back) { back.remove(); res(false); } });
     document.body.append(back);

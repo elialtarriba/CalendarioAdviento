@@ -1,7 +1,10 @@
 // Día 20: la ruleta del disparate
-import { t, tx } from './i18n.js?v=22.5';
-import { el, confetti } from './fx.js?v=22.5';
-import { chime, pop } from './sound.js?v=22.5';
+import { t, tx } from './i18n.js?v=22.6';
+import { el, confetti, popup } from './fx.js?v=22.6';
+import { shareResult } from './share.js?v=22.6';
+import { getLang } from './i18n.js?v=22.6';
+const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
+import { chime, pop } from './sound.js?v=22.6';
 
 export const R_COLS = ['#e63946', '#2a9d62', '#ffb703', '#3a86ff', '#9b5de5', '#f15bb5', '#00b4d8', '#fb8500', '#06d6a0', '#8338ec'];
 const COLS = R_COLS;
@@ -38,9 +41,29 @@ export function render(body, ctx) {
   body.append(el('div', { class: 'roulette' }, el('h2', { class: 'q-title' }, t('d20title')),
     el('div', { class: 'roulette-wrap' }, el('div', { class: 'roulette-pointer' }), cv), btn, result, note,
     el('p', { class: 'r-legend-title' }, t('d20list')), legend));
+  // solo se juega UNA vez: después se ve lo que salió y se puede volver a enviar
+  const sendRes = (num, mission) => shareResult({
+    title: L('La ruleta del disparate', 'La ruleta del disbarat', 'The silly roulette'), emoji: '🎡', who: (ctx.profile?.name || '').trim(), day: 20, file: 'ruleta.png',
+    rows: [[L('Ha salido el', 'Ha sortit el', 'It landed on'), '№ ' + num], [L('Misión', 'Missió', 'Mission'), mission]],
+    note: L('Envíalo al grupo de WhatsApp de la familia: así todos sabrán tu misión… ¡y podrán comprobar que la cumples! 😄', 'Envia-ho al grup de WhatsApp de la família: així tothom sabrà la teva missió… i podran comprovar que la compleixes! 😄', 'Send it to the family WhatsApp group so everyone knows your mission… and can check you do it! 😄'),
+    text: L(`🎡 La ruleta del disparate (día 20): me ha salido el ${num}: «${mission}»`, `🎡 La ruleta del disbarat (dia 20): m’ha sortit el ${num}: «${mission}»`, `🎡 Silly roulette (day 20): I got number ${num}: “${mission}”`) + (ctx.profile?.name ? `\n— ${ctx.profile.name}` : ''),
+  });
+  const resultPop = async (num, mission) => {
+    const go = await popup(el('div', { class: 'r20-pop' }, el('div', { class: 'r20-ico' }, '🎡'),
+      el('h2', {}, L('¡Tu misión!', 'La teva missió!', 'Your mission!')),
+      el('p', { class: 'r20-who' }, (ctx.profile?.name || '') + ' · ' + L('número', 'número', 'number') + ' ' + num),
+      el('p', { class: 'r20-mission' }, mission), noteTxt ? el('p', { class: 'mission-note' }, noteTxt) : null,
+      el('p', { class: 'sh-note' }, '📲 ' + L('Envía tu misión al grupo de WhatsApp de la familia.', 'Envia la teva missió al grup de WhatsApp de la família.', 'Send your mission to the family WhatsApp group.'))),
+      { cls: 'small', buttons: [{ label: L('Cerrar', 'Tancar', 'Close'), value: false, cls: 'btn-ghost' }, { label: '📲 WhatsApp', value: true, cls: 'c5-wa' }] });
+    if (go) sendRes(num, mission);
+  };
   if (ctx.prev?.answer) {
+    const i = missions.indexOf(ctx.prev.answer);
     result.textContent = t('d20mission') + ' ' + ctx.prev.answer; btn.remove();
-    if (noteTxt) note.style.display = ''; mark(missions.indexOf(ctx.prev.answer)); return;
+    if (noteTxt) note.style.display = ''; mark(i);
+    result.after(el('p', { class: 'muted r20-once' }, '🎡 ' + L('La ruleta solo se puede girar una vez.', 'La ruleta només es pot girar una vegada.', 'The roulette can only be spun once.')),
+      el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay', onclick: () => sendRes(i + 1, ctx.prev.answer) }, '📲 ' + L('Enviar mi resultado', 'Enviar el meu resultat', 'Send my result')));
+    return;
   }
 
   btn.onclick = () => {
@@ -63,6 +86,8 @@ export function render(body, ctx) {
         result.innerHTML = ''; result.append(el('span', { style: `color:${COLS[pick % COLS.length]}` }, `${t('d20mission')} (${pick + 1}) `), missions[pick]);
         if (noteTxt) note.style.display = ''; mark(pick);
         ctx.submit({ answer: missions[pick], status: 'correct' });
+        btn.remove(); // solo una vez
+        setTimeout(() => resultPop(pick + 1, missions[pick]), 1200);
       }
     })(t0);
   };

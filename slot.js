@@ -2,12 +2,13 @@
 // Se tira de la palanca, el rodillo va pasando las 5 opciones que la administradora pone en
 // Configuración → «🎰 Máquina de regalos», y al tocar el rodillo se para y se ilumina el resultado.
 // Solo cuenta la primera tirada (se guarda en el perfil) y se puede compartir por WhatsApp en una imagen.
-import { el, popup, confetti, toast } from './fx.js?v=22.5';
-import { getLang } from './i18n.js?v=22.5';
-import { pop, fanfare, chime, unlockAudio, jingle, hohoho, sadTrombone, christmasSong } from './sound.js?v=22.5';
-import { TROLL } from './catch.js?v=22.5';
-import { S } from './app.js?v=22.5';
-import { store } from './store.js?v=22.5';
+import { el, popup, confetti, toast } from './fx.js?v=22.6';
+import { getLang } from './i18n.js?v=22.6';
+import { pop, fanfare, chime, unlockAudio, jingle, hohoho, sadTrombone, christmasSong } from './sound.js?v=22.6';
+import { TROLL } from './catch.js?v=22.6';
+import { S } from './app.js?v=22.6';
+import { store } from './store.js?v=22.6';
+import { shareResult } from './share.js?v=22.6';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const IMG = 'maquina25.webp';
@@ -96,7 +97,8 @@ export async function openSlot({ test = false } = {}) {
     const won = opts[((stopAt % n) + n) % n];
     fanfare(); setTimeout(chime, 500);
     const r = machine.getBoundingClientRect(); confetti(200, { x: r.left + r.width / 2, y: r.top + r.height * .45 });
-    if (!first() && !test) {
+    const official = !first() && !test;
+    if (official) {
       const res = { text: won, at: Date.now(), locked: true };
       S.profile.slot = res;
       store.createOnce(S.user.uid, 'slot', res).then(() => {
@@ -108,7 +110,11 @@ export async function openSlot({ test = false } = {}) {
       });
     }
     paintInfo();
-    const fx = slotFx(won); if (fx.on && fx.type !== 'none') setTimeout(() => playFx(fx.type, won), 1300);
+    const fx = slotFx(won), isFirst = official;
+    setTimeout(async () => {
+      if (fx.on && fx.type !== 'none') await playFx(fx.type, won);
+      if (fx.type !== 'lose' && !/no has ganado|no has guanyat/i.test(won)) prizePop(won, test || !isFirst);
+    }, 1300);
   }
   reel.addEventListener('click', () => (state === 'spin' ? stopSpin() : null));
   lever.addEventListener('click', startSpin);
@@ -257,3 +263,22 @@ async function playFx(type, text) {
   }
 }
 export const testFx = (type, text) => playFx(type, text);
+
+// el premio: cartel bonito para hacer una foto (captura) y enviarla al grupo de la familia
+async function prizePop(text, notFirst) {
+  const name = S.profile?.name || '';
+  const when = new Date().toLocaleString(getLang() === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  const go = await popup(el('div', { class: 'sl-prize' },
+    el('div', { class: 'gift-lights' }, ...Array.from({ length: 12 }, (_, i) => el('i', { style: `--i:${i}` }))),
+    el('img', { class: 'sl-prize-img', src: 'maquina25.webp', alt: '' }),
+    el('h2', {}, short(text)),
+    rest(text) ? el('p', { class: 'sl-prize-rest' }, rest(text)) : null,
+    el('p', { class: 'sl-prize-who' }, `🎅 ${name} · ${when}`),
+    notFirst ? el('p', { class: 'muted' }, L('(Esta tirada era de prueba: el premio que vale es el de tu primera tirada.)', '(Aquesta tirada era de prova: el premi que val és el de la teva primera tirada.)', '(This was a practice spin: your prize is the one from your first spin.)'))
+      : el('p', { class: 'sh-note' }, '📸 ' + L('Haz una foto (captura de pantalla) de este mensaje y envíala al grupo de WhatsApp de la familia para que Mamá Noel te dé el premio.', 'Fes una foto (captura de pantalla) d’aquest missatge i envia-la al grup de WhatsApp de la família perquè la Mare Noel et doni el premi.', 'Take a screenshot of this message and send it to the family WhatsApp group so Mrs Claus can give you your prize.'))),
+    { cls: 'small', buttons: notFirst ? [{ label: '🎄 OK', value: false }] : [{ label: L('Cerrar', 'Tancar', 'Close'), value: false, cls: 'btn-ghost' }, { label: '📲 WhatsApp', value: true, cls: 'c5-wa' }] });
+  if (go) shareResult({ title: short(text), emoji: '🎰', who: name, day: 25, file: 'premio.png',
+    rows: [[L('Premio', 'Premi', 'Prize'), short(text)], ...(rest(text) ? [['', rest(text)]] : []), [L('Fecha', 'Data', 'Date'), when]],
+    note: L('Envíalo al grupo de la familia para que Mamá Noel te dé el premio.', 'Envia-ho al grup de la família perquè la Mare Noel et doni el premi.', 'Send it to the family group so Mrs Claus can give you the prize.'),
+    text: `🎰 ${L('Máquina de regalos de Mamá Noel', 'Màquina de regals de la Mare Noel', 'Mrs Claus’s gift machine')}: ${text}` + (name ? `\n— ${name}` : '') });
+}

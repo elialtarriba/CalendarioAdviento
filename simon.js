@@ -1,10 +1,10 @@
 // Día 9: «Papá Noel dice» (Simón dice). Cuatro botones navideños se iluminan y suenan siguiendo una
 // secuencia; hay que repetirla. Cada ronda se añade uno más y va más rápido. Se juega hasta que se
 // acaba el tiempo (4 minutos por defecto; se puede elegir). Al acabar: «¡Tiempo!».
-import { el, sleep, confetti } from './fx.js?v=22.5';
-import { getLang } from './i18n.js?v=22.5';
-import { unlockAudio, oops, fanfare, chime } from './sound.js?v=22.5';
-import { minutesPopup, fullBtn, exitFull, howStrip } from './gameui.js?v=22.5';
+import { el, sleep, confetti } from './fx.js?v=22.6';
+import { getLang } from './i18n.js?v=22.6';
+import { unlockAudio, oops, fanfare, chime } from './sound.js?v=22.6';
+import { minutesPopup, fullBtn, exitFull, howStrip, minTxt } from './gameui.js?v=22.6';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const PADS = [
@@ -62,8 +62,8 @@ export function render(body, ctx) {
   const board = el('div', { class: 'cw-board sm-board' }, el('div', { class: 'cw-lights' }, ...Array.from({ length: 14 }, (_, i) => el('i', { style: `--i:${i}` }))), top, ring, status, startBtn);
   const msg = el('div', { class: 'sp-msg' });
   wrap.prepend(board); body.append(wrap, msg);
-  const paintIdle = () => { clock.replaceChildren(el('small', {}, '⏱️ ' + L('COMPTADOR', 'COMPTADOR', 'TIMER')), el('b', {}, `${minutes} min ✏️`)); clock.classList.add('pick'); };
-  clock.onclick = async () => { if (started) return; minutes = await minutesPopup(minutes, MIN, MAX, lvlOf); paintIdle(); };
+  const paintIdle = () => { clock.replaceChildren(el('small', {}, '⏱️ ' + L('COMPTADOR', 'COMPTADOR', 'TIMER')), el('b', {}, `${minTxt(minutes)} min ✏️`)); clock.classList.add('pick'); };
+  clock.onclick = async () => { if (started) return; minutes = await minutesPopup(minutes, MIN, MAX, lvlOf, [0.5, 1, 2, ...Array.from({ length: MAX - MIN + 1 }, (_, k) => MIN + k)]); paintIdle(); };
 
   paintIdle();
   let seq = [], pos = 0, record = 0, listening = false, playing = false, endAt = 0, tick = 0, alive = true, timeUp = false;

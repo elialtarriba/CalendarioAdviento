@@ -1,8 +1,8 @@
 // Día 4: busca los 5 renos con gafas negras entre ~1000 renos
-import { t, getLang } from './i18n.js?v=22.5';
-import { el, popup, starBurst, toast } from './fx.js?v=22.5';
-import { chime, pop, wrong } from './sound.js?v=22.5';
-import { figure } from './app.js?v=22.5';
+import { t, getLang } from './i18n.js?v=22.6';
+import { el, popup, starBurst, toast } from './fx.js?v=22.6';
+import { chime, pop, wrong } from './sound.js?v=22.6';
+import { figure } from './app.js?v=22.6';
 
 const W = 1600, H = 1100, COLS = 40, ROWS = 25;
 
@@ -92,9 +92,14 @@ export function render(body, ctx) {
     const r = 165, a = Math.random() * Math.PI * 2, off = r * (.25 + Math.random() * .4); // el reno no queda en el centro justo
     hint = { x: Math.max(r * .6, Math.min(W - r * .6, hx + Math.cos(a) * off)), y: Math.max(r * .6, Math.min(H - r * .6, hy + Math.sin(a) * off)), r, until: performance.now() + 5000 };
     // se mueve la vista para que la zona se vea
-    { const vw = scroll.clientWidth, vh = scroll.clientHeight;
-      zoom = Math.max(1, Math.min(zoom, Math.min(vw, vh) * .8 / (2 * r / W * base)));   // que el círculo quepa en la pantalla
-      const w = base * zoom, h = w * H / W; tx = vw / 2 - hint.x / W * w; ty = vh / 2 - hint.y / H * h; apply(); }
+    // (V22.6) se centra en la parte del tablero que de verdad se ve, no en todo el recuadro
+    { try { scroll.scrollIntoView({ block: 'nearest', behavior: 'instant' }); } catch { scroll.scrollIntoView(false); }
+      const sr = scroll.getBoundingClientRect(), box = (scroll.closest('.note-body') || document.documentElement).getBoundingClientRect();
+      const foot = scroll.closest('.note-layer')?.querySelector('.note-foot, .note-btns')?.getBoundingClientRect();
+      const top = Math.max(sr.top, box.top, 0), bot = Math.min(sr.bottom, box.bottom, foot ? foot.top : 1e9, innerHeight);
+      const vw = scroll.clientWidth, vh = Math.max(80, bot - top), cy = (top + bot) / 2 - sr.top;
+      zoom = Math.max(1, Math.min(6, Math.min(vw, vh) * .85 / (2 * r / W * base)));   // el círculo ocupa casi toda la parte visible
+      const w = base * zoom, h = w * H / W; tx = vw / 2 - hint.x / W * w; ty = cy - hint.y / H * h; apply(); }
     draw(); chime(); clearTimeout(hintBtn._t); hintBtn._t = setTimeout(draw, 5100);
   } }, '💡 ' + L3('Pista', 'Pista', 'Hint'));
   const showHint = () => { hintBtn.style.display = !finished && found >= 2 && found < 5 ? '' : 'none'; };
@@ -119,7 +124,10 @@ export function render(body, ctx) {
   const local = (x, y) => { const r = scroll.getBoundingClientRect(); return [x - r.left, y - r.top]; };
   const gest = () => { const p = [...pts.values()]; return p.length > 1 ? { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2, d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) } : { x: p[0].x, y: p[0].y, d: 0 }; };
   const startG = () => { g0 = { ...gest(), tx, ty, zoom }; };
-  scroll.addEventListener('pointerdown', e => { e.preventDefault(); try { scroll.setPointerCapture(e.pointerId); } catch {} pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 1) moved = 0; startG(); });
+  scroll.addEventListener('pointerdown', e => {
+    e.preventDefault(); try { scroll.setPointerCapture(e.pointerId); } catch {}
+    if (e.isPrimary) pts.clear(); // un dedo nuevo empieza un gesto nuevo (si se perdió un «soltar», no se queda bloqueado)
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 1) moved = 0; startG(); });
   scroll.addEventListener('pointermove', e => {
     if (!pts.has(e.pointerId) || !g0) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const g = gest(); moved = Math.max(moved, Math.hypot(g.x - g0.x, g.y - g0.y) + (g.d && g0.d ? Math.abs(g.d - g0.d) : 0));
@@ -135,9 +143,11 @@ export function render(body, ctx) {
     if (pts.size) startG(); else g0 = null;
   };
   scroll.addEventListener('pointerup', up); scroll.addEventListener('pointercancel', up);
+  scroll.addEventListener('lostpointercapture', e => { if (pts.has(e.pointerId)) { pts.delete(e.pointerId); if (pts.size) startG(); else g0 = null; } });
   scroll.addEventListener('wheel', e => { e.preventDefault(); const [px, py] = local(e.clientX, e.clientY); zoomAt(zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15), px, py); }, { passive: false });
   setTimeout(() => popup(`<h2>🦌🕶️</h2><p style="font-size:20px">${t('d4help')}</p>`, { buttons: [{ label: '¡OK!', value: 1 }] }), 1600);
 
+  cv._left = () => deer.filter(d => d.target && !d.found).map(d => headOf(d).map((v, i) => v / (i ? H : W)));
   let found = 0, finished = !!ctx.prev;
   if (finished) { deer.filter(d => d.target).forEach(d => d.found = true); found = 5; counter.textContent = t('d4count', 5); draw(); }
   function tap(cx, cy) {
@@ -145,7 +155,8 @@ export function render(body, ctx) {
     if (finished) return;
     const rect = cv.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width * W, y = (e.clientY - rect.top) / rect.height * H;
-    const hit = deer.find(d => { if (!d.target || d.found) return false; const [hx, hy] = headOf(d); return Math.hypot(hx - x, hy - y) < 24; });
+    const R = Math.max(26, 28 / (rect.width / W)); // en la pantalla, siempre unos 28 px de margen (aunque la imagen esté pequeña)
+    const hit = deer.filter(d => d.target && !d.found).map(d => { const [hx, hy] = headOf(d); return { d, k: Math.hypot(hx - x, hy - y) }; }).filter(o => o.k < R).sort((a, b) => a.k - b.k)[0]?.d;
     if (hit) {
       hit.found = true; found++; draw(); pop(); starBurst(e.clientX, e.clientY);
       counter.textContent = t('d4count', found); hint = null; showHint();

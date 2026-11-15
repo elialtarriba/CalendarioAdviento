@@ -2718,3 +2718,40 @@ html.gm-lock, html.gm-lock body { overflow: hidden; }
 .ow-eye { width: 46px; height: 46px; border-radius: 50%; border: 2px solid #e8b64c; background: #fffaf0; font-size: 20px; cursor: pointer; }
 .ow-err { min-height: 20px; color: #b3122e; font-weight: 700; font-size: 14px; }
 .ow-forgot { font-size: 14px; color: #7a5a2a; }
+.ow-list { text-align: left; margin: 6px 0; padding-left: 20px; } .ow-list li { margin: 4px 0; }
+
+/* V22.6 · ordenar los botones de configuración arrastrándolos */
+.adm-sortbtn { display: block; margin: 12px auto 0; }
+.adm-menu.sorting .adm-btn { touch-action: none; cursor: grab; outline: 2px dashed #e8b64c; outline-offset: 3px; }
+.adm-menu.sorting .adm-btn::after { content: '☰'; margin-left: auto; padding-left: 10px; font-size: 24px; color: #fff; opacity: .9; }
+.adm-menu .adm-btn.dragging { position: relative; z-index: 5; transition: none !important; box-shadow: 0 12px 26px #0006; cursor: grabbing; opacity: .95; }
+.ghost-shield { position: fixed; inset: 0; z-index: 99999; background: transparent; }
+.note-body.go-reto { animation: goReto 0.8s ease 3; }
+@keyframes goReto { 50% { box-shadow: inset 0 0 0 5px #ffd24a, inset 0 0 40px #ffd24a88; } }
+/* V22.6 · día 17: fuegos y envío */
+.ttt-fw { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.ttt-fx > :not(.ttt-fw) { position: relative; z-index: 1; }
+.ttt-fx-send { margin: 0 0 6px; padding: 8px 12px; border-radius: 12px; background: #e9f9ee; color: #14532d; font-weight: 700; text-align: center; }
+.ttt-drawbtn { margin: 4px auto; }
+.ttt-sharefirst { display: block; margin: 6px auto; }
+.sh-note { background: #e9f9ee; color: #14532d; font-weight: 700; padding: 8px 10px; border-radius: 12px; }
+.r20-pop { text-align: center; } .r20-ico { font-size: 48px; }
+.r20-pop h2 { margin: 0; font-family: 'Mountains of Christmas', cursive; color: #b3122e; font-size: 38px; }
+.r20-who { font-weight: 700; color: #7a5a2a; } .r20-mission { font: 700 20px/1.35 'Fredoka', sans-serif; color: #14532d; }
+/* V22.6 · regalo: el bingo */
+.gift-bingo { position: relative; text-align: center; padding-top: 16px; }
+.gift-bingo .cw-lights, .gift-lights { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-around; }
+.gift-lights i { width: 10px; height: 14px; border-radius: 50%; background: hsl(calc(var(--i) * 40), 90%, 60%); box-shadow: 0 0 8px hsl(calc(var(--i) * 40), 90%, 60%); animation: c5Beat 1.2s calc(var(--i) * .1s) infinite; }
+.gift-bingo h2 { font-family: 'Mountains of Christmas', cursive; color: #b3122e; font-size: 34px; margin: 6px 0; }
+.gift-steps { text-align: left; } .gift-steps p { margin: 8px 0; font-size: 16px; line-height: 1.4; padding: 8px 10px; border-radius: 12px; background: #fffaf0; border: 1px dashed #e8b64c; }
+.gift-go { margin-top: 10px; background: linear-gradient(#34d36a, #128c4a) !important; }
+.sl-prize { position: relative; text-align: center; padding-top: 16px; }
+.sl-prize-img { width: 120px; } .sl-prize h2 { font-family: 'Mountains of Christmas', cursive; color: #b3122e; font-size: 38px; margin: 4px 0; }
+.sl-prize-rest { font-weight: 700; color: #4a2a1a; } .sl-prize-who { color: #7a5a2a; font-weight: 700; }
+/* V22.6 – celebració del tres en ratlla: tot visible i el popup de WhatsApp per sobre */
+.ttt-fx { justify-content: flex-start; overflow-y: auto; padding-top: max(24px, env(safe-area-inset-top)); }
+.ttt-fx > :first-child + * { margin-top: auto; }
+.ttt-fx > :last-child { margin-bottom: auto; }
+.ttt-fx-title { font-size: clamp(34px, 10vw, 60px); text-align: center; line-height: 1.05; }
+.ttt-fx .ttt-dancer { max-height: 34vh; object-fit: contain; }
+.ttt-fx ~ .popup-back { z-index: 240; }

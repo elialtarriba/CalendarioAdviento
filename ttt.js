@@ -1,22 +1,25 @@
 // Día 17: tres en raya navideño (galleta contra perrito). Cada uno tiene 3 fichas que se arrastran
 // y se pueden volver a mover. Al acabar, cada uno pulsa su dibujo: si ha ganado, baila; si ha perdido, decepción.
-import { el, sleep, confetti, popup, toast } from './fx.js?v=22.5';
-import { getLang } from './i18n.js?v=22.5';
-import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, slideSound, sadTrombone } from './sound.js?v=22.5';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=22.6';
+import { shareResult, fireworks } from './share.js?v=22.6';
+import { getLang } from './i18n.js?v=22.6';
+import { pop, chime, fanfare, christmasSong, unlockAudio, snapSound, slideSound, sadTrombone } from './sound.js?v=22.6';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const P = {
-  g: { face: 'ttt-galleta-cara.webp', full: 'ttt-galleta.webp', dance: 'ttt-baile-galleta.webp', col: 'green', name: () => L('la Galleta', 'la Galeta', 'the Gingerbread') },
-  r: { face: 'ttt-perro-cara.webp', full: 'ttt-perro.webp', dance: 'ttt-baile-perro.webp', col: 'red', name: () => L('el Perrito', 'el Gosset', 'the Puppy') },
+  g: { face: 'ttt-galleta-cara.webp', full: 'ttt-galleta.webp', dance: 'ttt-baile-galleta.webp', col: 'green', name: () => L('la Galleta', 'la Galeta', 'the Gingerbread'), short: () => L('Galleta', 'Galeta', 'Gingerbread') },
+  r: { face: 'ttt-perro-cara.webp', full: 'ttt-perro.webp', dance: 'ttt-baile-perro.webp', col: 'red', name: () => L('el Perrito', 'el Gosset', 'the Puppy'), short: () => L('Perrito', 'Gosset', 'Puppy') },
 };
 const LINES = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
 
 export function render(body, ctx) {
   body.append(
     el('h2', { class: 'q-title' }, '🎄 ' + L('Tres en raya navideño', 'Tres en ratlla de Nadal', 'Christmas noughts and crosses')),
-    el('p', { class: 'game-help ttt-help' }, L('Juega al tres en raya con quien más quieras y, cuando terminéis, pulsa tu dibujo para saber si has ganado, perdido o empatado 🙂',
-      'Juga al tres en ratlla amb qui més vulguis i, quan acabeu, prem el teu dibuix per saber si has guanyat, perdut o empatat 🙂',
-      'Play noughts and crosses with whoever you like and, when you finish, tap your picture to see if you won, lost or drew 🙂')));
+    el('p', { class: 'game-help ttt-help' }, L('Juega al tres en raya con quien quieras (o contra la app). Cuando alguien hace tres en raya, la app dice quién ha ganado. 📲 El resultado de la PRIMERA partida se envía por WhatsApp al grupo de la familia.',
+      'Juga al tres en ratlla amb qui vulguis (o contra l’app). Quan algú fa tres en ratlla, l’app diu qui ha guanyat. 📲 El resultat de la PRIMERA partida s’envia per WhatsApp al grup de la família.',
+      'Play with whoever you like (or against the app). When someone gets three in a row, the app says who won. 📲 Send the result of the FIRST game on WhatsApp to the family group.')));
+  let firstRes = ctx.prev?.extra?.ttt || null; // la primera partida (la que se envía)
+  if (firstRes) body.append(el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay ttt-sharefirst', onclick: () => shareTtt(firstRes, ctx) }, '📲 ' + L('Enviar mi primera partida', 'Enviar la meva primera partida', 'Send my first game')));
   const stage = el('div', { class: 'ttt-stage' });
   body.style.webkitUserSelect = body.style.userSelect = 'none';
   const trayR = el('div', { class: 'ttt-tray red' }), trayG = el('div', { class: 'ttt-tray green' });
@@ -61,9 +64,8 @@ export function render(body, ctx) {
   trayR.append(counter('r')); trayG.append(counter('g'));
   body.append(el('button', { type: 'button', class: 'ttt-infobtn no-delay', onclick: info }, '🎯 ' + L('¿Qué es el contador de movimientos?', 'Què és el comptador de moviments?', 'What is the move counter?')));
   const res = el('div', { class: 'ttt-results' },
-    el('button', { type: 'button', class: 'ttt-who green no-delay', onclick: () => result('g') }, el('img', { src: P.g.face, alt: '' }), el('span', {}, L('Galleta', 'Galeta', 'Gingerbread'))),
-    el('button', { type: 'button', class: 'ttt-who red no-delay', onclick: () => result('r') }, el('img', { src: P.r.face, alt: '' }), el('span', {}, L('Perrito', 'Gosset', 'Puppy'))));
-  const ask = el('p', { class: 'ttt-ask' }, L('¿Quién ha ganado? Pulsa tu dibujo:', 'Qui ha guanyat? Prem el teu dibuix:', 'Who won? Tap your picture:'));
+    el('button', { type: 'button', class: 'btn btn-ghost no-delay ttt-drawbtn', onclick: () => { if (!over) { over = true; show('draw'); } } }, '🤝 ' + L('Hemos acabado en empate', 'Hem acabat en empat', 'We ended in a draw')));
+  const ask = el('p', { class: 'ttt-ask' }, L('¿Nadie consigue tres en raya? Pulsa:', 'Ningú no aconsegueix tres en ratlla? Premeu:', 'Nobody gets three in a row? Tap:'));
   // ---- jugar contra la app: tú eres la Galleta (verde) y la app mueve el Perrito (rojo)
   let ai = false, aiBusy = false;
   const modeBtn = el('button', { type: 'button', class: 'btn ttt-mode no-delay' });
@@ -102,6 +104,8 @@ export function render(body, ctx) {
     if (ai && aiBusy) return;
     if (turn && o.who !== turn) { toast('⏳ ' + L(`Ahora le toca a ${P[turn].name()}`, `Ara li toca a ${P[turn].name()}`, `It is ${P[turn].name()}’s turn`)); trayOf(turn).classList.remove('nudge'); void trayOf(turn).offsetWidth; trayOf(turn).classList.add('nudge'); return; }
     if (left[o.who] <= 0) { toast('⛔ ' + L('Ya no te quedan movimientos', 'Ja no et queden moviments', 'No moves left')); return; }
+    if (over) { toast('🏁 ' + L('La partida ha terminado. Pulsa «Volver a jugar».', 'La partida s’ha acabat. Prem «Tornar a jugar».', 'The game is over. Tap “Play again”.')); return; }
+    if (!t0) t0 = Date.now();
     const b = stage.getBoundingClientRect();
     drag = { o, from: o.cell, id: e.pointerId, dx: parseFloat(tEl.style.left) - (e.clientX - b.left), dy: parseFloat(tEl.style.top) - (e.clientY - b.top) };
     tEl.classList.add('lift'); tEl.style.transition = 'none'; tEl.style.zIndex = 50; pop();
@@ -124,6 +128,7 @@ export function render(body, ctx) {
     else place(o); // vuelve a donde estaba
     check();
     if (ai && moved) afterMove();
+    else if (moved && !over && left.g <= 0 && left.r <= 0) finishIfStuck();
   };
   stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
 
@@ -131,12 +136,16 @@ export function render(body, ctx) {
     for (const ln of LINES) { const w = ln.map(i => tokens.find(t => t.cell === i)?.who); if (w[0] && w[0] === w[1] && w[1] === w[2]) return { who: w[0], ln }; }
     return null;
   };
-  let shown = null;
+  let shown = null, over = false, t0 = 0;
   function check() {
     const w = winner();
     [...board.children].forEach(c => c.classList.remove('win'));
-    if (w) { w.ln.forEach(i => board.children[i].classList.add('win')); if (shown !== w.ln.join()) { shown = w.ln.join(); chime(); toast('✨ ' + L('¡Tres en raya!', 'Tres en ratlla!', 'Three in a row!')); } }
-    else shown = null;
+    if (w) {
+      w.ln.forEach(i => board.children[i].classList.add('win'));
+      if (shown !== w.ln.join()) { shown = w.ln.join(); chime(); }
+      // tres en raya: la partida se acaba sola y se dice quién ha ganado (los contadores se quedan como estaban)
+      if (!over) { over = true; setTimeout(() => show(ai ? (w.who === 'g' ? 'win' : 'lose') : 'win2', ai ? 'g' : w.who), 900); }
+    } else shown = null;
   }
 
   // ---- la app piensa su jugada
@@ -172,34 +181,43 @@ export function render(body, ctx) {
     snapSound(); useMove('r'); setTurn('g'); check(); aiBusy = false;
     afterMove();
   }
-  function finishIfStuck() { if (left.g <= 0 && left.r <= 0 && !winner()) setTimeout(() => show('draw'), 700); }
+  function finishIfStuck() { if (!over && left.g <= 0 && left.r <= 0 && !winner()) { over = true; setTimeout(() => show('draw'), 700); } }
   function afterMove() {
     const w = winner();
-    if (w) { aiBusy = true; setTimeout(() => { aiBusy = false; show(w.who === 'g' ? 'win' : 'lose', 'g'); }, 1100); return; }
+    if (w) return; // ya lo ha visto check()
     if (left.g <= 0 && left.r <= 0) return finishIfStuck();
     if (turn === 'r') { if (left.r <= 0) { setTurn('g'); return; } setTimeout(aiMove, 350); }
     else if (left.g <= 0) { setTurn('r'); setTimeout(aiMove, 350); }
   }
-  function resetBoard() { tokens.forEach(o => { o.cell = -1; place(o); }); left.g = limit.g; left.r = limit.r; paint('g'); paint('r'); setTurn(ai ? 'g' : null); check(); aiBusy = false; }
+  function resetBoard() { over = false; t0 = 0; shown = null; tokens.forEach(o => { o.cell = -1; place(o); }); left.g = limit.g; left.r = limit.r; paint('g'); paint('r'); setTurn(ai ? 'g' : null); check(); aiBusy = false; }
 
   // ---- resultado
   let submitted = false;
-  async function result(who) {
-    unlockAudio();
-    const w = winner();
-    if (!w) return show('draw'); // sin tres en raya: empate
-    show(w.who === who ? 'win' : 'lose', who);
-  }
-
   function show(kind, who) {
-    if (!submitted && !ctx.prev) { submitted = true; ctx.submit({ answer: kind === 'draw' ? '🤝' : (kind === 'win' ? '🏆 ' : '😢 ') + P[who].name(), status: 'correct' }); }
+    const winnerWho = kind === 'win2' ? who : kind === 'win' ? 'g' : kind === 'lose' ? 'r' : null;
+    const info = { mode: ai ? 'ai' : 'two', winner: winnerWho, movesG: limit.g - left.g, movesR: limit.r - left.r, time: t0 ? Date.now() - t0 : 0, at: Date.now() };
+    const counts = !submitted && !ctx.prev && !firstRes;
+    if (counts) {
+      submitted = true; firstRes = info;
+      ctx.submit({ answer: kind === 'draw' ? '🤝 ' + L('Empate', 'Empat', 'Draw') : '🏆 ' + P[winnerWho].name(), status: 'correct', extra: { ttt: info } });
+    }
     let music = null, alive = true;
     const again = el('button', { class: 'btn btn-big no-delay' }, '🔄 ' + L('Volver a jugar', 'Tornar a jugar', 'Play again'));
     const out = el('button', { class: 'btn btn-ghost btn-big no-delay' }, '🚪 ' + L('Salir de la partida', 'Sortir de la partida', 'Leave the game'));
     const later = el('button', { class: 'btn btn-ghost no-delay ttt-later' }, '⏳ ' + L('Cancelar (lo haré luego)', 'Cancel·lar (ho faré després)', 'Cancel (I’ll do it later)'));
-    const btns = el('div', { class: 'ttt-fx-btns' }, again, out, later);
-    const fx = el('div', { class: 'ttt-fx ' + kind });
-    if (kind === 'win') {
+    const wa = counts ? el('button', { class: 'btn btn-big no-delay c5-wa' }, '📲 ' + L('Enviar el resultado al grupo', 'Enviar el resultat al grup', 'Send the result to the group')) : null;
+    if (wa) wa.onclick = () => shareTtt(info, ctx);
+    const btns = el('div', { class: 'ttt-fx-btns' }, ...(wa ? [el('p', { class: 'ttt-fx-send' }, '📲 ' + L('Esta es tu primera partida: envía el resultado al grupo de WhatsApp de la familia.', 'Aquesta és la teva primera partida: envia el resultat al grup de WhatsApp de la família.', 'This is your first game: send the result to the family WhatsApp group.')), wa] : []), again, out, later);
+    const fx = el('div', { class: 'ttt-fx ' + (kind === 'win2' ? 'win' : kind) });
+    const cv = el('canvas', { class: 'ttt-fw' }); fx.append(cv);
+    if (kind === 'win2' || kind === 'win') setTimeout(() => { if (alive) fx._fw = fireworks(cv, 9000); }, 200);
+    if (kind === 'win2') {
+      const dancer = el('img', { class: 'ttt-dancer', src: P[who].dance, alt: '' });
+      fx.append(el('div', { class: 'ttt-fx-title' }, '🏆 ' + L(`¡Enhorabuena, ${P[who].short()}!`, `Enhorabona, ${P[who].short()}!`, `Congratulations, ${P[who].short()}!`)),
+        el('p', { class: 'ttt-fx-text' }, L(`${P[who].name()} ha hecho tres en raya y ha ganado la partida.`, `${P[who].name()} ha fet tres en ratlla i ha guanyat la partida.`, `${P[who].name()} got three in a row and won.`)), dancer, btns);
+      fanfare(); confetti(260); setTimeout(() => { if (alive) { try { music = christmasSong(); } catch {} } }, 1600);
+      const iv = setInterval(() => alive && confetti(60), 2500); fx._stop = () => clearInterval(iv);
+    } else if (kind === 'win') {
       const dancer = el('img', { class: 'ttt-dancer', src: P[who].dance, alt: '' });
       fx.append(el('div', { class: 'ttt-fx-title' }, '🏆 ' + L('¡Has ganado!', 'Has guanyat!', 'You won!')), dancer, btns);
       fanfare(); confetti(260); setTimeout(() => { if (alive) { try { music = christmasSong(); } catch {} } }, 1600);
@@ -216,10 +234,29 @@ export function render(body, ctx) {
       chime(); setTimeout(chime, 400); confetti(140);
     }
     document.body.append(fx);
-    const close = () => { alive = false; fx._stop?.(); try { music?.stop(1); } catch {} fx.classList.add('out'); setTimeout(() => fx.remove(), 400); };
+    const close = () => { alive = false; fx._stop?.(); try { fx._fw?.(); } catch {} try { music?.stop(1); } catch {} fx.classList.add('out'); setTimeout(() => fx.remove(), 400); };
     again.onclick = () => { close(); resetBoard(); };
     out.onclick = () => { close(); ctx.finish(); };
     later.onclick = () => { close(); ctx.finish(true); };
     ctx.cleanup = close;
   }
+}
+
+// cartel de la primera partida para el grupo de la familia
+function shareTtt(info, ctx) {
+  const fmt = ms => { const t = Math.round(ms / 1000); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
+  const name = (ctx.profile?.name || '').trim();
+  const win = info.winner ? P[info.winner].short() : null;
+  shareResult({
+    title: win ? L(`¡Ha ganado ${win}!`, `Ha guanyat ${win}!`, `${win} won!`) : L('¡Empate!', 'Empat!', 'Draw!'),
+    emoji: win ? '🏆' : '🤝', who: name, day: 17, file: 'tres-en-raya.png',
+    rows: [
+      [L('Juego', 'Joc', 'Game'), L('Tres en raya', 'Tres en ratlla', 'Noughts and crosses')],
+      [L('Modo', 'Mode', 'Mode'), info.mode === 'ai' ? L('Contra la app', 'Contra l’app', 'Against the app') : L('Dos personas', 'Dues persones', 'Two players')],
+      [L('Ganador', 'Guanyador', 'Winner'), win || L('Empate', 'Empat', 'Draw')],
+      [L('Movimientos', 'Moviments', 'Moves'), `${P.g.short()} ${info.movesG} · ${P.r.short()} ${info.movesR}`],
+      [L('Tiempo', 'Temps', 'Time'), fmt(info.time)]],
+    note: L('Envía esta foto al grupo de WhatsApp de la familia (solo la primera partida).', 'Envia aquesta foto al grup de WhatsApp de la família (només la primera partida).', 'Send this picture to the family WhatsApp group (first game only).'),
+    text: (win ? L(`🎄 Tres en raya (día 17): ¡ha ganado ${win}!`, `🎄 Tres en ratlla (dia 17): ha guanyat ${win}!`, `🎄 Noughts and crosses (day 17): ${win} won!`) : L('🎄 Tres en raya (día 17): ¡empate!', '🎄 Tres en ratlla (dia 17): empat!', '🎄 Noughts and crosses (day 17): draw!')) + (name ? `\n— ${name}` : ''),
+  });
 }

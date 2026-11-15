@@ -1,11 +1,11 @@
 // Regalo sorpresa: un botón que abre la web que la administradora pone en Configuración → «🎁 Regalo sorpresa».
 // Sale en las actividades 1 y 2 del día 24, abajo del todo de la casilla 25 y al final del resumen del día 25.
 // Árboles y gnomos ya lo reciben el día 24: en el 25 sale como «Regalo ya abierto» (se puede volver a abrir).
-import { el, popup, confetti } from './fx.js?v=22.5';
-import { getLang } from './i18n.js?v=22.5';
-import { chime, unlockAudio } from './sound.js?v=22.5';
-import { S, figure } from './app.js?v=22.5';
-import { store } from './store.js?v=22.5';
+import { el, popup, confetti } from './fx.js?v=22.6';
+import { getLang } from './i18n.js?v=22.6';
+import { chime, unlockAudio } from './sound.js?v=22.6';
+import { S, figure } from './app.js?v=22.6';
+import { store } from './store.js?v=22.6';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 export const giftUrl = () => String(S.config?.gift?.url || '').trim();
@@ -31,10 +31,23 @@ async function openGift(b) {
       el('p', {}, L('Los duendes aún están poniendo el lazo a este regalo. ¡Vuelve muy pronto!', 'Els follets encara hi estan posant el llaç. Torna molt aviat!', 'The elves are still tying the bow on this present. Come back very soon!'))),
       { cls: 'small', buttons: [{ label: '🎄 OK', value: true }] });
   }
-  // se abre al momento (el móvil solo deja abrir otra web con un toque directo)
-  const w = window.open(fixUrl(url), '_blank', 'noopener');
-  if (!w) location.href = fixUrl(url);
+  // primero, un cartel que explica el regalo; el botón abre la web al momento (el móvil solo deja abrir otra web con un toque directo)
   chime(); try { const r = b.getBoundingClientRect(); confetti(120, { x: r.left + r.width / 2, y: r.top + r.height / 2 }); } catch {}
+  const go = el('button', { type: 'button', class: 'btn btn-big no-delay gift-go', onclick: () => {
+    const w = window.open(fixUrl(url), '_blank', 'noopener'); if (!w) location.href = fixUrl(url);
+    go.closest('.popup-back')?.remove();
+  } }, '🎲 ' + L('¡Ir al Bingo de Navidad!', 'Anar al Bingo de Nadal!', 'Go to the Christmas Bingo!'));
+  await popup(el('div', { class: 'gift-pop gift-bingo' },
+    el('div', { class: 'gift-lights' }, ...Array.from({ length: 12 }, (_, i) => el('i', { style: `--i:${i}` }))),
+    el('img', { class: 'gift-pop-img', src: 'ilu-gr.webp', alt: '' }),
+    el('h2', {}, L('¡Tu regalo es un Bingo de Navidad!', 'El teu regal és un Bingo de Nadal!', 'Your present is a Christmas Bingo!')),
+    el('div', { class: 'gift-steps' },
+      el('p', {}, '🎲 ' + L('Es un bingo para jugar en familia por internet, cada uno con su móvil.', 'És un bingo per jugar en família per internet, cadascú amb el seu mòbil.', 'It’s a bingo to play online as a family, each on their own phone.')),
+      el('p', {}, '👑 ' + L('Para jugar hace falta una persona que haga de administradora: es la que crea la partida y va cantando los números.', 'Per jugar cal una persona que faci d’administradora: és qui crea la partida i va cantant els números.', 'One person has to be the host: they create the game and call out the numbers.')),
+      el('p', {}, '📖 ' + L('Antes de empezar, leed las instrucciones del manual que hay dentro de la app del Bingo. ¡Ahí está todo explicado!', 'Abans de començar, llegiu les instruccions del manual que hi ha dins l’app del Bingo. Allà hi ha tot explicat!', 'Before you start, read the instructions in the manual inside the Bingo app. Everything is explained there!')),
+      el('p', {}, '🎄 ' + L('¡Que tengáis mucha suerte y una Navidad llena de líneas y bingos!', 'Que tingueu molta sort i un Nadal ple de línies i bingos!', 'Good luck and a Christmas full of lines and bingos!'))),
+    go),
+    { cls: 'small', buttons: [{ label: L('Más tarde', 'Més tard', 'Later'), value: false, cls: 'btn-ghost' }] });
   if (!S.profile?.giftOpened && S.user) {
     const at = Date.now(); S.profile.giftOpened = at;
     store.saveProfile(S.user.uid, { giftOpened: at }).catch(() => {});

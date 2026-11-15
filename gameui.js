@@ -2,16 +2,18 @@
 // · minutesPopup: elegir los minutos del COMPTADOR tocando el reloj de arriba (antes de empezar)
 // · fullBtn: botón ⛶ para ver el tablero en grande, a pantalla completa, y volver
 // · howStrip: explicación con dibujos y muy poca letra
-import { el, popup } from './fx.js?v=22.5';
-import { getLang } from './i18n.js?v=22.5';
+import { el, popup } from './fx.js?v=22.6';
+import { getLang } from './i18n.js?v=22.6';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 
-export async function minutesPopup(cur, min, max, levelOf) {
+export const minTxt = m => (m === 0.5 ? '½' : String(m));
+export async function minutesPopup(cur, min, max, levelOf, values = null) {
+  const vals = values || Array.from({ length: max - min + 1 }, (_, k) => min + k);
   let pick = cur;
   const info = el('p', { class: 'gm-info' });
   const paint = () => { grid.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.m === pick)); info.textContent = levelOf ? levelOf(pick) : ''; };
-  const grid = el('div', { class: 'gm-grid' }, ...Array.from({ length: max - min + 1 }, (_, k) => el('button', { type: 'button', class: 'gm-min no-delay', 'data-m': min + k, onclick: () => { pick = min + k; paint(); } }, String(min + k))));
+  const grid = el('div', { class: 'gm-grid' }, ...vals.map(v => el('button', { type: 'button', class: 'gm-min no-delay', 'data-m': v, onclick: () => { pick = v; paint(); } }, minTxt(v))));
   paint();
   const ok = await popup(el('div', { class: 'gm-box' },
     el('div', { class: 'gm-clock' }, '⏱️'),
