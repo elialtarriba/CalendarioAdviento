@@ -1,10 +1,10 @@
 // Guía de la app (para la administradora): pantalla completa, índice, dibujos y zoom con dos dedos
-import { el } from './fx.js?v=23';
-import { getLang } from './i18n.js?v=23';
-import { PORTADAS, PAPERS } from './defaults.js?v=23';
-import { figure, S } from './app.js?v=23';
-import { store } from './store.js?v=23';
-import { toast } from './fx.js?v=23';
+import { el } from './fx.js?v=23.2';
+import { getLang } from './i18n.js?v=23.2';
+import { PORTADAS, PAPERS } from './defaults.js?v=23.2';
+import { figure, S } from './app.js?v=23.2';
+import { store } from './store.js?v=23.2';
+import { toast } from './fx.js?v=23.2';
 // una ventanita del calendario (recortada del tema «Cosas Navidad»), como las de la portada
 function doorCrop(d = 1, cls = '') {
   const v = PORTADAS[0].variants.find(x => /movil/.test(x.img)) || PORTADAS[0].variants[0];
@@ -26,6 +26,20 @@ const mock = (title, ...k) => el('div', { class: 'hg-mock' }, title ? el('div', 
 const row = (...k) => el('div', { class: 'hg-row' }, ...k);
 const P = (...k) => el('p', {}, ...k);
 const B = t => el('b', {}, t);
+const shot = k => el('img', { class: 'hg-shot', src: `man-${k}-${LANG}.webp`, alt: '', loading: 'lazy' });
+const num = (n, ico, title, txt) => el('div', { class: 'hg-num' }, el('span', { class: 'hg-num-n' }, String(n)), el('span', { class: 'hg-num-ico' }, ico), el('div', {}, B(title), txt ? el('small', {}, txt) : null));
+const whenRow = (ico, title, keys) => el('div', { class: 'hg-when-row' }, el('span', { class: 'hg-when-ico' }, ico), B(title), el('span', { class: 'hg-when-keys' }, ...keys.map(k => el('i', {}, k))));
+// (V23.2) lo primero de la guía: las 3 cosas para entrar
+function keysIntro(go) {
+  return el('div', { class: 'hg-keys' },
+    el('h2', {}, '🗝️ ' + L('Para entrar necesitas…', 'Per entrar necessites…', 'To come in you need…')),
+    el('div', { class: 'hg-keys-row' },
+      el('div', { class: 'hg-key' }, el('span', { class: 'hg-key-ico' }, '🙋'), B(L('Tu nombre', 'El teu nom', 'Your name'))),
+      el('div', { class: 'hg-key' }, el('span', { class: 'hg-key-ico' }, '🔢'), B(L('Tu PIN', 'El teu PIN', 'Your PIN')), el('small', {}, L('4 números que te inventas tú', '4 números que t’inventes tu', '4 numbers you make up'))),
+      el('div', { class: 'hg-key gold' }, el('span', { class: 'hg-key-ico' }, '🔑'), B(L('La palabra secreta', 'La paraula secreta', 'The secret word')), el('small', {}, L('te la da la administradora', 'te la dona l’administradora', 'the admin gives it to you')))),
+    el('p', { class: 'hg-keys-note' }, '🔢 ', B(L('PIN = siempre tuyo', 'PIN = sempre teu', 'PIN = always yours')), ' · 🔑 ', B(L('palabra = solo la 1.ª vez', 'paraula = només la 1a vegada', 'word = only the 1st time'))),
+    el('button', { class: 'btn btn-big no-delay hg-keys-go', onclick: () => go('u-enter') }, '❄️ ' + L('Mira cómo se entra, paso a paso', 'Mira com s’entra, pas a pas', 'See how to get in, step by step')));
+}
 const sw = (on, label) => el('span', { class: 'hg-switch' + (on ? ' on' : '') }, el('span'), label);
 
 const SECTIONS = [
@@ -173,10 +187,10 @@ export function openUserHelp(lang = getLang()) {
   LANG = lang;
   const sub = { es: 'Todo lo que necesitas saber para disfrutar de tu calendario, paso a paso.', ca: 'Tot el que has de saber per gaudir del teu calendari, pas a pas.', en: 'Everything you need to know to enjoy your calendar, step by step.' }[lang];
   const bar = { es: '📖 Cómo funciona', ca: '📖 Com funciona', en: '📖 How it works' }[lang];
-  openGuide(userSections(), { bar, sub, ui: UI[lang], langs: lang, onLang: l => openUserHelp(l) });
+  openGuide(userSections(), { bar, sub, ui: UI[lang], langs: lang, onLang: l => openUserHelp(l), intro: keysIntro });
 }
 
-function openGuide(SECTIONS, { bar: barTitle, sub, ui = UI.es, langs = null, onLang = null }) {
+function openGuide(SECTIONS, { bar: barTitle, sub, ui = UI.es, langs = null, onLang = null, intro = null }) {
   const content = el('div', { class: 'hg-content' });
   const scroll = el('div', { class: 'hg-scroll' }, content);
   let zoom = 1;
@@ -208,6 +222,7 @@ function openGuide(SECTIONS, { bar: barTitle, sub, ui = UI.es, langs = null, onL
     el('div', { class: 'hg-hero' }, el('div', { class: 'hg-hero-figs' }, fig('galleta.png'), fig('arbol.png'), fig('gnomo.png')),
       el('h1', {}, ui.title), el('p', {}, sub),
       langs ? el('div', { class: 'hg-langs' }, ...[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([l, n]) => el('button', { class: 'hg-lang no-delay' + (l === langs ? ' on' : ''), onclick: () => { if (l === langs) return; back.remove(); document.removeEventListener('keydown', onKey); onLang(l); } }, n))) : null),
+    intro ? intro(go) : null,
     el('h2', { class: 'hg-index-t' }, ui.index),
     el('p', { class: 'hg-hint' }, ui.hint),
     el('div', { class: 'hg-index' }, ...SECTIONS.map((s, i) => el('button', { class: 'hg-index-item no-delay', style: `--c:${s.color}`, onclick: () => go(s.id) },
@@ -306,19 +321,35 @@ function acc(ico, title, content) {
 function userSections() {
   const FIN = L('Finalizar', 'Finalitzar', 'Finish');
   return [
-  { id: 'u-start', ico: '❄️', color: '#0e7490', title: L('Cómo se entra: la pantalla de la nieve', 'Com s’entra: la pantalla de la neu', 'How to get in: the snow screen'), body: () => [
-    P(L('Al abrir la app empieza a ', 'En obrir l’app comença a ', 'When you open the app, it starts to '), B(L('nevar', 'nevar', 'snow')), L(' y suena música de Navidad (en iPhone, toca la pantalla para oírla). Abajo verás una tarjeta:', ' i sona música de Nadal (a l’iPhone, toca la pantalla per sentir-la). A baix veuràs una targeta:', ' and Christmas music plays (on iPhone, tap the screen to hear it). At the bottom you’ll see a card:')),
-    mock(L('¿Cómo te llamas?', 'Com et dius?', 'What is your name?'), el('div', { class: 'hg-field' }, 'Marian'), el('div', { class: 'hg-field' }, '• • • •'), el('div', { class: 'hg-guide-btn' }, '🔔 ', B(L('Pulsa para empezar', 'Prem per començar', 'Tap to start')))),
-    steps(el('span', {}, L('Escribe ', 'Escriu ', 'Write '), B(L('tu nombre', 'el teu nom', 'your name')), L('. Si en la familia hay dos personas con el mismo nombre, poned el nombre con un número, por ejemplo Marian2. La aplicación os dirá si el nombre ya está cogido.', '. Si a la família hi ha dues persones amb el mateix nom, poseu el nom amb un número, per exemple Marian2. L’aplicació us dirà si el nom ja està agafat.', '. If two people in the family have the same name, add a number to it, for example Marian2. The app will tell you if the name is already taken.')),
-      el('span', {}, L('Escribe tu ', 'Escriu el teu ', 'Write your '), B(L('PIN de 4 números', 'PIN de 4 números', '4-number PIN')), L('. La primera vez ', '. La primera vegada ', '. The first time '), B(L('te lo inventas tú', 'te l’inventes tu', 'you make it up')), L(': la app te lo enseñará en grande para que lo recuerdes.', ': l’app te l’ensenyarà en gran perquè el recordis.', ': the app will show it to you in big numbers so you remember it.')),
-      el('span', {}, L('Pulsa ', 'Prem ', 'Tap '), btn('🔔 ' + L('Pulsa para empezar', 'Prem per començar', 'Tap to start'), 'red'), L(' y ya estás dentro.', ' i ja ets a dins.', ' and you’re in.'))),
+  { id: 'u-enter', ico: '❄️', color: '#0e7490', title: L('Cómo se entra: la pantalla de la nieve', 'Com s’entra: la pantalla de la neu', 'How to get in: the snow screen'), body: () => [
+    P(L('Al abrir la app ', 'En obrir l’app ', 'When you open the app it '), B(L('nieva', 'neva', 'snows')), L(' y suena música (en iPhone, toca la pantalla para oírla). Abajo sale esta tarjeta:', ' i sona música (a l’iPhone, toca la pantalla per sentir-la). A baix surt aquesta targeta:', ' and music plays (on iPhone, tap the screen to hear it). This card appears:')),
+    shot('login'),
+    el('div', { class: 'hg-nums' },
+      num(1, '🙋', L('Tu nombre', 'El teu nom', 'Your name'), L('Si hay dos personas con el mismo nombre, añade un número: Marian2.', 'Si hi ha dues persones amb el mateix nom, afegeix-hi un número: Marian2.', 'If two people share a name, add a number: Marian2.')),
+      num(2, '🔢', L('Tu PIN: 4 números', 'El teu PIN: 4 números', 'Your PIN: 4 numbers'), L('La primera vez te lo inventas tú. Es tuyo y es tu llave para siempre.', 'La primera vegada te l’inventes tu. És teu i és la teva clau per sempre.', 'The first time you make it up. It is yours and it is your key forever.')),
+      num(3, '🔔', L('Pulsa para empezar', 'Prem per començar', 'Tap to start'), '')),
+    el('div', { class: 'hg-bigsep' }, '⬇️'),
+    P(B(L('Solo la primera vez', 'Només la primera vegada', 'Only the first time')), L(' sale la palabra secreta:', ' surt la paraula secreta:', ' the secret word appears:')),
+    shot('word'),
+    el('div', { class: 'hg-nums' },
+      num(4, '🔑', L('La palabra secreta', 'La paraula secreta', 'The secret word'), L('Te la da la administradora (Mamá Noel). Es la misma para todos. Da igual mayúsculas o acentos.', 'Te la dona l’administradora (la Mare Noel). És la mateixa per a tothom. És igual majúscules o accents.', 'The admin (Mrs Claus) gives it to you. It is the same for everyone. Capitals and accents don’t matter.'))),
+    el('div', { class: 'hg-bigsep' }, '⬇️'),
+    P(L('Después, la app te enseña tu PIN en grande:', 'Després, l’app t’ensenya el teu PIN en gran:', 'Then the app shows you your PIN in big numbers:')),
+    shot('pin'),
+    el('div', { class: 'hg-tip big' }, '📸 ', B(L('¡Haz una foto o apúntalo!', 'Fes-hi una foto o apunta’l!', 'Take a photo or write it down!')), ' ', L('Te hará falta si algún día entras desde otro móvil, tableta u ordenador.', 'Et caldrà si algun dia entres des d’un altre mòbil, tauleta o ordinador.', 'You will need it if you ever come in from another phone, tablet or computer.')),
+    el('div', { class: 'hg-bigsep' }, '⬇️'),
+    P(B(L('Las próximas veces, en el mismo móvil:', 'Les properes vegades, al mateix mòbil:', 'Next times, on the same phone:')), L(' solo tu nombre y ¡dentro!', ' només el teu nom i a dins!', ' just your name and you’re in!')),
+    shot('next'),
+    el('div', { class: 'hg-when' },
+      whenRow('🆕', L('Primera vez', 'Primera vegada', 'First time'), ['🙋', '🔢', '🔑']),
+      whenRow('📱', L('Mismo móvil', 'Mateix mòbil', 'Same phone'), ['🙋']),
+      whenRow('💻', L('Otro móvil o tableta', 'Un altre mòbil o tauleta', 'Another phone or tablet'), ['🙋', '🔢'])),
     el('div', { class: 'hg-list' },
-      item('📱', L('Las próximas veces', 'Les properes vegades', 'Next times'), L('En el mismo móvil solo hace falta tu nombre: ya te reconoce.', 'Al mateix mòbil només cal el teu nom: ja et reconeix.', 'On the same phone you only need your name: it already knows you.')),
-      item('💻', L('En otro aparato', 'En un altre aparell', 'On another device'), L('En otro móvil, tableta u ordenador escribe tu nombre y tu PIN, y lo tendrás todo igual.', 'En un altre mòbil, tauleta o ordinador escriu el teu nom i el teu PIN, i ho tindràs tot igual.', 'On another phone, tablet or computer, write your name and PIN and everything will be the same.')),
-      item('📖', L('Cómo funciona', 'Com funciona', 'How it works'), L('El botón que te ha traído a esta guía. Puedes leerla antes de empezar.', 'El botó que t’ha portat a aquesta guia. La pots llegir abans de començar.', 'The button that brought you to this guide. You can read it before you start.')),
-      item('ℹ️', L('La «i» de la esquina', 'La «i» del racó', 'The “i” in the corner'), L('Un mensaje de bienvenida y el correo de la persona que ha preparado el calendario, por si quieres escribirle.', 'Un missatge de benvinguda i el correu de la persona que ha preparat el calendari, per si li vols escriure.', 'A welcome message and the email of the person who prepared the calendar, in case you want to write to her.')),
-      item('🔑', L('«Soy la administradora»', '«Soc l’administradora»', '“I am the admin”'), L('Es solo para la persona responsable del calendario. Tú no lo necesitas.', 'És només per a la persona responsable del calendari. Tu no el necessites.', 'It is only for the person in charge of the calendar. You don’t need it.'))),
-    tip(L('Si has olvidado tu PIN, escribe a la persona responsable del calendario (su correo está en la «i»).', 'Si has oblidat el teu PIN, escriu a la persona responsable del calendari (el seu correu és a la «i»).', 'If you forget your PIN, write to the person in charge of the calendar (her email is in the “i”).')),
+      item('❄️', L('Volver a la nieve', 'Tornar a la neu', 'Back to the snow'), L('El botón ❄️ de arriba te lleva otra vez a esta pantalla.', 'El botó ❄️ de dalt et porta un altre cop a aquesta pantalla.', 'The ❄️ button at the top takes you back to this screen.')),
+      item('📖', L('Cómo funciona', 'Com funciona', 'How it works'), L('Esta guía. Puedes leerla antes de empezar.', 'Aquesta guia. La pots llegir abans de començar.', 'This guide. You can read it before you start.')),
+      item('ℹ️', L('La «i» de la esquina', 'La «i» del racó', 'The “i” in the corner'), L('Bienvenida y el correo de la administradora.', 'Benvinguda i el correu de l’administradora.', 'Welcome and the admin’s email.')),
+      item('🔑', L('«Soy la administradora»', '«Soc l’administradora»', '“I am the admin”'), L('Solo para la persona que prepara el calendario.', 'Només per a la persona que prepara el calendari.', 'Only for the person who prepares the calendar.'))),
+    tip(L('¿Has olvidado tu PIN o la palabra secreta? Pídeselos a la administradora (su correo está en la «i»).', 'Has oblidat el PIN o la paraula secreta? Demana-ho a l’administradora (el seu correu és a la «i»).', 'Forgot your PIN or the secret word? Ask the admin (her email is in the “i”).')),
   ] },
   { id: 'u-what', ico: '🎄', color: '#b3122e', title: L('¿Qué es este calendario?', 'Què és aquest calendari?', 'What is this calendar?'), body: () => [
     P(L('Es un ', 'És un ', 'It is an '), B(L('calendario de Adviento', 'calendari d’Advent', 'Advent calendar')), L(' para toda la familia: tiene ', ' per a tota la família: té ', ' for the whole family: it has '), B(L('25 casillas', '25 caselles', '25 boxes')), L(', una para cada día del 1 al 25 de diciembre.', ', una per a cada dia de l’1 al 25 de desembre.', ', one for each day from 1 to 25 December.')),

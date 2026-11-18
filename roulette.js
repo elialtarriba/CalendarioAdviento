@@ -1,10 +1,10 @@
 // Día 20: la ruleta del disparate
-import { t, tx } from './i18n.js?v=23';
-import { el, confetti, popup } from './fx.js?v=23';
-import { shareResult } from './share.js?v=23';
-import { getLang } from './i18n.js?v=23';
+import { t, tx } from './i18n.js?v=23.2';
+import { el, confetti, popup } from './fx.js?v=23.2';
+import { shareResult } from './share.js?v=23.2';
+import { getLang } from './i18n.js?v=23.2';
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
-import { chime, pop } from './sound.js?v=23';
+import { chime, pop } from './sound.js?v=23.2';
 
 export const R_COLS = ['#e63946', '#2a9d62', '#ffb703', '#3a86ff', '#9b5de5', '#f15bb5', '#00b4d8', '#fb8500', '#06d6a0', '#8338ec'];
 const COLS = R_COLS;

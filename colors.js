@@ -3,11 +3,11 @@
 // Arriba está el COMPTADOR: antes de empezar se toca para elegir los minutos (de 1 a 20). Los 2 primeros minutos
 // son fáciles; después va cada vez más rápido (y al final el tablero se balancea y gira). 25 partidas distintas.
 // Botón ⛶ para jugar a pantalla completa. Solo cuenta la primera partida: es la que se guarda y la que se comparte.
-import { el, sleep, confetti, popup, toast } from './fx.js?v=23';
-import { getLang } from './i18n.js?v=23';
-import { unlockAudio } from './sound.js?v=23';
-import { nextGame, rng, TOTAL } from './games25.js?v=23';
-import { minutesPopup, fullBtn, exitFull, howStrip } from './gameui.js?v=23';
+import { el, sleep, confetti, popup, toast } from './fx.js?v=23.2';
+import { getLang } from './i18n.js?v=23.2';
+import { unlockAudio } from './sound.js?v=23.2';
+import { nextGame, rng, TOTAL } from './games25.js?v=23.2';
+import { minutesPopup, fullBtn, exitFull, howStrip } from './gameui.js?v=23.2';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const MIN = 1, MAX = 20, EASY = 2; // minutos fáciles al principio
