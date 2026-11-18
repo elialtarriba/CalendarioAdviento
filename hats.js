@@ -1,7 +1,7 @@
 // Día 1: atrapa los 3 gorros de Papá Noel; cada uno guarda una sorpresa
-import { t, tx, getLang } from './i18n.js?v=23.2';
-import { el, sleep, confetti, popup, svgEl } from './fx.js?v=23.2';
-import { chime, pop, machine, scare, hohoho } from './sound.js?v=23.2';
+import { t, tx, getLang } from './i18n.js?v=23.3';
+import { el, sleep, confetti, popup, svgEl } from './fx.js?v=23.3';
+import { chime, pop, machine, scare, hohoho } from './sound.js?v=23.3';
 
 const HAT = 'ilu-gorro.webp'; // gorro pintado al estilo del calendario
 const ilu = src => el('img', { src, class: 'ilu', alt: '', draggable: 'false' });

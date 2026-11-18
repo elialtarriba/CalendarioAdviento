@@ -1,12 +1,12 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store, DEMO } from './store.js?v=23.2';
-import { t, tx } from './i18n.js?v=23.2';
-import { el, popup, toast, esc, searchBox } from './fx.js?v=23.2';
-import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode, celebrateStart } from './app.js?v=23.2';
-import { openActEditor, plain, shrink } from './richact.js?v=23.2';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=23.2';
-import { nameOnPhoto } from './share.js?v=23.2';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=23.2';
+import { store, DEMO } from './store.js?v=23.3';
+import { t, tx } from './i18n.js?v=23.3';
+import { el, popup, toast, esc, searchBox } from './fx.js?v=23.3';
+import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode, celebrateStart } from './app.js?v=23.3';
+import { openActEditor, plain, shrink } from './richact.js?v=23.3';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=23.3';
+import { nameOnPhoto } from './share.js?v=23.3';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=23.3';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -126,18 +126,18 @@ function showPanel() {
   const usersBtn = B('👥', 'Usuarios', 'Nombres, PIN, galleta / árbol / gnomo y sus días', root => VIEWS.users(root).then(() => usersBtn.querySelector('.adm-badge')?.remove()));
   store.listUsers().then(us => { const n = us.filter(pinNew).length; if (n) usersBtn.append(el('span', { class: 'adm-badge' }, `🔄 ${n} PIN ${n > 1 ? 'nuevos' : 'nuevo'}`)); }).catch(() => {});
   const btns = [
-    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=23.2').then(m => m.presenceAdmin(root))) : null,
-    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=23.2').then(m => m.surpriseAdmin(root))),
+    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=23.3').then(m => m.presenceAdmin(root))) : null,
+    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=23.3').then(m => m.surpriseAdmin(root))),
     B('🔑', 'Palabra secreta', 'Solo puede entrar quien la sabe (se pide una vez a cada uno)', root => VIEWS.family(root)),
-    B('❓', 'Preguntas sorpresa', 'Un popup con pregunta, explicación, foto y comentarios para quien tú elijas, el día y la hora que quieras', root => import('./qpop.js?v=23.2').then(m => m.popsAdmin(root))),
+    B('❓', 'Preguntas sorpresa', 'Un popup con pregunta, explicación, foto y comentarios para quien tú elijas, el día y la hora que quieras', root => import('./qpop.js?v=23.3').then(m => m.popsAdmin(root))),
     B('📨', 'Respuestas', 'Lo que han contestado y lo que tienes que corregir', root => VIEWS.answers(root)),
     usersBtn,
     B('📅', 'Contenido de los días', 'Lo que sale en cada casilla y las actividades 1 y 2', root => VIEWS.days(root)),
     owner ? B('👤', 'Mis datos de administradora', 'Tu correo y tus contraseñas (pulsa el ojo para verlas)', root => VIEWS.me(root)) : null,
-    B('🎁', 'Regalo sorpresa', 'La web que se abre con el botón «Regalo sorpresa» (días 24 y 25)', root => VIEWS.gift(root)),
+    B('🎁', 'Regalo de Nochebuena', 'La web (el Bingo) que se abre con el botón «Regalo de Nochebuena» del día 24', root => VIEWS.gift(root)),
     B('🎰', 'Máquina de regalos', 'Las 5 opciones de la tragaperras del día 25 (solo gnomos)', root => VIEWS.slot(root)),
     B('🏆', 'Premios y ajustes', 'Premios, abrir todas las casillas, modo prueba, contraseña…', root => VIEWS.general(root)),
-    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=23.2').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=23.3').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'adm-btn-ico' }, '📖'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos'))),
     el('button', { class: 'adm-btn', onclick: () => { document.querySelectorAll('.popup-back').forEach(x => x.remove()); celebrateStart(true); } },
       el('span', { class: 'adm-btn-ico' }, '🎆'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Probar la explosión del día 1'), el('small', {}, 'Cómo lo verán todos al entrar el 1 de diciembre (fuegos artificiales y «¡A empezar!»)'))),
@@ -147,7 +147,7 @@ function showPanel() {
   const ORD = 'adv_adm_order';
   const list = btns.filter(Boolean);
   list.forEach(b => { b.dataset.k = b.querySelector('b')?.textContent || ''; });
-  try { const ord = JSON.parse(localStorage.getItem(ORD) || '[]').map(k => (k === 'Palabra secreta de la familia' ? 'Palabra secreta' : k)); list.sort((a, b) => { const ia = ord.indexOf(a.dataset.k), ib = ord.indexOf(b.dataset.k); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); }); } catch {}
+  try { const ord = JSON.parse(localStorage.getItem(ORD) || '[]').map(k => (k === 'Palabra secreta de la familia' ? 'Palabra secreta' : k === 'Regalo sorpresa' ? 'Regalo de Nochebuena' : k)); list.sort((a, b) => { const ia = ord.indexOf(a.dataset.k), ib = ord.indexOf(b.dataset.k); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); }); } catch {}
   const menu = el('div', { class: 'adm-menu' }, ...list);
   let sorting = false;
   const sortBtn = el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay adm-sortbtn', onclick: () => {
@@ -213,7 +213,7 @@ async function loadAll(force) {
 const VIEWS = {
   // ---------------------------------------------------------------- Casilla 11 · Gnomos: los 3 premios del laberinto
   async maze11(root) {
-    const { mazePrizes } = await import('./maze.js?v=23.2');
+    const { mazePrizes } = await import('./maze.js?v=23.3');
     const cur = mazePrizes(S.config);
     const ins = cur.map((v, i) => el('input', { type: 'text', value: v, maxlength: 40, placeholder: i ? `Ej.: 2 o «una chocolatina»` : 'Ej.: 5 o «un abrazo»' }));
     const prev = el('p', { class: 'mz-adm-prev' });
@@ -253,7 +253,7 @@ const VIEWS = {
         } }, '🔓 Quitarla') : null)));
   },
   async slot(root) {
-    const { FX_TYPES, FX_DEFAULT, testFx, openSlot } = await import('./slot.js?v=23.2');
+    const { FX_TYPES, FX_DEFAULT, testFx, openSlot } = await import('./slot.js?v=23.3');
     const cur = S.config.slot?.opts || [], fx = S.config.slot?.fx || [];
     const rows = [0, 1, 2, 3, 4].map(i => {
       const inp = el('input', { type: 'text', placeholder: `Opción ${i + 1} (ej.: ¡Has ganado 2 Euros! - A canjear en el grupo familiar)`, value: cur[i] || '', maxlength: 120 });
@@ -287,8 +287,8 @@ const VIEWS = {
       catch (e) { toast('⚠️ ' + (e.code || e.message), 5000); }
     };
     root.replaceChildren(el('div', { class: 'card' },
-      el('p', {}, 'Escribe (o pega) la dirección de la web del regalo. El botón «🎁 Regalo sorpresa» sale en:'),
-      el('ul', {}, el('li', {}, 'Las actividades 1 y 2 del día 24 (árboles y gnomos).'), el('li', {}, 'Abajo del todo de la casilla 25 (allí, a los árboles y gnomos les sale «Regalo ya abierto»).'), el('li', {}, 'Al final del resumen del día 25.')),
+      el('p', {}, 'Escribe (o pega) la dirección de la web del regalo. El botón «🎁 Regalo de Nochebuena» sale:'),
+      el('ul', {}, el('li', {}, 'Abajo del todo del día 24, para todos (galletas, árboles y gnomos).'), el('li', {}, 'Una vez abierto pone «Regalo ya abierto · Tócalo para volver a verlo».'), el('li', {}, 'Antes de ir a la web, explica con dibujos cómo poner el Bingo en la pantalla de inicio, y se abre en Safari (iPhone) o Chrome (Android).')),
       url, state,
       el('div', { class: 'row' },
         el('button', { class: 'btn small-btn no-delay', onclick: () => { let v = url.value.trim(); if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v; url.value = v; save(v); } }, '💾 Guardar'),
@@ -815,7 +815,7 @@ async function resetDays(u, days) {
     await store.setSettings(u.uid, { resetAt: Date.now() }).catch(e => console.warn(e));
     if (u.uid === S.user.uid) {
       days.forEach(d => delete S.answers[d]);
-      (await import('./app.js?v=23.2')).applyReset(true);
+      (await import('./app.js?v=23.3')).applyReset(true);
     }
     toast(days.length === 1 ? `↺ Día ${days[0]} reiniciado` : `↺ ${days.length} días reiniciados`);
   } catch (e) { toast('Error: ' + (e.code || e.message), 6000); }

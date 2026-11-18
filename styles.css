@@ -2800,3 +2800,15 @@ html.gm-lock, html.gm-lock body { overflow: hidden; }
 .hg-when-row { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 14px; background: #eef7ff; border: 2px solid #cfe3f7; }
 .hg-when-ico { font-size: 24px; }
 .hg-when-keys i { font-style: normal; font-size: 24px; margin-left: 4px; }
+/* V23.3 – Regalo de Nochebuena: poner el Bingo en la pantalla de inicio */
+.gift-box-24 { margin-top: 22px; }
+.gift-install h2 { font-size: 26px; }
+.gi-sub { margin: 4px 0 10px; color: #5a3a1a; }
+.gi-tabs { display: flex; gap: 8px; justify-content: center; margin: 0 0 10px; }
+.gi-tab { padding: 7px 14px; border-radius: 999px; border: 2px solid #e8b64c; background: #fff; font-weight: 700; color: #7a1020; }
+.gi-tab.on { background: linear-gradient(#c8102e, #8f0c22); color: #fff; border-color: #8f0c22; }
+.gi-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.gi-step { position: relative; padding: 8px 6px 6px; border-radius: 16px; background: linear-gradient(#fff, #fff6e0); border: 2px solid #f1dfbd; box-shadow: 0 3px 10px #b8862b22; }
+.gi-step p { margin: 4px 0 0; font-size: 12.5px; line-height: 1.3; color: #4a2a10; }
+.gi-n { position: absolute; top: -8px; left: -6px; width: 28px; height: 28px; border-radius: 50%; background: #16803d; color: #fff; font-weight: 900; display: grid; place-items: center; box-shadow: 0 0 0 3px #fff, 0 2px 6px #0004; z-index: 1; }
+.gi-pic svg { display: block; width: 100%; max-width: 120px; height: auto; margin: 0 auto; }
