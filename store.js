@@ -1,5 +1,5 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js?v=23.3';
+import { firebaseConfig } from './firebase-config.js?v=23.4';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {

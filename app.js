@@ -1,16 +1,16 @@
-import { clearLocalGames } from './games25.js?v=23.3';
-import { initStore, store, DEMO, nameKey, isPlayerEmail, famKey } from './store.js?v=23.3';
-import { t, tx, setLang, getLang } from './i18n.js?v=23.3';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=23.3';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=23.3';
-import { typeRich, gallery, lightbox } from './richact.js?v=23.3';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=23.3';
+import { clearLocalGames } from './games25.js?v=23.4';
+import { initStore, store, DEMO, nameKey, isPlayerEmail, famKey } from './store.js?v=23.4';
+import { t, tx, setLang, getLang } from './i18n.js?v=23.4';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=23.4';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=23.4';
+import { typeRich, gallery, lightbox } from './richact.js?v=23.4';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=23.4';
 
-export const APP_VERSION = 'V23.3';
+export const APP_VERSION = 'V23.4';
 // (V23.2) Si la página carga este archivo con otro número (?v=…) — p. ej. porque en GitHub hay un index.html
 // de otra versión o el móvil tiene uno viejo guardado — NO se arranca dos veces (eso hacía que los botones se
 // pulsaran solos sin parar): se carga el archivo con el número bueno y esta copia se queda quieta.
-const CODE_V = 'v=23.3';
+const CODE_V = 'v=23.4';
 const FIRST = (() => {
   let ok = false;
   try { ok = ('v=' + (new URL(import.meta.url).searchParams.get('v') || '')) === CODE_V; } catch {}
@@ -70,7 +70,7 @@ export async function loadDay(n) {
   const def = defaultDay(n);
   const day = { ...def, ...(c || {}), type: def.type }; // el tipo de juego de cada día es fijo
   // lo que el administrador escribe en español se traduce solo al idioma elegido (si no lo ha escrito él)
-  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=23.3')).localizeDay(day, def, getLang()); } catch {} }
+  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=23.4')).localizeDay(day, def, getLang()); } catch {} }
   return day;
 }
 export function applyPaper(node) {
@@ -244,7 +244,7 @@ function splash(enter = async () => null, sessP = Promise.resolve([])) {
     nameIn.addEventListener('input', upd); pinIn.addEventListener('input', upd); upd();
     [nameIn, pinIn].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter' && !skip.disabled) skip.click(); }));
     const adminLink = el('button', { type: 'button', class: 'splash-admin no-delay', onclick: () => { unlockAudio(); finish('admin'); } }, '🔑 ' + L3('Soy la administradora', 'Soc l’administradora', 'I am the admin'));
-    const guideBtn = el('button', { type: 'button', class: 'splash-guide no-delay', onclick: () => { unlockAudio(); import('./help.js?v=23.3').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)); } },
+    const guideBtn = el('button', { type: 'button', class: 'splash-guide no-delay', onclick: () => { unlockAudio(); import('./help.js?v=23.4').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)); } },
       '📖 ' + L3('Cómo funciona', 'Com funciona', 'How it works'));
     const form = el('div', { class: 'splash-form' }, el('label', {}, '🎅 ' + ({ es: '¿Cómo te llamas?', ca: 'Com et dius?', en: 'What is your name?' }[getLang()] || '¿Cómo te llamas?')), nameIn, pinWrap, nameErr, skip, guideBtn, adminLink);
     // «i» en la esquina: bienvenida de Elisabeth y su correo
@@ -352,10 +352,10 @@ async function boot() {
     // la administradora entra también por aquí: su nombre + su PIN, y después su contraseña
     if (OWNER_NAMES.includes(nameKey(name))) {
       if (await sha256('adv-' + pin + '-nadal') !== OWNER_PIN) return nameTaken(name, true);
-      if (await store.authReady()) { try { (await import('./presence.js?v=23.3')).stopPresence(S); } catch {} await store.signOut().catch(() => {}); }
+      if (await store.authReady()) { try { (await import('./presence.js?v=23.4')).stopPresence(S); } catch {} await store.signOut().catch(() => {}); }
       return (await ownerPassword()) ? null : '🔒 ' + L('Escribe tu contraseña para entrar.', 'Escriu la teva contrasenya per entrar.', 'Type your password to sign in.');
     }
-    if (await store.authReady()) { try { (await import('./presence.js?v=23.3')).stopPresence(S); } catch {} await store.signOut(); }
+    if (await store.authReady()) { try { (await import('./presence.js?v=23.4')).stopPresence(S); } catch {} await store.signOut(); }
     let r;
     try { r = await store.playerEnter(name, nameKey(name), pin, getLang(), askFamily); }
     catch (er) {
@@ -412,10 +412,10 @@ async function boot() {
     const afterPin = () => setTimeout(startPopups, 500);
     if (!newPin) afterPin();
     if (newPin) { const p = newPin; newPin = ''; setTimeout(() => popup(`<h2>🎄 ${esc(S.profile.name)}</h2><p style="font-size:18px">${L3('Tu PIN es', 'El teu PIN és', 'Your PIN is')}</p><p class="pin-show">${esc(p)}</p><p>${L3('Este aparato ya te recuerda: a partir de ahora, aquí entrarás solo con tu nombre, sin escribir el PIN.', 'Aquest aparell ja et recorda: a partir d’ara, aquí entraràs només amb el teu nom, sense escriure el PIN.', 'This device now remembers you: from now on, here you will get in with just your name, without typing the PIN.')}</p><p><b>${L3('Guarda bien este PIN.', 'Guarda bé aquest PIN.', 'Keep this PIN safe.')}</b> ${L3('Si algún día entras desde otro móvil, una tableta o un ordenador, te lo pedirá para abrir tu calendario con todo lo que hayas hecho.', 'Si algun dia entres des d’un altre mòbil, una tauleta o un ordinador, te’l demanarà per obrir el teu calendari amb tot el que hagis fet.', 'If you ever use another phone, a tablet or a computer, you will need it to open your calendar with everything you have done.')}</p>`, { buttons: [{ label: 'OK', value: true }] }).then(afterPin), 600); }
-    import('./presence.js?v=23.3').then(m => m.startPresence(S)).catch(e => console.warn(e));
-    import('./admin.js?v=23.3').catch(() => {});
-    import('./surprise.js?v=23.3').then(m => m.showSurprise(u.uid)).catch(() => {});
-    import('./qpop.js?v=23.3').then(m => m.startPops()).catch(e => console.warn(e)); // preguntas sorpresa
+    import('./presence.js?v=23.4').then(m => m.startPresence(S)).catch(e => console.warn(e));
+    import('./admin.js?v=23.4').catch(() => {});
+    import('./surprise.js?v=23.4').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./qpop.js?v=23.4').then(m => m.startPops()).catch(e => console.warn(e)); // preguntas sorpresa
     startSettingsWatch(u.uid); // si la administradora cambia algo (casillas abiertas, figura…), se aplica sin volver a entrar
   });
 }
@@ -475,7 +475,7 @@ function renderLogin(mode = 'login') {
   // idioma, antes de entrar
   const langSel = el('div', { class: 'login-langs' }, ...[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([v, l]) =>
     el('button', { type: 'button', class: 'login-lang no-delay' + (v === getLang() ? ' on' : ''), onclick: () => { setLang(v); try { localStorage.setItem('adv_lang_pick', v); } catch {} renderLogin(mode); } }, l)));
-  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=23.3').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
+  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=23.4').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
     '📖 ' + ({ es: 'Cómo funciona', ca: 'Com funciona', en: 'How it works' }[getLang()] || 'Cómo funciona'));
   const submit = async e => {
     e.preventDefault(); errBox.textContent = ''; unlockAudio();
@@ -605,7 +605,7 @@ function glowConfetti(parent) {
 // texto escrito por la administradora: sale en español y se cambia por la traducción al idioma elegido
 function tEl(tag, cls, text) {
   const n = el(tag, { class: cls }, text || '');
-  if (text && getLang() !== 'es') import('./translate.js?v=23.3').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
+  if (text && getLang() !== 'es') import('./translate.js?v=23.4').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
   return n;
 }
 // el regalo: una caja que se abre y dentro el premio (texto, mensaje y foto que pone el administrador)
@@ -624,13 +624,13 @@ async function revealPrize(g) {
   const gift = box.querySelector('.pzr-gift');
   await new Promise(r => { gift.onclick = r; setTimeout(r, 9000); });
   gift.onclick = null; box.querySelector('.pzr-hint').textContent = '✨';
-  try { const { jingle } = await import('./sound.js?v=23.3'); jingle(1); } catch {}
+  try { const { jingle } = await import('./sound.js?v=23.4'); jingle(1); } catch {}
   gift.classList.add('shake'); await sleep(900); gift.classList.add('open'); chime(); confetti(220);
   await sleep(700);
   let photo = await photoP;
   // (V22.7) certificado: se escribe el nombre de la persona encima de la raya
   const named = !!photo && pf['n' + g] === '1' && !!S.profile?.name;
-  if (named) { try { const m = await import('./share.js?v=23.3'); photo = await m.nameOnPhoto(photo, S.profile.name, pf['y' + g]); } catch (e) { console.warn(e); } }
+  if (named) { try { const m = await import('./share.js?v=23.4'); photo = await m.nameOnPhoto(photo, S.profile.name, pf['y' + g]); } catch (e) { console.warn(e); } }
   markPrizeOpened(g);
   const close = () => { try { music?.stop(2); } catch {} stopFx(); back.classList.add('out'); setTimeout(() => back.remove(), 300); };
   const thanks = async () => {
@@ -644,7 +644,7 @@ async function revealPrize(g) {
         { label: '💾 ' + L3('Guardar', 'Guardar', 'Save'), value: 'save' },
         { label: '🚪 ' + L3('Salir', 'Sortir', 'Exit'), value: 'exit', cls: 'btn-ghost' }] });
     if (r === 'print' || r === 'save') {
-      const m = await import('./share.js?v=23.3');
+      const m = await import('./share.js?v=23.4');
       if (r === 'print') m.printImage(photo); else await m.saveImage(photo, (named ? 'certificado-' + S.profile.name : 'regalo-' + g).replace(/[^\p{L}\d-]+/gu, '_') + '.jpg');
       return;   // la caja del regalo sigue abierta: puede volver a pulsar «Gracias»
     }
@@ -863,7 +863,7 @@ export function renderHome() {
           el('button', { class: 'icon-btn', title: L3('Inicio', 'Inici', 'Start'), onclick: goStart }, '❄️'),
           sndBtn(),
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=23.3')).openAdmin() }, '🔒')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=23.4')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -1044,17 +1044,19 @@ async function openDoor(n, door, mode = null) {
     // juegos que se pueden repetir: se juegan de nuevo, pero la respuesta guardada (y los premios) no cambian
     if (ctx.prev && ['hats', 'reindeer', 'differences', 'memory', 'goodcheck'].includes(content.type)) { ctx.replay = true; ctx.prev = null; }
     if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze', 'colors', 'mastermind'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=23.3`)).render(body, ctx);
+    else (await import(`./${content.type}.js?v=23.4`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   // casilla 25: el regalo sorpresa abajo del todo (si el juego se vuelve a pintar, se vuelve a poner)
   // (V23.3) el regalo (Bingo) va abajo del todo del día 24, para todas las figuras; el 25 solo queda la máquina de los gnomos
   if (n === 24 || (n === 25 && figure() === 'gnomo')) {
     try {
       const gb = el('div', { class: n === 24 ? 'gift-box25 gift-box-24' : 'gift-box25' });
-      if (n === 24) { const { giftButton } = await import('./gift.js?v=23.3'); gb.append(giftButton()); }
-      else { const { slotButton } = await import('./slot.js?v=23.3'); gb.append(slotButton()); }
-      const keep = () => { if (!gb.isConnected && note.isConnected) body.append(gb); else if (gb !== body.lastElementChild && note.isConnected) body.append(gb); };
-      body.append(gb); new MutationObserver(() => { if (body.lastElementChild !== gb) keep(); }).observe(body, { childList: true });
+      if (n === 24) { const { giftButton } = await import('./gift.js?v=23.4'); gb.append(giftButton()); }
+      else { const { slotButton } = await import('./slot.js?v=23.4'); gb.append(slotButton()); }
+      // (V23.4) día 24: el regalo arriba del todo (que se vea bien); día 25: la máquina abajo del todo
+      const top = n === 24;
+      const keep = () => { if (!note.isConnected) return; if (top ? body.firstElementChild !== gb : body.lastElementChild !== gb) top ? body.prepend(gb) : body.append(gb); };
+      keep(); new MutationObserver(keep).observe(body, { childList: true });
     } catch (e) { console.warn(e); }
   }
   busy = false;
@@ -1123,7 +1125,7 @@ async function closeDay(n, layer, note, door, later = false) {
   // día 25 con la foto hecha: final del calendario con la bola de nieve que cobra vida
   // al acabar el día 25: el resumen de todo el mes
   let next = null;
-  if (!later && n === 25 && done) { try { next = await (await import('./summary.js?v=23.3')).monthSummary({ menu: menu25() }); fullView = true; } catch (e) { console.error(e); } }
+  if (!later && n === 25 && done) { try { next = await (await import('./summary.js?v=23.4')).monthSummary({ menu: menu25() }); fullView = true; } catch (e) { console.error(e); } }
   creak(false);
   layer.classList.add('fade-out');
   await sleep(700);
@@ -1138,7 +1140,7 @@ const allDone25 = () => Array.from({ length: 25 }, (_, i) => i + 1).every(d => S
 const menu25 = () => (S.answers[25] ? { act: figure() !== 'galleta' } : null);
 async function day25Menu() {
   let r = null;
-  try { r = await (await import('./summary.js?v=23.3')).monthSummary({ menu: menu25() }); } catch (e) { console.error(e); }
+  try { r = await (await import('./summary.js?v=23.4')).monthSummary({ menu: menu25() }); } catch (e) { console.error(e); }
   if (r) go25(r);
 }
 async function go25(r) {
@@ -1338,7 +1340,7 @@ async function showActivity(n, layer, simple = false) {
   crumpleSound();
   let choice = null; const decided = new Promise(r => { btn.onclick = () => r('done'); later.onclick = () => { choice = 'later'; r('later'); }; });
   // algunos días tienen una actividad especial interactiva (día 23: regalos; día 24: el regalo de Papá Noel)
-  const sp = await import('./acts.js?v=23.3').then(m => m.special(n, key)).catch(() => null);
+  const sp = await import('./acts.js?v=23.4').then(m => m.special(n, key)).catch(() => null);
   if (!simple) await withTimeout(crumpleAnim(note, false), 3500);
   // la nota tiene que verse siempre, pase lo que pase con la animación
   clearCrumples(); note.style.visibility = ''; note.style.opacity = '';
@@ -1468,7 +1470,7 @@ function openUserSettings() {
   }));
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=23.3').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=23.4').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('div', { class: 'pick-label' }, t('paper')), paperGrid,
@@ -1506,7 +1508,7 @@ function pwField(ph) {
 
 // jugadores: su nombre y su PIN (se puede ver y cambiar)
 function pinSection() {
-  const logout = el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=23.3')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong'));
+  const logout = el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=23.4')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong'));
   const pin = String(S.profile?.pin || '');
   const dots = el('b', { class: 'dots' }, '••••');
   const eye = el('button', { type: 'button', class: 'btn btn-ghost small-btn', onclick: () => { const h = dots.textContent === '••••'; dots.textContent = h ? (pin || '—') : '••••'; eye.textContent = h ? '🙈' : '👁️'; } }, '👁️');
@@ -1545,7 +1547,7 @@ function accountSection() {
         try { await store.resetPassword(S.user.email); toast('📧 ' + L3('Correo enviado. Mira también en «Spam».', 'Correu enviat. Mira també a «Spam».', 'Email sent. Check spam too.'), 6000); } catch (er) { toast('⚠️ ' + (er.code || er.message), 6000); }
       } }, t('changePw'))),
     form.remove() || null,
-    el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=23.3')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong')));
+    el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=23.4')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong')));
 }
 
 // modo demo: no se pueden mandar correos, así que se pone una contraseña nueva aquí mismo

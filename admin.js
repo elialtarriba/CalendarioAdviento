@@ -1,12 +1,12 @@
 // Configuración de la administradora (protegida con contraseña)
-import { store, DEMO } from './store.js?v=23.3';
-import { t, tx } from './i18n.js?v=23.3';
-import { el, popup, toast, esc, searchBox } from './fx.js?v=23.3';
-import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode, celebrateStart } from './app.js?v=23.3';
-import { openActEditor, plain, shrink } from './richact.js?v=23.3';
-import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=23.3';
-import { nameOnPhoto } from './share.js?v=23.3';
-import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=23.3';
+import { store, DEMO } from './store.js?v=23.4';
+import { t, tx } from './i18n.js?v=23.4';
+import { el, popup, toast, esc, searchBox } from './fx.js?v=23.4';
+import { S, renderHome, loadDayRaw as loadDay, testMode, setTestMode, celebrateStart } from './app.js?v=23.4';
+import { openActEditor, plain, shrink } from './richact.js?v=23.4';
+import { R_COLS, DEFAULT_R_NOTE } from './roulette.js?v=23.4';
+import { nameOnPhoto } from './share.js?v=23.4';
+import { defaultDay, MARQUEE_DEFAULT, MARQUEE_COLORS, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=23.4';
 
 const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 'Árbol de Navidad (+ actividad 1)'], ['gnomo', 'Gnomo (+ actividad 2)']];
 export const OWNER_EMAIL = 'elialtarriba@gmail.com';
@@ -126,10 +126,10 @@ function showPanel() {
   const usersBtn = B('👥', 'Usuarios', 'Nombres, PIN, galleta / árbol / gnomo y sus días', root => VIEWS.users(root).then(() => usersBtn.querySelector('.adm-badge')?.remove()));
   store.listUsers().then(us => { const n = us.filter(pinNew).length; if (n) usersBtn.append(el('span', { class: 'adm-badge' }, `🔄 ${n} PIN ${n > 1 ? 'nuevos' : 'nuevo'}`)); }).catch(() => {});
   const btns = [
-    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=23.3').then(m => m.presenceAdmin(root))) : null,
-    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=23.3').then(m => m.surpriseAdmin(root))),
+    owner ? B('🟢', 'Quién está en la app', 'Solo para ti: quién ha entrado, quién está dentro ahora y sacar a quien la deje abierta', root => import('./presence.js?v=23.4').then(m => m.presenceAdmin(root))) : null,
+    B('💌', 'Mensajes sorpresa', 'Un popup para quien tú quieras, el día que quieras', root => import('./surprise.js?v=23.4').then(m => m.surpriseAdmin(root))),
     B('🔑', 'Palabra secreta', 'Solo puede entrar quien la sabe (se pide una vez a cada uno)', root => VIEWS.family(root)),
-    B('❓', 'Preguntas sorpresa', 'Un popup con pregunta, explicación, foto y comentarios para quien tú elijas, el día y la hora que quieras', root => import('./qpop.js?v=23.3').then(m => m.popsAdmin(root))),
+    B('❓', 'Preguntas sorpresa', 'Un popup con pregunta, explicación, foto y comentarios para quien tú elijas, el día y la hora que quieras', root => import('./qpop.js?v=23.4').then(m => m.popsAdmin(root))),
     B('📨', 'Respuestas', 'Lo que han contestado y lo que tienes que corregir', root => VIEWS.answers(root)),
     usersBtn,
     B('📅', 'Contenido de los días', 'Lo que sale en cada casilla y las actividades 1 y 2', root => VIEWS.days(root)),
@@ -137,7 +137,7 @@ function showPanel() {
     B('🎁', 'Regalo de Nochebuena', 'La web (el Bingo) que se abre con el botón «Regalo de Nochebuena» del día 24', root => VIEWS.gift(root)),
     B('🎰', 'Máquina de regalos', 'Las 5 opciones de la tragaperras del día 25 (solo gnomos)', root => VIEWS.slot(root)),
     B('🏆', 'Premios y ajustes', 'Premios, abrir todas las casillas, modo prueba, contraseña…', root => VIEWS.general(root)),
-    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=23.3').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { class: 'adm-btn', onclick: () => import('./help.js?v=23.4').then(m => m.openHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'adm-btn-ico' }, '📖'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos'))),
     el('button', { class: 'adm-btn', onclick: () => { document.querySelectorAll('.popup-back').forEach(x => x.remove()); celebrateStart(true); } },
       el('span', { class: 'adm-btn-ico' }, '🎆'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Probar la explosión del día 1'), el('small', {}, 'Cómo lo verán todos al entrar el 1 de diciembre (fuegos artificiales y «¡A empezar!»)'))),
@@ -213,7 +213,7 @@ async function loadAll(force) {
 const VIEWS = {
   // ---------------------------------------------------------------- Casilla 11 · Gnomos: los 3 premios del laberinto
   async maze11(root) {
-    const { mazePrizes } = await import('./maze.js?v=23.3');
+    const { mazePrizes } = await import('./maze.js?v=23.4');
     const cur = mazePrizes(S.config);
     const ins = cur.map((v, i) => el('input', { type: 'text', value: v, maxlength: 40, placeholder: i ? `Ej.: 2 o «una chocolatina»` : 'Ej.: 5 o «un abrazo»' }));
     const prev = el('p', { class: 'mz-adm-prev' });
@@ -253,7 +253,7 @@ const VIEWS = {
         } }, '🔓 Quitarla') : null)));
   },
   async slot(root) {
-    const { FX_TYPES, FX_DEFAULT, testFx, openSlot } = await import('./slot.js?v=23.3');
+    const { FX_TYPES, FX_DEFAULT, testFx, openSlot } = await import('./slot.js?v=23.4');
     const cur = S.config.slot?.opts || [], fx = S.config.slot?.fx || [];
     const rows = [0, 1, 2, 3, 4].map(i => {
       const inp = el('input', { type: 'text', placeholder: `Opción ${i + 1} (ej.: ¡Has ganado 2 Euros! - A canjear en el grupo familiar)`, value: cur[i] || '', maxlength: 120 });
@@ -815,7 +815,7 @@ async function resetDays(u, days) {
     await store.setSettings(u.uid, { resetAt: Date.now() }).catch(e => console.warn(e));
     if (u.uid === S.user.uid) {
       days.forEach(d => delete S.answers[d]);
-      (await import('./app.js?v=23.3')).applyReset(true);
+      (await import('./app.js?v=23.4')).applyReset(true);
     }
     toast(days.length === 1 ? `↺ Día ${days[0]} reiniciado` : `↺ ${days.length} días reiniciados`);
   } catch (e) { toast('Error: ' + (e.code || e.message), 6000); }
