@@ -205,7 +205,31 @@ async function firebaseApi() {
     saveSurprise: async (uid, id, data) => { const r = id ? d('surprises', uid, 'msgs', id) : F.doc(F.collection(db, 'surprises', uid, 'msgs')); await F.setDoc(r, { ...data, at: Date.now() }); return r.id; },
     setSurpriseActive: (uid, id, active) => F.updateDoc(d('surprises', uid, 'msgs', id), { active }),
     deleteSurprise: (uid, id) => F.deleteDoc(d('surprises', uid, 'msgs', id)),
+
+    // (V24) juego de los gnomos: gnome/{cfg,players,sched,adj} · gq/{id} pregunta · gqk/{id} respuesta (solo admin) · ga/{id} respuestas · gimg/{id} fotos de premios
+    // si Firebase no deja leer, devuelve { __denied: true } (p. ej. una pregunta que aún no ha salido)
+    gDoc: async (col, id) => {
+      try { const s = await F.getDoc(d(col, id)); return s.exists() ? tsToMs(s.data()) : null; }
+      catch (e) { if (e.code === 'permission-denied') return { __denied: true }; throw e; }
+    },
+    gPut: (col, id, data, merge = false) => F.setDoc(d(col, id), msToTs(data, F), { merge }),
+    gDel: (col, id) => F.deleteDoc(d(col, id)),
+    // la hora de la respuesta la pone el servidor de Firebase (así nadie hace trampas con el reloj del móvil)
+    gAnswer: (q, uid, a) => F.setDoc(d('ga', q), { [uid]: { ...a, at: F.serverTimestamp() } }, { merge: true }),
+    gSteal: (q, by, to) => F.setDoc(d('ga', q), { steal: { by, to, at: Date.now() } }, { merge: true }),
   };
+}
+// (V24) fechas de Firebase (Timestamp) ↔ milisegundos
+function tsToMs(o) {
+  if (o && typeof o.toMillis === 'function') return o.toMillis();
+  if (Array.isArray(o)) return o.map(tsToMs);
+  if (o && typeof o === 'object') { const r = {}; for (const k in o) r[k] = tsToMs(o[k]); return r; }
+  return o;
+}
+function msToTs(o, F) {
+  const r = { ...o };
+  ['atTs', 'untilTs'].forEach(k => { if (typeof r[k] === 'number') r[k] = F.Timestamp.fromMillis(r[k]); });
+  return r;
 }
 
 // ---------------------------------------------------------------- DEMO
@@ -332,7 +356,19 @@ function demoApi() {
     saveSurprise: async (uid, id, data) => { const s = ld('surprises', {}); id = id || 's' + Date.now() + Math.random().toString(36).slice(2, 6); (s[uid] = s[uid] || {})[id] = { ...data, at: Date.now() }; sv('surprises', s); return id; },
     setSurpriseActive: async (uid, id, active) => { const s = ld('surprises', {}); if (s[uid]?.[id]) s[uid][id].active = active; sv('surprises', s); },
     deleteSurprise: async (uid, id) => { const s = ld('surprises', {}); if (s[uid]) delete s[uid][id]; sv('surprises', s); },
+    // (V24) juego de los gnomos (modo demo: todo en este navegador)
+    gDoc: async (col, id) => ld('g_' + col, {})[id] ?? null,
+    gPut: async (col, id, data, merge = false) => { const c = ld('g_' + col, {}); c[id] = merge ? deepMerge(c[id] || {}, data) : data; sv('g_' + col, c); },
+    gDel: async (col, id) => { const c = ld('g_' + col, {}); delete c[id]; sv('g_' + col, c); },
+    gAnswer: async (q, uid, a) => { const c = ld('g_ga', {}); c[q] = { ...(c[q] || {}) }; if (c[q][uid]) throw err('permission-denied'); c[q][uid] = { ...a, at: Date.now() }; sv('g_ga', c); },
+    gSteal: async (q, by, to) => { const c = ld('g_ga', {}); c[q] = { ...(c[q] || {}) }; if (c[q].steal) throw err('permission-denied'); c[q].steal = { by, to, at: Date.now() }; sv('g_ga', c); },
   };
+}
+
+function deepMerge(a, b) {
+  const r = { ...a };
+  for (const k in b) r[k] = b[k] && typeof b[k] === 'object' && !Array.isArray(b[k]) && a[k] && typeof a[k] === 'object' ? deepMerge(a[k], b[k]) : b[k];
+  return r;
 }
 
 export async function initStore() {

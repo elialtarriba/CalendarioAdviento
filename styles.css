@@ -2841,3 +2841,177 @@ html.gm-lock, html.gm-lock body { overflow: hidden; }
 @keyframes d4X { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 1; } 40% { transform: translate(-50%, -50%) scale(1.25) rotate(-8deg); } 100% { transform: translate(-50%, -50%) scale(1) rotate(8deg); opacity: 0; } }
 @media (max-width: 420px) { .g23-names { gap: 5px; } .g23-name { padding: 6px 10px; font-size: 13.5px; } }
 @media (max-height: 760px) { .g23-pop .g23-pic { width: 120px; height: 106px; margin-top: 2px; } .g23-card h2 { font-size: 21px !important; } }
+
+/* ================================================================ (V24) 🍄 JUEGO DE LOS GNOMOS */
+.gn-name { font-family: 'Great Vibes', cursive; font-weight: 400; color: #f6d27a; text-shadow: 0 1px 0 #7a4b06, 0 0 10px #ffd86a88; letter-spacing: .5px; }
+/* botón del calendario */
+.gn-fab { position: fixed; z-index: 40; left: 12px; bottom: max(14px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 5px; padding: 6px 13px 6px 8px; border-radius: 999px;
+  border: 2px solid #e8b64c; background: linear-gradient(#1f8a4c, #0d4a28); color: #fff6d6; font: 800 14px var(--font-ui); box-shadow: 0 3px 0 #06301a, 0 6px 12px #0005; }
+.gn-fab-ico { font-size: 20px; line-height: 1; } .gn-fab-crown { position: absolute; top: -14px; left: 4px; font-size: 18px; transform: rotate(-15deg); }
+.gn-fab:active { transform: translateY(2px); box-shadow: 0 1px 0 #06301a; }
+.gn-fab.pending { background: linear-gradient(#e63946, #8a0d22); box-shadow: 0 3px 0 #5a0614, 0 0 0 0 #ffd166; animation: gnPulse 1.2s infinite; }
+@keyframes gnPulse { 0% { box-shadow: 0 3px 0 #5a0614, 0 0 0 0 #ffd166cc; } 70% { box-shadow: 0 3px 0 #5a0614, 0 0 0 16px #ffd16600; } 100% { box-shadow: 0 3px 0 #5a0614, 0 0 0 0 #ffd16600; } }
+body.full-view .gn-fab { bottom: calc(var(--fv-strip, 0px) + 10px); z-index: 32; }
+
+/* pantalla del marcador */
+.gn-wrap { position: fixed; inset: 0; z-index: 150; overflow-y: auto; -webkit-overflow-scrolling: touch; color: #fff8e7;
+  background: radial-gradient(ellipse at top, #1d5a3a 0%, #0d2f1f 45%, #2a0810 100%); padding: env(safe-area-inset-top) 0 calc(30px + env(safe-area-inset-bottom)); animation: fadeIn .3s; }
+.gn-snow { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.gn-snow i, .gn-goldsnow i { position: absolute; top: -20px; left: calc(var(--x) * 1%); width: var(--s); height: var(--s); border-radius: 50%; background: #fff; opacity: .7; animation: gnFall var(--d) linear var(--dl) infinite; }
+@keyframes gnFall { to { transform: translate(30px, 110vh) rotate(360deg); } }
+.gn-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: center; padding: 12px 52px; background: linear-gradient(#0d2f1f, #0d2f1ff0 75%, #0d2f1f00); }
+.gn-head h1 { margin: 0; font: 700 clamp(26px, 7vw, 40px)/1.1 'Mountains of Christmas', cursive; color: #ffe39a; text-shadow: 0 2px 0 #7a1020, 0 0 16px #ffd16677; text-align: center; }
+.gn-x { position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; border-radius: 50%; border: 2px solid #e8b64c; background: #7a1020; color: #fff; font-size: 18px; }
+.gn-body { position: relative; z-index: 2; max-width: 760px; margin: 0 auto; padding: 0 14px; display: flex; flex-direction: column; gap: 16px; }
+.gn-err { text-align: center; font-size: 18px; padding: 40px 10px; }
+.gn-qbanner { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px; border-radius: 18px; border: 3px solid #ffd166; color: #fff; font: 800 18px var(--font-ui);
+  background: linear-gradient(120deg, #c8102e, #e63946, #c8102e); background-size: 200% 100%; animation: gnShine 2s linear infinite, gnPulse 1.2s infinite; }
+.gn-qbanner small { font-weight: 600; opacity: .9; }
+@keyframes gnShine { to { background-position: -200% 0; } }
+.gn-qinfo { text-align: center; padding: 10px; border-radius: 14px; background: #ffffff14; }
+/* Gran premio: estrellas */
+.gn-grand { text-align: center; padding: 14px 8px 18px; border-radius: 24px; background: radial-gradient(ellipse at top, #ffe39a33, #0000 70%), #0a2416aa; border: 2px solid #e8b64c66; }
+.gn-grand-title { font: 700 clamp(26px, 7vw, 36px) 'Mountains of Christmas', cursive; color: #ffd86a; text-shadow: 0 0 14px #ffd86a99; animation: gnGlow 2.4s ease-in-out infinite; }
+@keyframes gnGlow { 50% { text-shadow: 0 0 26px #ffe9a8, 0 0 6px #fff; } }
+.gn-grand-sub { margin: 2px 0 12px; opacity: .95; font-style: italic; }
+.gn-tree { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 10px; }
+.gn-star { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 150px; background: none; border: 0; color: #fff8e7; padding: 0; }
+.gn-star-shape { position: relative; width: 120px; height: 120px; display: grid; place-items: center;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  background: linear-gradient(135deg, #fff3c4, #e8b64c 45%, #b07a12); animation: gnStar 3s ease-in-out infinite; filter: drop-shadow(0 0 10px #ffd86a); }
+.gn-star-pic { width: 86%; height: 86%; clip-path: inherit; background: #7a1020 center/cover no-repeat; display: grid; place-items: center; }
+.gn-star-pic:not(.has-img)::after { content: '🎁'; font-size: 34px; }
+@keyframes gnStar { 50% { transform: scale(1.06) rotate(3deg); } }
+.gn-star b.gn-name { font-size: 24px; }
+.gn-star small { font-size: 12.5px; line-height: 1.2; opacity: .95; }
+.gn-star.won .gn-star-shape { animation: gnStar 1s ease-in-out infinite; filter: drop-shadow(0 0 24px #fff1a8); }
+.gn-star.lost { opacity: .45; filter: grayscale(.6); }
+/* tarjetas */
+.gn-cards { display: flex; flex-direction: column; gap: 16px; }
+.gn-card { position: relative; padding: 16px 16px 12px; border-radius: 22px; color: #3b2412;
+  background: radial-gradient(circle at 15% 0%, #ffffff, #fff8e7 40%, #f3dfb6); border: 3px solid #c8102e;
+  box-shadow: 0 0 0 4px #1f6b45, 0 0 0 6px #e8b64c, 0 10px 24px #0007; animation: gnIn .6s cubic-bezier(.2,1.4,.4,1) var(--d) both; }
+@keyframes gnIn { from { opacity: 0; transform: translateY(30px) scale(.9); } }
+.gn-card.lead { box-shadow: 0 0 0 4px #1f6b45, 0 0 0 6px #ffd86a, 0 0 30px 8px #ffd86a88, 0 10px 24px #0007; }
+.gn-card.mine::after { content: '★'; position: absolute; right: 14px; bottom: 8px; color: #e8b64c; font-size: 18px; }
+.gn-holly { position: absolute; top: -12px; width: 46px; height: 30px; pointer-events: none; }
+.gn-holly.l { left: -10px; } .gn-holly.r { right: -10px; transform: scaleX(-1); }
+.gn-holly::before { content: ''; position: absolute; inset: 0; background:
+  radial-gradient(circle at 28px 18px, #e63946 5px, #0000 6px), radial-gradient(circle at 36px 14px, #c8102e 5px, #0000 6px), radial-gradient(circle at 34px 23px, #e63946 4.5px, #0000 5.5px),
+  radial-gradient(ellipse 13px 7px at 14px 14px, #1f8a4c 90%, #0000), radial-gradient(ellipse 12px 6px at 22px 26px, #17663a 90%, #0000); }
+.gn-crown { position: absolute; top: -26px; left: 50%; transform: translateX(-50%) rotate(-6deg); font-size: 34px; filter: drop-shadow(0 0 8px #ffd86a); animation: gnBob 2s ease-in-out infinite; }
+@keyframes gnBob { 50% { transform: translateX(-50%) translateY(-5px) rotate(6deg); } }
+.gn-card-top { display: flex; align-items: center; gap: 10px; }
+.gn-pos { font-size: 26px; min-width: 34px; text-align: center; font-weight: 800; color: #7a1020; }
+.gn-card .gn-name { flex: 1; font-size: clamp(32px, 9vw, 44px); line-height: 1.1; color: #b07a12; text-shadow: 0 1px 0 #fff, 0 2px 4px #b07a1255; overflow-wrap: anywhere; }
+.gn-ball { position: relative; width: 74px; height: 74px; flex: 0 0 auto; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff;
+  background: radial-gradient(circle at 32% 28%, #ff9aa5, #e63946 35%, #8a0d22 80%); box-shadow: inset -6px -8px 14px #0004, 0 6px 12px #0005; margin-top: 8px; animation: gnSwing 3s ease-in-out infinite; transform-origin: 50% -10px; }
+.gn-ball b { font: 800 28px/1 var(--font-ui); text-shadow: 0 2px 2px #0005; } .gn-ball small { font-size: 11px; font-weight: 700; opacity: .9; }
+.gn-ball-cap { position: absolute; top: -9px; left: 50%; width: 18px; height: 11px; transform: translateX(-50%); border-radius: 3px 3px 2px 2px; background: linear-gradient(90deg, #8a6408, #ffe39a, #8a6408); }
+@keyframes gnSwing { 50% { transform: rotate(6deg); } }
+.gn-mini-ball { display: inline-grid; place-items: center; min-width: 38px; height: 38px; padding: 0 6px; border-radius: 50%; color: #fff; font-weight: 800; background: radial-gradient(circle at 32% 28%, #ff9aa5, #e63946 35%, #8a0d22 80%); }
+/* camino de bastón de caramelo */
+.gn-path { position: relative; margin: 30px 18px 18px; height: 52px; }
+.gn-cane { position: absolute; left: 0; right: 0; top: 18px; height: 16px; border-radius: 999px; background: #e9dcc2; box-shadow: inset 0 2px 4px #0003; overflow: hidden; }
+.gn-cane-fill { height: 100%; border-radius: 999px; transition: width 1.2s cubic-bezier(.2,1,.3,1);
+  background: repeating-linear-gradient(-45deg, #e63946 0 10px, #fff 10px 20px); box-shadow: 0 0 10px #ffd86a; animation: gnCane 1.5s linear infinite; background-size: 28.28px 28.28px; }
+@keyframes gnCane { to { background-position: 28.28px 0; } }
+.gn-gift { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: 0; padding: 0; color: #7a1020; font-weight: 800; }
+.gn-gift-pic { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; font-size: 26px; background: #fff center/cover no-repeat; border: 3px solid #c8102e; box-shadow: 0 3px 8px #0004; filter: grayscale(.7) brightness(.9); }
+.gn-gift.on .gn-gift-pic { filter: none; border-color: #e8b64c; box-shadow: 0 0 14px #ffd86a, 0 3px 8px #0004; animation: gnStar 2s ease-in-out infinite; }
+.gn-gift.on .gn-gift-pic:not(.has-img)::after { content: '✅'; font-size: 22px; }
+.gn-gift small { font-size: 12px; }
+.gn-next { margin: 4px 0 8px; text-align: center; font-weight: 700; color: #1f6b45; }
+.gn-prizes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.gn-prize { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 14px; border: 2px solid #e8b64c88; background: #fff; text-align: left; color: #3b2412; }
+.gn-prize.on { border-color: #1f8a4c; background: #eafff1; }
+.gn-pthumb { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 10px; display: grid; place-items: center; font-size: 24px; background: #f6e7c8 center/cover no-repeat; }
+.gn-ptxt { display: flex; flex-direction: column; min-width: 0; } .gn-ptxt small { font-size: 12px; line-height: 1.2; overflow-wrap: anywhere; }
+.gn-hist-btn, .gn-rules-btn { margin: 10px auto 0; display: block; border: 0; background: none; color: #7a1020; font-weight: 700; text-decoration: underline; }
+.gn-rules-btn { color: #ffe39a; font-size: 16px; }
+/* podio */
+.gn-podium { display: flex; align-items: flex-end; justify-content: center; gap: 8px; padding-top: 10px; }
+.gn-step { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 31%; max-width: 160px; padding: 8px 4px; border-radius: 14px 14px 4px 4px; background: linear-gradient(#e8b64c, #b07a12); color: #3b2412; box-shadow: 0 6px 14px #0006; }
+.gn-step.s1 { order: 2; min-height: 150px; } .gn-step.s2 { order: 1; min-height: 115px; background: linear-gradient(#e8e8f0, #a5a8b8); } .gn-step.s3 { order: 3; min-height: 92px; background: linear-gradient(#f0b98a, #a8642e); }
+.gn-step .gn-name { font-size: 26px; color: #fff; text-shadow: 0 2px 3px #0007; } .gn-medal { font-size: 30px; }
+.gn-step.win { box-shadow: 0 0 30px #ffd86a, 0 6px 14px #0006; }
+/* popups */
+.gn-qcard .gn-qgnome { position: absolute; right: -6px; top: -20px; width: 64px; transform: rotate(10deg); filter: drop-shadow(0 4px 6px #0005); animation: gnBob 2s ease-in-out infinite; }
+.gn-rule { margin: 0 0 6px; font-weight: 700; color: #7a1020; }
+.gn-play { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.gn-input { font-size: 20px; padding: 12px 16px; border-radius: 14px; border: 3px solid #e8b64c; text-align: center; }
+.aq-fb.gn-big { font-size: 20px; }
+.gn-after { margin-top: 10px; display: flex; justify-content: center; }
+.gn-stealbox { text-align: center; } .gn-devil { font-size: 60px; animation: gnBob 1.4s ease-in-out infinite; display: inline-block; }
+.gn-steal { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 12px; }
+.gn-victim { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 18px; border: 3px solid #e8b64c; background: linear-gradient(#1f6b45, #0d4a28); box-shadow: 0 4px 0 #06301a; }
+.gn-victim .gn-name { font-size: 30px; } .gn-victim:active { transform: translateY(3px); box-shadow: 0 1px 0 #06301a; }
+.gn-ppop { text-align: center; } .gn-plabel { font-weight: 700; color: #7a1020; } .gn-plabel .gn-name { font-size: 28px; color: #b07a12; text-shadow: none; }
+.gn-pdesc { font-style: italic; margin: 8px 0 0; } .gn-pstate { font-weight: 800; font-size: 18px; margin: 8px 0 0; }
+.gn-pola { display: inline-flex; flex-direction: column; gap: 8px; width: min(280px, 78vw); padding: 12px 12px 14px; margin: 10px auto 0; background: #fffdf6; border-radius: 6px; color: #3b2412;
+  border: 4px solid #e8b64c; box-shadow: 0 0 0 3px #b07a12, 0 14px 30px #0008; transform: rotate(-2deg); }
+.gn-pola img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 3px; cursor: zoom-in; }
+.gn-pola-empty { width: 100%; aspect-ratio: 1; display: grid; place-items: center; font-size: 90px; background: #f6e7c8; }
+.gn-pola b { font: 700 22px 'Mountains of Christmas', cursive; }
+.gn-pola.grand { border-color: #ffd86a; box-shadow: 0 0 0 3px #b07a12, 0 0 40px #ffd86a, 0 14px 30px #0008; }
+.gn-histbox h2 .gn-name { font-size: 34px; color: #b07a12; text-shadow: none; }
+.gn-hist { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.gn-hrow { display: grid; grid-template-columns: 44px 1fr auto auto; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 12px; background: #fff; }
+.gn-hrow > b { font-size: 18px; text-align: center; } .gn-hrow.plus > b { color: #1f8a4c; } .gn-hrow.minus > b { color: #c8102e; } .gn-hrow small { opacity: .7; font-size: 11.5px; }
+.gn-rulesbox { text-align: left; } .gn-rulesbox li { margin: 6px 0; }
+/* regalo conseguido */
+.gn-unlock, .gn-final { position: fixed; inset: 0; z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; overflow-y: auto; padding: 20px;
+  background: radial-gradient(ellipse at center, #3a0a14f0, #050d08fa); color: #fff8e7; text-align: center; animation: fadeIn .5s; transition: opacity .5s; }
+.gn-unlock { justify-content: flex-start; gap: 0; }
+.gn-final { justify-content: safe center; }
+.gn-unlock.out, .gn-final.out { opacity: 0; }
+.gn-goldsnow { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.gn-goldsnow i { background: radial-gradient(circle, #fff6c8, #ffd86a 60%, #0000 70%); opacity: 1; }
+.gn-box { position: relative; flex: 0 0 auto; width: 170px; height: 170px; margin-top: clamp(250px, 36vh, 330px); }
+.gn-box-body { position: absolute; left: 10px; right: 10px; bottom: 0; height: 120px; border-radius: 8px; background: linear-gradient(90deg, #0000 42%, #ffd86a 42% 58%, #0000 58%), linear-gradient(#e63946, #8a0d22); box-shadow: 0 10px 30px #0008; }
+.gn-box-lid { position: absolute; left: 0; right: 0; top: 30px; height: 36px; border-radius: 8px; z-index: 2; background: linear-gradient(90deg, #0000 42%, #ffd86a 42% 58%, #0000 58%), linear-gradient(#ff5a67, #c8102e); box-shadow: 0 4px 8px #0006; transition: transform .8s cubic-bezier(.3,1.5,.5,1), opacity .8s; animation: gnShake .5s ease-in-out infinite; }
+@keyframes gnShake { 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+.gn-bow { position: absolute; left: 50%; top: -30px; width: 80px; height: 34px; transform: translateX(-50%); transition: transform .8s, opacity .8s; }
+.gn-bow i { position: absolute; top: 0; width: 38px; height: 30px; border: 7px solid #ffd86a; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; }
+.gn-bow i:first-child { left: 0; transform: rotate(-20deg); } .gn-bow i:last-child { right: 0; transform: rotate(20deg); }
+.gn-unlock.untie .gn-bow { transform: translateX(-50%) translateY(-60px) scale(1.6) rotate(40deg); opacity: 0; }
+.gn-unlock.untie .gn-box-lid { animation: none; }
+.gn-unlock.open .gn-box-lid { transform: translate(120px, -160px) rotate(60deg); opacity: 0; }
+.gn-pola-fly { position: absolute; left: 50%; bottom: 40px; z-index: 1; width: min(240px, 66vw); opacity: 0; transform: translateX(-50%) scale(.2); }
+.gn-unlock.open .gn-pola-fly { animation: gnFly 1.6s cubic-bezier(.2,1.2,.4,1) forwards; }
+@keyframes gnFly { 0% { opacity: 0; transform: translateX(-50%) translateY(0) scale(.2) rotateY(0); } 30% { opacity: 1; }
+  100% { opacity: 1; transform: translateX(-50%) translateY(-10px) scale(1) rotateY(720deg) rotate(-3deg); } }
+.gn-unlock.done .gn-box-body { opacity: .25; transition: opacity 1s; }
+.gn-unlock-txt { opacity: 0; transform: translateY(20px); transition: all .8s; margin-top: 18px; padding-bottom: 20px; }
+.gn-unlock.done .gn-unlock-txt { opacity: 1; transform: none; }
+.gn-unlock-txt h2, .gn-final h2 { font: 700 clamp(28px, 8vw, 44px)/1.15 'Mountains of Christmas', cursive; color: #ffe39a; margin: 0 0 6px; text-shadow: 0 0 18px #ffd86a99; }
+.gn-unlock-txt h2 .gn-name, .gn-final h2 .gn-name { font-size: 1.25em; }
+/* final */
+.gn-bigstar { font-size: 160px; filter: drop-shadow(0 0 40px #ffd86a); animation: gnStar 1s ease-in-out infinite; transition: transform .6s, opacity .6s; }
+.gn-final.boom .gn-bigstar { transform: scale(4); opacity: 0; }
+.gn-final-in { display: none; flex-direction: column; align-items: center; gap: 10px; animation: gnIn .8s cubic-bezier(.2,1.4,.4,1) both; }
+.gn-final.show .gn-final-in { display: flex; } .gn-final.show .gn-bigstar { display: none; }
+.gn-final .gn-podium { width: min(420px, 92vw); }
+/* administradora */
+.gn-adm-players { margin: 0 0 10px; } .gn-adm-players .gn-name { font-size: 24px; margin: 0 6px; color: #b07a12; text-shadow: none; }
+.gn-seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.gn-seg button { flex: 1; min-width: 110px; padding: 10px; border-radius: 999px; border: 2px solid #e8b64c; background: #fff; font-weight: 700; color: #3b2412; }
+.gn-seg button.on { background: linear-gradient(#d2203f, #7a1020); color: #fff; }
+.gn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.gn-msin { width: 80px; font-size: 18px; text-align: center; }
+.gn-warn { background: #fff3cd; border-radius: 12px; padding: 8px 12px; }
+.gn-acard.live { border-left: 6px solid #1f8a4c; } .gn-acard.fut { border-left: 6px solid #e8b64c; } .gn-acard.done { opacity: .85; }
+.gn-res { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.gn-resrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: #fff; }
+.gn-resrow.ok { border-left: 6px solid #1f8a4c; } .gn-resrow.bad { border-left: 6px solid #c8102e; } .gn-resrow.none { opacity: .7; }
+.gn-respos { font-weight: 800; min-width: 28px; } .gn-respts { font-weight: 800; margin-left: auto; }
+.gn-plist { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.gn-prow { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 14px; background: #fff; }
+.gn-prow .gn-name { flex: 1; font-size: 30px; color: #b07a12; text-shadow: none; }
+.gn-givebox { text-align: center; } .gn-givebox .gn-name { font-size: 36px; color: #b07a12; text-shadow: none; }
+.gn-pnum { display: block; font-size: 48px; margin: 4px 0; } .gn-pnum.plus { color: #1f8a4c; } .gn-pnum.minus { color: #c8102e; }
+.gn-quick { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 10px; }
+.gn-pcard summary { cursor: pointer; font-weight: 700; } .gn-pcard summary .gn-name { font-size: 28px; color: #b07a12; text-shadow: none; }
+.gn-pedit { margin: 10px 0; padding: 10px; border-radius: 14px; background: #fffaf0; border: 2px dashed #e8b64c; }
+.gn-pedit.grand { border: 2px solid #ffd86a; background: #fff6d6; }
+.gn-tiebox { margin-top: 6px; }

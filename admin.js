@@ -141,6 +141,7 @@ function showPanel() {
       el('span', { class: 'adm-btn-ico' }, '📖'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos'))),
     el('button', { class: 'adm-btn', onclick: () => { document.querySelectorAll('.popup-back').forEach(x => x.remove()); celebrateStart(true); } },
       el('span', { class: 'adm-btn-ico' }, '🎆'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Probar la explosión del día 1'), el('small', {}, 'Cómo lo verán todos al entrar el 1 de diciembre (fuegos artificiales y «¡A empezar!»)'))),
+    B('🍄', 'Juego de los gnomos', 'Preguntas en carrera, puntos, marcador, regalos con foto y el Gran premio (solo gnomos)', root => import('./gnomes.js').then(m => m.gnomesAdmin(root))),
     B('🧝', 'Casilla 11 · Gnomos', 'Los 3 premios del laberinto (solo para los gnomos)', root => VIEWS.maze11(root)),
   ];
   // orden de los botones: se puede cambiar arrastrándolos (se recuerda en este aparato)
@@ -744,7 +745,8 @@ function userPanel(root, u, answers, set) {
   if (u.uid === S.user?.uid && testMode()) set.earlyOpen = true;
   drawEarly();
   const saveUser = async () => {
-    try { await store.setSettings(u.uid, { figure: fig.value, showProgress: show.checked, marqueeText: mq.value.trim(), actOverrides: {} }); toast('💾 Guardado'); }
+    try { await store.setSettings(u.uid, { figure: fig.value, showProgress: show.checked, marqueeText: mq.value.trim(), actOverrides: {} }); toast('💾 Guardado');
+      if (fig.value === 'gnomo' || set.figure === 'gnomo') import('./gnomes.js').then(m => m.syncPlayers()).catch(e => console.warn(e)); set.figure = fig.value; } // (V24) lista de gnomos del juego
     catch (e) { toast('Error: ' + e.message, 5000); }
   };
   root.replaceChildren(

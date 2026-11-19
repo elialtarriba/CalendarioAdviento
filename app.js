@@ -422,6 +422,7 @@ async function boot() {
     import('./admin.js').catch(() => {});
     import('./surprise.js').then(m => m.showSurprise(u.uid)).catch(() => {});
     import('./qpop.js').then(m => m.startPops()).catch(e => console.warn(e)); // preguntas sorpresa
+    import('./gnomes.js').then(m => m.startGnomes()).catch(e => console.warn(e)); // (V24) juego de los gnomos
     startSettingsWatch(u.uid); // si la administradora cambia algo (casillas abiertas, figura…), se aplica sin volver a entrar
   });
 }
@@ -911,7 +912,13 @@ export function renderHome() {
   // botoncito discreto para volver a ver la cuenta atrás (hasta el 1 de diciembre)
   const cdFab = decStarted() ? null : el('button', { type: 'button', class: 'cd-fab no-delay', title: L3('Cuenta atrás', 'Compte enrere', 'Countdown'), onclick: () => countdownPopup() },
     '⏳', el('b', {}, String(Math.max(0, Math.floor((decStart() - Date.now()) / 864e5)))));
-  app.replaceChildren(header, ...bars, ...(strip && !fullView ? [strip] : []), ...(marquee ? [marquee] : []), board, ...(strip && fullView ? [strip] : []), ...(exitBtn ? [exitBtn] : []), ...(cdFab ? [cdFab] : []));
+  // (V24) botón 🍄 del juego de los gnomos (solo gnomos): puntos, pregunta en juego y marcador
+  let gnFab = null;
+  if (fig === 'gnomo') {
+    gnFab = el('button', { type: 'button', class: 'gn-fab no-delay', title: L3('Juego de los gnomos', 'Joc dels gnoms', 'Gnome game'), onclick: () => import('./gnomes.js').then(m => m.openBoard()) }, '🍄');
+    import('./gnomes.js').then(m => m.decorateFab(gnFab)).catch(e => console.warn(e));
+  }
+  app.replaceChildren(header, ...bars, ...(strip && !fullView ? [strip] : []), ...(marquee ? [marquee] : []), board, ...(strip && fullView ? [strip] : []), ...(exitBtn ? [exitBtn] : []), ...(cdFab ? [cdFab] : []), ...(gnFab ? [gnFab] : []));
 
   fitTitle(); document.fonts?.ready?.then(fitTitle);
   // en grande, la fila de figuras queda abajo y el calendario ocupa el resto

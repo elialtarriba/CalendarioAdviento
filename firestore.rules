@@ -139,6 +139,61 @@ service cloud.firestore {
       allow update, delete: if signedIn() && (resource.data.uid == request.auth.uid || isOwner());
     }
 
+    // ================= (V24) JUEGO DE LOS GNOMOS =================
+    function gnome() {
+      return signedIn() && exists(/databases/$(database)/documents/settings/$(request.auth.uid))
+        && get(/databases/$(database)/documents/settings/$(request.auth.uid)).data.get('figure', 'galleta') == 'gnomo';
+    }
+    function gq(q) { return get(/databases/$(database)/documents/gq/$(q)).data; }
+    // la pregunta está en juego: ya ha salido y aún no ha salido la siguiente
+    function gOpen(q) { return exists(/databases/$(database)/documents/gq/$(q)) && request.time >= gq(q).atTs && request.time < gq(q).untilTs; }
+    function gAllowed(q) { return gq(q).get('to', null) == null || request.auth.uid in gq(q).to; }
+    // mi respuesta: la hora la pone el servidor y «ok» tiene que ser verdad (se compara con la huella de la respuesta buena)
+    function gMine(q) {
+      let a = request.resource.data[request.auth.uid];
+      return a.keys().hasOnly(['n', 'a', 'ok', 'at', 'nm']) && a.n is string && a.n.size() < 300 && a.a is string && a.a.size() < 300
+        && a.at == request.time && a.ok == (hashing.sha256(q + ':' + a.n).toHexString().lower() in gq(q).hs);
+    }
+    // las respuestas de los demás solo se ven después de contestar (o cuando la pregunta ya se ha cerrado)
+    function gCanSee(q) {
+      return resource == null || request.auth.uid in resource.data
+        || request.time >= gq(q).untilTs || !gAllowed(q);
+    }
+    // marcador, metas, premios, horas de las preguntas y puntos puestos a mano
+    match /gnome/{doc} {
+      allow read: if isAdmin() || gnome();
+      allow write: if isAdmin();
+    }
+    // cada pregunta: solo se puede leer a partir de su hora
+    match /gq/{q} {
+      allow read: if isAdmin() || (gnome() && request.time >= resource.data.atTs
+        && (resource.data.get('to', null) == null || request.auth.uid in resource.data.to));
+      allow write: if isAdmin();
+    }
+    // la respuesta buena en claro: solo la administradora
+    match /gqk/{q} {
+      allow read, write: if isAdmin();
+    }
+    // fotos de los premios
+    match /gimg/{id} {
+      allow read: if isAdmin() || gnome();
+      allow write: if isAdmin();
+    }
+    // respuestas: cada gnomo contesta UNA vez mientras está en juego; el más rápido elige a quién quitar 1 punto
+    match /ga/{q} {
+      allow read: if isAdmin() || (gnome() && gCanSee(q));
+      allow create: if gnome() && gOpen(q) && gAllowed(q)
+        && request.resource.data.keys().hasOnly([request.auth.uid]) && gMine(q);
+      allow update: if gnome() && (
+        (gOpen(q) && gAllowed(q) && !(request.auth.uid in resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([request.auth.uid]) && gMine(q))
+        || (!('steal' in resource.data) && request.auth.uid in resource.data && resource.data[request.auth.uid].ok == true
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['steal'])
+          && request.resource.data.steal.by == request.auth.uid && request.resource.data.steal.to is string
+          && request.resource.data.steal.to != request.auth.uid));
+      allow write: if isAdmin();
+    }
+
     // Tarjeta de Navidad del día 25
     match /cards/{uid} {
       allow read: if me(uid) || isAdmin();
