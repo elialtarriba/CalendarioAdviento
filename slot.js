@@ -2,13 +2,13 @@
 // Se tira de la palanca, el rodillo va pasando las 5 opciones que la administradora pone en
 // Configuración → «🎰 Máquina de regalos», y al tocar el rodillo se para y se ilumina el resultado.
 // Solo cuenta la primera tirada (se guarda en el perfil) y se puede compartir por WhatsApp en una imagen.
-import { el, popup, confetti, toast } from './fx.js?v=23.4';
-import { getLang } from './i18n.js?v=23.4';
-import { pop, fanfare, chime, unlockAudio, jingle, hohoho, sadTrombone, christmasSong } from './sound.js?v=23.4';
-import { TROLL } from './catch.js?v=23.4';
-import { S } from './app.js?v=23.4';
-import { store } from './store.js?v=23.4';
-import { shareResult } from './share.js?v=23.4';
+import { el, popup, confetti, toast } from './fx.js';
+import { getLang } from './i18n.js';
+import { pop, fanfare, chime, unlockAudio, jingle, hohoho, sadTrombone, christmasSong } from './sound.js';
+import { TROLL } from './catch.js';
+import { S } from './app.js';
+import { store } from './store.js';
+import { shareResult } from './share.js';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const IMG = 'maquina25.webp';

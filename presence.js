@@ -1,11 +1,10 @@
 // Quién está dentro de la app ahora mismo. Cada móvil avisa cada minuto (con el nombre que se escribe
 // en la pantalla de la nieve). La administradora principal ve la lista y puede echar a alguien.
-import { el, popup, toast, searchBox } from './fx.js?v=23.4';
-import { getLang } from './i18n.js?v=23.4';
-import { store } from './store.js?v=23.4';
+import { el, popup, toast, searchBox } from './fx.js';
+import { getLang } from './i18n.js';
+import { store } from './store.js';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
-export const OWNER = 'elialtarriba@gmail.com';
 export const whoName = () => { try { return (localStorage.getItem('adv_who') || '').trim(); } catch { return ''; } };
 const device = () => {
   const u = navigator.userAgent;

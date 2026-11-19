@@ -1,5 +1,6 @@
 // Capa de datos: usa Firebase si está configurado; si no, modo demo (localStorage).
-import { firebaseConfig } from './firebase-config.js?v=23.4';
+import { firebaseConfig } from './firebase-config.js';
+import { isOwnerEmail } from './version.js';
 
 const SALT = 'calendario-adviento-v1:';
 export async function hashPw(pw) {
@@ -290,7 +291,7 @@ function demoApi() {
     getMedia: async n => (ld('media', {})[n] || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0)),
     addMedia: async (n, item) => { const m = ld('media', {}); const id = 'm' + Date.now() + Math.random().toString(36).slice(2, 6); (m[n] = m[n] || []).push({ id, ...item }); sv('media', m); return id; },
     deleteMedia: async (n, id) => { const m = ld('media', {}); m[n] = (m[n] || []).filter(x => x.id !== id); sv('media', m); },
-    getConfig: async () => { const h = ld('famHash', ''), c = cur(); if (h && c && !/^elialtarriba@/.test(c.email) && (ld('users', {})[c.uid]?.famKey || '') !== h) throw err('permission-denied'); return ld('config', null); },
+    getConfig: async () => { const h = ld('famHash', ''), c = cur(); if (h && c && !(await isOwnerEmail(c.email)) && (ld('users', {})[c.uid]?.famKey || '') !== h) throw err('permission-denied'); return ld('config', null); },
     setFamilyWord: async (uid, word) => { const h = await famKey(word); sv('famHash', h); sv('famInfo', true); const u = ld('users', {}); u[uid] = { ...(u[uid] || {}), famKey: h }; sv('users', u); },
     delFamilyWord: async () => { sv('famHash', ''); sv('famInfo', false); },
     hasFamilyWord: async () => !!ld('famInfo', false),

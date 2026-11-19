@@ -7,8 +7,9 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function me(uid) { return signedIn() && request.auth.uid == uid; }
     function secret() { return get(/databases/$(database)/documents/adminSecret/main).data.hash; }
-    // Es administrador quien ha entrado con la contraseña de configuración vigente
-    function isOwner() { return signedIn() && request.auth.token.email == 'elialtarriba@gmail.com'; }
+    // La dueña: se compara la HUELLA (SHA-256) de su correo, así el correo no está escrito aquí (V23.5)
+    function isOwner() { return signedIn() && request.auth.token.email != null
+      && hashing.sha256(request.auth.token.email.lower()).toHexString().lower() == 'ee23a431f55e0250e0dc5aa98ac9520e7f526d62c4e802b96ca4fd1b4ff45466'; }
     // «Abrir todas las casillas a todos» (lo activa la administradora)
     function openAll() { return get(/databases/$(database)/documents/config/public).data.get('openAll', false) == true; }
     // «Casillas abiertas antes de tiempo» para una persona concreta (lo activa la administradora en su ficha; solo antes de diciembre)
@@ -16,6 +17,14 @@ service cloud.firestore {
       return request.time.month() != 12
         && exists(/databases/$(database)/documents/settings/$(request.auth.uid))
         && get(/databases/$(database)/documents/settings/$(request.auth.uid)).data.get('earlyOpen', false) == true;
+    }
+    // Palabra secreta de la familia: si la administradora la ha puesto, solo la familia ve y escribe cosas
+    function famSet() { return exists(/databases/$(database)/documents/famSecret/main); }
+    function famOk(k) { return !famSet() || get(/databases/$(database)/documents/famSecret/main).data.hash == k; }
+    function member() {
+      return isOwner() || !famSet()
+        || (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('famKey', '') == get(/databases/$(database)/documents/famSecret/main).data.hash);
     }
     function isAdmin() {
       return signedIn()
@@ -26,7 +35,8 @@ service cloud.firestore {
     // Perfil de cada persona (nombre, idioma, estilo de nota)
     match /users/{uid} {
       allow read: if me(uid) || isAdmin();
-      allow create, update: if me(uid);
+      allow create, update: if me(uid) && (isOwner() || famOk(request.resource.data.get('famKey', '')));
+      allow update: if isAdmin();
       allow list: if isAdmin();
       allow delete: if isAdmin();
     }
@@ -40,7 +50,7 @@ service cloud.firestore {
     // Respuestas: cada persona puede enviar UNA vez cada día; solo la administradora corrige
     match /answers/{uid}/items/{day} {
       allow read: if me(uid) || isAdmin();
-      allow create: if me(uid) && request.resource.data.status in ['pending', 'correct', 'incorrect'];
+      allow create: if me(uid) && member() && request.resource.data.status in ['pending', 'correct', 'incorrect'];
       allow create, update, delete: if isAdmin();
       // en diciembre, cada persona borra lo que hizo antes (al probar en noviembre) para empezar de 0
       allow delete: if me(uid) && request.time.month() == 12
@@ -49,25 +59,49 @@ service cloud.firestore {
 
     // Contenido de cada día: solo visible a partir de su fecha (la administradora lo ve siempre)
     match /content/{day}/media/{id} {
-      allow read: if signedIn() && (isAdmin() || openAll() || early() || request.time >= get(/databases/$(database)/documents/content/$(day)).data.openAt);
+      allow read: if signedIn() && (isAdmin() || (member() && (openAll() || early() || request.time >= get(/databases/$(database)/documents/content/$(day)).data.openAt)));
       allow write: if isAdmin();
     }
     match /content/{day} {
-      allow read: if signedIn() && (resource == null || request.time >= resource.data.openAt || isAdmin() || openAll() || early());
+      allow read: if signedIn() && (isAdmin() || (member() && (resource == null || request.time >= resource.data.openAt || openAll() || early())));
       allow write: if isAdmin();
     }
 
     // Ajustes generales (año, premios)
     match /config/{doc} {
+      allow read: if signedIn() && (member() || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Huella de la palabra secreta de la familia: nadie la puede leer; solo la administradora la cambia
+    match /famSecret/{doc} {
+      allow read: if false;
+      allow write: if isAdmin();
+    }
+    // Solo dice si hay palabra secreta o no
+    match /famInfo/{doc} {
       allow read: if signedIn();
       allow write: if isAdmin();
+    }
+
+    // Cosas que solo se pueden hacer UNA vez (la tirada de la máquina de regalos): no se pueden cambiar
+    match /once/{uid}/items/{id} {
+      allow read: if me(uid) || isAdmin();
+      // la máquina de regalos es solo para los gnomos
+      allow create: if me(uid) && member() && (id != 'slot'
+        || (exists(/databases/$(database)/documents/settings/$(uid))
+            && get(/databases/$(database)/documents/settings/$(uid)).data.get('figure', 'galleta') == 'gnomo'));
+      allow delete: if isAdmin() || (me(uid) && request.time.month() == 12
+        && resource.data.at < timestamp.date(request.time.year(), 12, 1).toMillis() - 3600000);
     }
 
     // Contraseña de configuración cifrada (hash). Nadie puede leerla.
     match /adminSecret/{doc} {
       allow read: if false;
-      allow create: if signedIn() && doc == 'main';
-      allow update: if isAdmin() || isOwner();
+      // solo la dueña la crea (la primera vez, o si la ha borrado ella desde Firebase porque la olvidó);
+      // para cambiarla hay que saber la actual: no basta con haber entrado en su cuenta
+      allow create: if isOwner() && doc == 'main';
+      allow update: if isAdmin();
     }
 
     // Quien escribe aquí la contraseña correcta pasa a ser administrador
@@ -75,6 +109,13 @@ service cloud.firestore {
       allow read: if me(uid);
       allow create, update: if me(uid)
         && request.resource.data.key == getAfter(/databases/$(database)/documents/adminSecret/main).data.hash;
+    }
+
+    // Registro de entradas en la cuenta de la administradora: nadie lo puede cambiar ni borrar
+    match /adminLog/{id} {
+      allow create: if isOwner() && request.resource.data.at is int;
+      allow read: if isOwner();
+      allow update, delete: if false;
     }
 
     // Mensajes sorpresa que la administradora prepara para cada persona y día
@@ -94,15 +135,15 @@ service cloud.firestore {
     // Nombres que se escriben al entrar: no se pueden repetir
     match /names/{key} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow create: if signedIn() && member() && request.resource.data.uid == request.auth.uid;
       allow update, delete: if signedIn() && (resource.data.uid == request.auth.uid || isOwner());
     }
 
     // Tarjeta de Navidad del día 25
     match /cards/{uid} {
       allow read: if me(uid) || isAdmin();
-      allow write: if me(uid);
-      allow delete: if isAdmin();
+      allow write: if me(uid) && member();
+      allow delete: if isAdmin() || me(uid);
     }
   }
 }

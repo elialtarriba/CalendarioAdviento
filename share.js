@@ -1,7 +1,7 @@
 // Cartel navideño con el resultado de una partida (foto para el grupo de WhatsApp de la familia).
 // shareResult({ title, emoji, who, rows: [[etiqueta, valor]…], note, file, text })
-import { el, popup, toast } from './fx.js?v=23.4';
-import { getLang } from './i18n.js?v=23.4';
+import { el, popup, toast } from './fx.js';
+import { getLang } from './i18n.js';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const loadImg = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });

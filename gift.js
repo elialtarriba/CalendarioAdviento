@@ -2,11 +2,11 @@
 // (V23.3) «Regalo de Nochebuena»: sale abajo del todo del día 24, para todas las figuras. Una vez abierto,
 // pone «Regalo ya abierto · Tócalo para volver a verlo». Antes de ir al navegador explica cómo poner el Bingo
 // en la pantalla de inicio (iPhone → Safari, Android → Chrome).
-import { el, popup, confetti } from './fx.js?v=23.4';
-import { getLang } from './i18n.js?v=23.4';
-import { chime, unlockAudio } from './sound.js?v=23.4';
-import { S, figure } from './app.js?v=23.4';
-import { store } from './store.js?v=23.4';
+import { el, popup, confetti } from './fx.js';
+import { getLang } from './i18n.js';
+import { chime, unlockAudio } from './sound.js';
+import { S, figure } from './app.js';
+import { store } from './store.js';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 export const giftUrl = () => String(S.config?.gift?.url || '').trim();

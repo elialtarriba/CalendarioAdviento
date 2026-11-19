@@ -1,10 +1,10 @@
 // Guía de la app (para la administradora): pantalla completa, índice, dibujos y zoom con dos dedos
-import { el } from './fx.js?v=23.4';
-import { getLang } from './i18n.js?v=23.4';
-import { PORTADAS, PAPERS } from './defaults.js?v=23.4';
-import { figure, S } from './app.js?v=23.4';
-import { store } from './store.js?v=23.4';
-import { toast } from './fx.js?v=23.4';
+import { el } from './fx.js';
+import { getLang } from './i18n.js';
+import { PORTADAS, PAPERS } from './defaults.js';
+import { figure, S } from './app.js';
+import { store } from './store.js';
+import { toast } from './fx.js';
 // una ventanita del calendario (recortada del tema «Cosas Navidad»), como las de la portada
 function doorCrop(d = 1, cls = '') {
   const v = PORTADAS[0].variants.find(x => /movil/.test(x.img)) || PORTADAS[0].variants[0];
@@ -83,7 +83,7 @@ const SECTIONS = [
       el('div', { class: 'hg-tabs' }, pill('📨 Respuestas'), pill('👥 Usuarios'), pill('📅 Contenido de los días'), pill('🏆 Premios y ajustes')),
       el('div', { class: 'hg-help-btn' }, '📖 Guía de la app')),
     P('Arriba tienes el botón rojo de ', B('Mensajes sorpresa'), ' y debajo las cuatro pestañas. Abajo del todo, siempre a la vista, el botón ', B('Cerrar'), '.'),
-    tip('Si olvidas la contraseña: entra con tu cuenta (elialtarriba@gmail.com), pulsa 🔒 y luego «¿Has olvidado la contraseña de configuración?». Podrás poner una nueva.'),
+    tip('Si olvidas la contraseña: entra con tu cuenta de administradora, pulsa 🔒 y luego «¿Has olvidado la contraseña de configuración?». Podrás poner una nueva.'),
   ] },
   { id: 'surprise', ico: '💌', title: 'Mensajes sorpresa', color: '#e11d48', body: () => [
     P('Un ', B('popup bonito'), ' que le sale a una persona al entrar en la app, el día (o los días) que tú elijas. Detrás se ve la portada difuminada.'),

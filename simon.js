@@ -1,10 +1,10 @@
 // Día 9: «Papá Noel dice» (Simón dice). Cuatro botones navideños se iluminan y suenan siguiendo una
 // secuencia; hay que repetirla. Cada ronda se añade uno más y va más rápido. Se juega hasta que se
 // acaba el tiempo (4 minutos por defecto; se puede elegir). Al acabar: «¡Tiempo!».
-import { el, sleep, confetti } from './fx.js?v=23.4';
-import { getLang } from './i18n.js?v=23.4';
-import { unlockAudio, oops, fanfare, chime } from './sound.js?v=23.4';
-import { minutesPopup, fullBtn, exitFull, howStrip, minTxt } from './gameui.js?v=23.4';
+import { el, sleep, confetti } from './fx.js';
+import { getLang } from './i18n.js';
+import { unlockAudio, oops, fanfare, chime } from './sound.js';
+import { minutesPopup, fullBtn, exitFull, howStrip, minTxt } from './gameui.js';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const PADS = [

@@ -1,7 +1,7 @@
 // Día 6: las 5 diferencias + susto divertido en el 5º intento
-import { t } from './i18n.js?v=23.4';
-import { el, sleep, confetti, toast, svgEl } from './fx.js?v=23.4';
-import { chime, wrong, pop, scare } from './sound.js?v=23.4';
+import { t } from './i18n.js';
+import { el, sleep, confetti, toast, svgEl } from './fx.js';
+import { chime, wrong, pop, scare } from './sound.js';
 
 // Escena pintada al estilo del calendario (dibujos recortados del calendario).
 // Cada diferencia: zona (cx,cy,r) donde se pulsa en el dibujo de la derecha.

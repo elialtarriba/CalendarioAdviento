@@ -1,20 +1,18 @@
-import { clearLocalGames } from './games25.js?v=23.4';
-import { initStore, store, DEMO, nameKey, isPlayerEmail, famKey } from './store.js?v=23.4';
-import { t, tx, setLang, getLang } from './i18n.js?v=23.4';
-import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js?v=23.4';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState } from './sound.js?v=23.4';
-import { typeRich, gallery, lightbox } from './richact.js?v=23.4';
-import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js?v=23.4';
+import { clearLocalGames } from './games25.js';
+import { initStore, store, DEMO, nameKey, isPlayerEmail, famKey } from './store.js';
+import { t, tx, setLang, getLang } from './i18n.js';
+import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState } from './sound.js';
+import { typeRich, gallery, lightbox } from './richact.js';
+import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js';
+import { APP_VERSION, CONTACT_EMAIL, isOwnerEmail } from './version.js';
 
-export const APP_VERSION = 'V23.4';
-// (V23.2) Si la página carga este archivo con otro número (?v=…) — p. ej. porque en GitHub hay un index.html
-// de otra versión o el móvil tiene uno viejo guardado — NO se arranca dos veces (eso hacía que los botones se
-// pulsaran solos sin parar): se carga el archivo con el número bueno y esta copia se queda quieta.
-const CODE_V = 'v=23.4';
+export { APP_VERSION }; // (V23.5) la versión se cambia SOLO en version.js
+// (V23.2/V23.5) Los archivos ya no llevan número (?v=…). Si alguien carga este archivo CON número (p. ej. un
+// index.html viejo), NO se arranca dos veces (eso hacía que los botones se pulsaran solos): se carga el
+// archivo bueno (sin número) y esta copia se queda quieta.
 const FIRST = (() => {
-  let ok = false;
-  try { ok = ('v=' + (new URL(import.meta.url).searchParams.get('v') || '')) === CODE_V; } catch {}
-  if (!ok) { import('./app.js?' + CODE_V).catch(() => {}); return false; }
+  try { if (new URL(import.meta.url).search) { import('./app.js').catch(() => {}); return false; } } catch {}
   if (window.__advApp) return false;
   window.__advApp = APP_VERSION; return true;
 })();
@@ -70,7 +68,7 @@ export async function loadDay(n) {
   const def = defaultDay(n);
   const day = { ...def, ...(c || {}), type: def.type }; // el tipo de juego de cada día es fijo
   // lo que el administrador escribe en español se traduce solo al idioma elegido (si no lo ha escrito él)
-  if (c && getLang() !== 'es') { try { return await (await import('./translate.js?v=23.4')).localizeDay(day, def, getLang()); } catch {} }
+  if (c && getLang() !== 'es') { try { return await (await import('./translate.js')).localizeDay(day, def, getLang()); } catch {} }
   return day;
 }
 export function applyPaper(node) {
@@ -96,8 +94,9 @@ async function nameTaken(name, maybeMine) {
     { label: '✏️ ' + L3('Cambiar el nombre', 'Canviar el nom', 'Change the name'), value: 'name' }] });
   return { focus: r === 'pin' ? 'pin' : 'name' };
 }
-// la bienvenida de Elisabeth (botón «i» de la pantalla de la nieve)
-const OWNER_MAIL = 'elialtarriba@gmail.com';
+// (V23.5) el correo de contacto (la «i») está en version.js; el de entrar de la administradora no está escrito en ningún sitio
+const OWNER_MAIL_KEY = 'adv_owner_mail'; // este aparato recuerda el correo de la administradora (solo en su aparato)
+const savedOwnerMail = () => { try { return localStorage.getItem(OWNER_MAIL_KEY) || ''; } catch { return ''; } };
 // ---- palabra secreta de la familia: la pide la primera vez (si la administradora la ha puesto)
 async function askFamily(wrong) {
   const inp = el('input', { type: 'text', class: 'ow-pw', autocomplete: 'off', autocapitalize: 'none', placeholder: L3('Palabra secreta', 'Paraula secreta', 'Secret word') });
@@ -151,7 +150,7 @@ export async function ownerWatch() {
   }
 }
 async function familyGate(u) {
-  if (u.email === OWNER_MAIL) return true;
+  if (S.ownerAcct || await isOwnerEmail(u.email)) return true;
   const denied = async () => { try { await store.getConfig(); return false; } catch (e) { return /permission/.test(e.code || e.message || ''); } };
   if (!(await denied())) return true;
   let wrong = false;
@@ -169,19 +168,25 @@ const OWNER_NAMES = ['elisabeth'];
 const OWNER_PIN = 'f3f3b946958a6ae253b1b46b737899a099acf9750339e373a0350487ae62a31c';
 async function sha256(s) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 async function ownerPassword() {
+  const mail = el('input', { type: 'email', class: 'ow-pw ow-mail', autocomplete: 'username', autocapitalize: 'none', value: savedOwnerMail(), placeholder: L3('Tu correo de administradora', 'El teu correu d’administradora', 'Your admin email') });
+  const mailRow = el('div', { class: 'ow-row' }, mail);
+  if (savedOwnerMail()) mailRow.style.display = 'none';
+  const mailNow = () => mail.value.trim().toLowerCase();
   const pw = el('input', { type: 'password', class: 'ow-pw', autocomplete: 'current-password', placeholder: L3('Tu contraseña', 'La teva contrasenya', 'Your password') });
   const eye = el('button', { type: 'button', class: 'ow-eye no-delay', onclick: () => { pw.type = pw.type === 'password' ? 'text' : 'password'; eye.textContent = pw.type === 'password' ? '👁️' : '🙈'; } }, '👁️');
   const err = el('p', { class: 'ow-err' });
   const forgot = el('a', { href: '#', class: 'ow-forgot', onclick: async e => { e.preventDefault();
-    try { await store.resetPassword(OWNER_MAIL); err.textContent = '📧 ' + L3('Te he enviado un correo para poner una contraseña nueva. Mira también en «Spam».', 'T’he enviat un correu per posar una contrasenya nova. Mira també a «Spam».', 'I’ve sent you an email to set a new password. Check spam too.'); } catch (x) { err.textContent = '⚠️ ' + (x.code || x.message); } } },
+    if (!(await isOwnerEmail(mailNow()))) { mailRow.style.display = ''; err.textContent = '❄ ' + L3('Escribe primero tu correo de administradora.', 'Escriu primer el teu correu d’administradora.', 'Type your admin email first.'); mail.focus(); return; }
+    try { await store.resetPassword(mailNow()); err.textContent = '📧 ' + L3('Te he enviado un correo para poner una contraseña nueva. Mira también en «Spam».', 'T’he enviat un correu per posar una contrasenya nova. Mira també a «Spam».', 'I’ve sent you an email to set a new password. Check spam too.'); } catch (x) { err.textContent = '⚠️ ' + (x.code || x.message); } } },
     L3('¿La has olvidado?', 'L’has oblidada?', 'Forgotten it?'));
   const box = el('div', { class: 'ow-box' }, el('div', { class: 'ow-key' }, '🔑'), el('h2', {}, L3('Hola, administradora', 'Hola, administradora', 'Hello, admin')),
-    el('p', {}, L3('PIN correcto. Ahora escribe tu contraseña:', 'PIN correcte. Ara escriu la teva contrasenya:', 'PIN correct. Now type your password:')), el('div', { class: 'ow-row' }, pw, eye), err, forgot);
+    el('p', {}, L3('PIN correcto. Ahora escribe tu contraseña:', 'PIN correcte. Ara escriu la teva contrasenya:', 'PIN correct. Now type your password:')), mailRow, el('div', { class: 'ow-row' }, pw, eye), err, forgot);
   for (;;) {
-    setTimeout(() => pw.focus(), 300);
+    setTimeout(() => (mailRow.style.display === 'none' ? pw : mail).focus(), 300);
     const ok = await popup(box, { cls: 'small', buttons: [{ label: L3('Cancelar', 'Cancel·lar', 'Cancel'), value: false, cls: 'btn-ghost' }, { label: '🔓 ' + L3('Entrar', 'Entrar', 'Sign in'), value: true }] });
     if (!ok) return false;
-    try { await store.signIn(OWNER_MAIL, pw.value); try { localStorage.setItem('adv_pw_' + OWNER_MAIL, pw.value); } catch {} return true; }
+    if (!(await isOwnerEmail(mailNow()))) { mailRow.style.display = ''; err.textContent = '❄ ' + L3('Ese no es el correo de la administradora.', 'Aquest no és el correu de l’administradora.', 'That is not the admin email.'); continue; }
+    try { await store.signIn(mailNow(), pw.value); try { localStorage.setItem(OWNER_MAIL_KEY, mailNow()); localStorage.setItem('adv_pw_' + mailNow(), pw.value); } catch {} return true; }
     catch (x) {
       const c = String(x.code || x.message || '');
       err.textContent = '❄ ' + (c.includes('too-many') ? L3('Demasiados intentos. Espera un par de minutos.', 'Massa intents. Espera un parell de minuts.', 'Too many tries. Wait a couple of minutes.')
@@ -207,7 +212,7 @@ function welcomeInfo() {
   const box = el('div', { class: 'wl' },
     el('img', { class: 'wl-fig', src: FIG_IMG.galleta, alt: '' }),
     el('h2', { class: 'wl-title' }, h), el('p', {}, p1), el('p', {}, p2), el('p', {}, p3),
-    el('a', { class: 'wl-mail', href: 'mailto:' + OWNER_MAIL + '?subject=' + encodeURIComponent(t('appTitle')) }, '✉️ ' + OWNER_MAIL),
+    el('a', { class: 'wl-mail', href: 'mailto:' + CONTACT_EMAIL + '?subject=' + encodeURIComponent(t('appTitle')) }, '✉️ ' + CONTACT_EMAIL),
     el('p', { class: 'wl-end' }, p4), el('p', { class: 'wl-sign' }, sign, el('br'), el('b', {}, 'Elisabeth')));
   return popup(box, { cls: 'small wl-pop', outside: true, buttons: [{ label: L3('¡Gracias!', 'Gràcies!', 'Thank you!'), value: true }] });
 }
@@ -244,7 +249,7 @@ function splash(enter = async () => null, sessP = Promise.resolve([])) {
     nameIn.addEventListener('input', upd); pinIn.addEventListener('input', upd); upd();
     [nameIn, pinIn].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter' && !skip.disabled) skip.click(); }));
     const adminLink = el('button', { type: 'button', class: 'splash-admin no-delay', onclick: () => { unlockAudio(); finish('admin'); } }, '🔑 ' + L3('Soy la administradora', 'Soc l’administradora', 'I am the admin'));
-    const guideBtn = el('button', { type: 'button', class: 'splash-guide no-delay', onclick: () => { unlockAudio(); import('./help.js?v=23.4').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)); } },
+    const guideBtn = el('button', { type: 'button', class: 'splash-guide no-delay', onclick: () => { unlockAudio(); import('./help.js').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)); } },
       '📖 ' + L3('Cómo funciona', 'Com funciona', 'How it works'));
     const form = el('div', { class: 'splash-form' }, el('label', {}, '🎅 ' + ({ es: '¿Cómo te llamas?', ca: 'Com et dius?', en: 'What is your name?' }[getLang()] || '¿Cómo te llamas?')), nameIn, pinWrap, nameErr, skip, guideBtn, adminLink);
     // «i» en la esquina: bienvenida de Elisabeth y su correo
@@ -352,10 +357,10 @@ async function boot() {
     // la administradora entra también por aquí: su nombre + su PIN, y después su contraseña
     if (OWNER_NAMES.includes(nameKey(name))) {
       if (await sha256('adv-' + pin + '-nadal') !== OWNER_PIN) return nameTaken(name, true);
-      if (await store.authReady()) { try { (await import('./presence.js?v=23.4')).stopPresence(S); } catch {} await store.signOut().catch(() => {}); }
+      if (await store.authReady()) { try { (await import('./presence.js')).stopPresence(S); } catch {} await store.signOut().catch(() => {}); }
       return (await ownerPassword()) ? null : '🔒 ' + L('Escribe tu contraseña para entrar.', 'Escriu la teva contrasenya per entrar.', 'Type your password to sign in.');
     }
-    if (await store.authReady()) { try { (await import('./presence.js?v=23.4')).stopPresence(S); } catch {} await store.signOut(); }
+    if (await store.authReady()) { try { (await import('./presence.js')).stopPresence(S); } catch {} await store.signOut(); }
     let r;
     try { r = await store.playerEnter(name, nameKey(name), pin, getLang(), askFamily); }
     catch (er) {
@@ -381,10 +386,11 @@ async function boot() {
   }
   store.onAuth(async u => {
     S.user = u;
+    S.ownerAcct = !!u && await isOwnerEmail(u.email); // (V23.5) se compara la huella, no el correo
     if (!u) { S.isAdmin = false; return wantAdmin ? renderLogin() : goStart(); } // sin cuenta: se vuelve a la nieve
     app.innerHTML = '<div class="loading">❄</div>';
     if (!(await familyGate(u))) return;
-    if (u.email === OWNER_MAIL) setTimeout(() => ownerWatch().catch(e => console.warn(e)), 2500);
+    if (S.ownerAcct) setTimeout(() => ownerWatch().catch(e => console.warn(e)), 2500);
     const [profile, settings, answers, config, card] = await Promise.all([
       store.getProfile(u.uid), store.getSettings(u.uid).catch(() => null), store.getAnswers(u.uid).catch(() => ({})),
       store.getConfig().catch(() => null), store.getCard(u.uid).catch(() => null),
@@ -393,7 +399,7 @@ async function boot() {
     const asPlayer = isPlayerEmail(u.email);
     S.profile = profile || (asPlayer
       ? { email: u.email, name: lastEnter?.name || u.email.split('@')[0], who: lastEnter?.name || '', pin: lastEnter?.pin || '', player: true, lang: getLang(), paper: 'nordico', portada: DEFAULT_PORTADA, createdAt: Date.now() }
-      : { email: u.email, name: u.email.split('@')[0], lang: getLang(), paper: 'nordico', portada: DEFAULT_PORTADA });
+      : { email: u.email, name: S.ownerAcct ? 'Elisabeth' : u.email.split('@')[0], lang: getLang(), paper: 'nordico', portada: DEFAULT_PORTADA });
     if (!profile) await store.saveProfile(u.uid, S.profile).catch(() => {});
     if (!profile && asPlayer && lastEnter?.name) store.claimName(nameKey(lastEnter.name), u.uid, lastEnter.name).catch(() => {});
     S.settings = settings || { figure: 'galleta', showProgress: true };
@@ -412,10 +418,10 @@ async function boot() {
     const afterPin = () => setTimeout(startPopups, 500);
     if (!newPin) afterPin();
     if (newPin) { const p = newPin; newPin = ''; setTimeout(() => popup(`<h2>🎄 ${esc(S.profile.name)}</h2><p style="font-size:18px">${L3('Tu PIN es', 'El teu PIN és', 'Your PIN is')}</p><p class="pin-show">${esc(p)}</p><p>${L3('Este aparato ya te recuerda: a partir de ahora, aquí entrarás solo con tu nombre, sin escribir el PIN.', 'Aquest aparell ja et recorda: a partir d’ara, aquí entraràs només amb el teu nom, sense escriure el PIN.', 'This device now remembers you: from now on, here you will get in with just your name, without typing the PIN.')}</p><p><b>${L3('Guarda bien este PIN.', 'Guarda bé aquest PIN.', 'Keep this PIN safe.')}</b> ${L3('Si algún día entras desde otro móvil, una tableta o un ordenador, te lo pedirá para abrir tu calendario con todo lo que hayas hecho.', 'Si algun dia entres des d’un altre mòbil, una tauleta o un ordinador, te’l demanarà per obrir el teu calendari amb tot el que hagis fet.', 'If you ever use another phone, a tablet or a computer, you will need it to open your calendar with everything you have done.')}</p>`, { buttons: [{ label: 'OK', value: true }] }).then(afterPin), 600); }
-    import('./presence.js?v=23.4').then(m => m.startPresence(S)).catch(e => console.warn(e));
-    import('./admin.js?v=23.4').catch(() => {});
-    import('./surprise.js?v=23.4').then(m => m.showSurprise(u.uid)).catch(() => {});
-    import('./qpop.js?v=23.4').then(m => m.startPops()).catch(e => console.warn(e)); // preguntas sorpresa
+    import('./presence.js').then(m => m.startPresence(S)).catch(e => console.warn(e));
+    import('./admin.js').catch(() => {});
+    import('./surprise.js').then(m => m.showSurprise(u.uid)).catch(() => {});
+    import('./qpop.js').then(m => m.startPops()).catch(e => console.warn(e)); // preguntas sorpresa
     startSettingsWatch(u.uid); // si la administradora cambia algo (casillas abiertas, figura…), se aplica sin volver a entrar
   });
 }
@@ -475,7 +481,7 @@ function renderLogin(mode = 'login') {
   // idioma, antes de entrar
   const langSel = el('div', { class: 'login-langs' }, ...[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([v, l]) =>
     el('button', { type: 'button', class: 'login-lang no-delay' + (v === getLang() ? ' on' : ''), onclick: () => { setLang(v); try { localStorage.setItem('adv_lang_pick', v); } catch {} renderLogin(mode); } }, l)));
-  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js?v=23.4').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
+  const guideBtn = el('button', { type: 'button', class: 'btn btn-ghost login-guide no-delay', onclick: () => import('./help.js').then(m => m.openUserHelp(getLang())).catch(e => toast('⚠️ ' + e.message)) },
     '📖 ' + ({ es: 'Cómo funciona', ca: 'Com funciona', en: 'How it works' }[getLang()] || 'Cómo funciona'));
   const submit = async e => {
     e.preventDefault(); errBox.textContent = ''; unlockAudio();
@@ -605,7 +611,7 @@ function glowConfetti(parent) {
 // texto escrito por la administradora: sale en español y se cambia por la traducción al idioma elegido
 function tEl(tag, cls, text) {
   const n = el(tag, { class: cls }, text || '');
-  if (text && getLang() !== 'es') import('./translate.js?v=23.4').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
+  if (text && getLang() !== 'es') import('./translate.js').then(m => m.tr(text, getLang())).then(x => { if (x) n.textContent = x; }).catch(() => {});
   return n;
 }
 // el regalo: una caja que se abre y dentro el premio (texto, mensaje y foto que pone el administrador)
@@ -624,13 +630,13 @@ async function revealPrize(g) {
   const gift = box.querySelector('.pzr-gift');
   await new Promise(r => { gift.onclick = r; setTimeout(r, 9000); });
   gift.onclick = null; box.querySelector('.pzr-hint').textContent = '✨';
-  try { const { jingle } = await import('./sound.js?v=23.4'); jingle(1); } catch {}
+  try { const { jingle } = await import('./sound.js'); jingle(1); } catch {}
   gift.classList.add('shake'); await sleep(900); gift.classList.add('open'); chime(); confetti(220);
   await sleep(700);
   let photo = await photoP;
   // (V22.7) certificado: se escribe el nombre de la persona encima de la raya
   const named = !!photo && pf['n' + g] === '1' && !!S.profile?.name;
-  if (named) { try { const m = await import('./share.js?v=23.4'); photo = await m.nameOnPhoto(photo, S.profile.name, pf['y' + g]); } catch (e) { console.warn(e); } }
+  if (named) { try { const m = await import('./share.js'); photo = await m.nameOnPhoto(photo, S.profile.name, pf['y' + g]); } catch (e) { console.warn(e); } }
   markPrizeOpened(g);
   const close = () => { try { music?.stop(2); } catch {} stopFx(); back.classList.add('out'); setTimeout(() => back.remove(), 300); };
   const thanks = async () => {
@@ -644,7 +650,7 @@ async function revealPrize(g) {
         { label: '💾 ' + L3('Guardar', 'Guardar', 'Save'), value: 'save' },
         { label: '🚪 ' + L3('Salir', 'Sortir', 'Exit'), value: 'exit', cls: 'btn-ghost' }] });
     if (r === 'print' || r === 'save') {
-      const m = await import('./share.js?v=23.4');
+      const m = await import('./share.js');
       if (r === 'print') m.printImage(photo); else await m.saveImage(photo, (named ? 'certificado-' + S.profile.name : 'regalo-' + g).replace(/[^\p{L}\d-]+/gu, '_') + '.jpg');
       return;   // la caja del regalo sigue abierta: puede volver a pulsar «Gracias»
     }
@@ -863,7 +869,7 @@ export function renderHome() {
           el('button', { class: 'icon-btn', title: L3('Inicio', 'Inici', 'Start'), onclick: goStart }, '❄️'),
           sndBtn(),
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js?v=23.4')).openAdmin() }, '🔒')))));
+          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js')).openAdmin() }, '🔒')))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -1044,15 +1050,15 @@ async function openDoor(n, door, mode = null) {
     // juegos que se pueden repetir: se juegan de nuevo, pero la respuesta guardada (y los premios) no cambian
     if (ctx.prev && ['hats', 'reindeer', 'differences', 'memory', 'goodcheck'].includes(content.type)) { ctx.replay = true; ctx.prev = null; }
     if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze', 'colors', 'mastermind'].includes(content.type)) renderSummary(body, ctx);
-    else (await import(`./${content.type}.js?v=23.4`)).render(body, ctx);
+    else (await import(`./${content.type}.js`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   // casilla 25: el regalo sorpresa abajo del todo (si el juego se vuelve a pintar, se vuelve a poner)
   // (V23.3) el regalo (Bingo) va abajo del todo del día 24, para todas las figuras; el 25 solo queda la máquina de los gnomos
   if (n === 24 || (n === 25 && figure() === 'gnomo')) {
     try {
       const gb = el('div', { class: n === 24 ? 'gift-box25 gift-box-24' : 'gift-box25' });
-      if (n === 24) { const { giftButton } = await import('./gift.js?v=23.4'); gb.append(giftButton()); }
-      else { const { slotButton } = await import('./slot.js?v=23.4'); gb.append(slotButton()); }
+      if (n === 24) { const { giftButton } = await import('./gift.js'); gb.append(giftButton()); }
+      else { const { slotButton } = await import('./slot.js'); gb.append(slotButton()); }
       // (V23.4) día 24: el regalo arriba del todo (que se vea bien); día 25: la máquina abajo del todo
       const top = n === 24;
       const keep = () => { if (!note.isConnected) return; if (top ? body.firstElementChild !== gb : body.lastElementChild !== gb) top ? body.prepend(gb) : body.append(gb); };
@@ -1125,7 +1131,7 @@ async function closeDay(n, layer, note, door, later = false) {
   // día 25 con la foto hecha: final del calendario con la bola de nieve que cobra vida
   // al acabar el día 25: el resumen de todo el mes
   let next = null;
-  if (!later && n === 25 && done) { try { next = await (await import('./summary.js?v=23.4')).monthSummary({ menu: menu25() }); fullView = true; } catch (e) { console.error(e); } }
+  if (!later && n === 25 && done) { try { next = await (await import('./summary.js')).monthSummary({ menu: menu25() }); fullView = true; } catch (e) { console.error(e); } }
   creak(false);
   layer.classList.add('fade-out');
   await sleep(700);
@@ -1140,7 +1146,7 @@ const allDone25 = () => Array.from({ length: 25 }, (_, i) => i + 1).every(d => S
 const menu25 = () => (S.answers[25] ? { act: figure() !== 'galleta' } : null);
 async function day25Menu() {
   let r = null;
-  try { r = await (await import('./summary.js?v=23.4')).monthSummary({ menu: menu25() }); } catch (e) { console.error(e); }
+  try { r = await (await import('./summary.js')).monthSummary({ menu: menu25() }); } catch (e) { console.error(e); }
   if (r) go25(r);
 }
 async function go25(r) {
@@ -1340,7 +1346,7 @@ async function showActivity(n, layer, simple = false) {
   crumpleSound();
   let choice = null; const decided = new Promise(r => { btn.onclick = () => r('done'); later.onclick = () => { choice = 'later'; r('later'); }; });
   // algunos días tienen una actividad especial interactiva (día 23: regalos; día 24: el regalo de Papá Noel)
-  const sp = await import('./acts.js?v=23.4').then(m => m.special(n, key)).catch(() => null);
+  const sp = await import('./acts.js').then(m => m.special(n, key)).catch(() => null);
   if (!simple) await withTimeout(crumpleAnim(note, false), 3500);
   // la nota tiene que verse siempre, pase lo que pase con la animación
   clearCrumples(); note.style.visibility = ''; note.style.opacity = '';
@@ -1470,7 +1476,7 @@ function openUserSettings() {
   }));
   const box = el('div', { class: 'settings-form' },
     el('h2', {}, t('settings')),
-    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js?v=23.4').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
+    el('button', { type: 'button', class: 'hg-open no-delay', onclick: () => import('./help.js').then(m => m.openUserHelp()).catch(e => toast('⚠️ ' + e.message)) },
       el('span', { class: 'hg-open-ico' }, '📖'), el('span', {}, el('b', {}, t('guideBtn')), el('small', {}, t('guideSub')))),
     el('label', {}, t('name'), name), el('label', {}, t('language'), lang),
     el('div', { class: 'pick-label' }, t('paper')), paperGrid,
@@ -1508,7 +1514,7 @@ function pwField(ph) {
 
 // jugadores: su nombre y su PIN (se puede ver y cambiar)
 function pinSection() {
-  const logout = el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=23.4')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong'));
+  const logout = el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong'));
   const pin = String(S.profile?.pin || '');
   const dots = el('b', { class: 'dots' }, '••••');
   const eye = el('button', { type: 'button', class: 'btn btn-ghost small-btn', onclick: () => { const h = dots.textContent === '••••'; dots.textContent = h ? (pin || '—') : '••••'; eye.textContent = h ? '🙈' : '👁️'; } }, '👁️');
@@ -1547,7 +1553,7 @@ function accountSection() {
         try { await store.resetPassword(S.user.email); toast('📧 ' + L3('Correo enviado. Mira también en «Spam».', 'Correu enviat. Mira també a «Spam».', 'Email sent. Check spam too.'), 6000); } catch (er) { toast('⚠️ ' + (er.code || er.message), 6000); }
       } }, t('changePw'))),
     form.remove() || null,
-    el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js?v=23.4')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong')));
+    el('button', { type: 'button', class: 'btn btn-ghost small-btn acc-logout', onclick: async () => { document.querySelector('.popup-back')?.remove(); try { (await import('./presence.js')).stopPresence(S); } catch {} store.signOut(); } }, '🚪 ' + t('logoutLong')));
 }
 
 // modo demo: no se pueden mandar correos, así que se pone una contraseña nueva aquí mismo
