@@ -1,7 +1,7 @@
 // Día 4: busca los 5 renos con gafas negras entre ~1000 renos
 import { t, getLang } from './i18n.js';
 import { el, popup, starBurst, toast } from './fx.js';
-import { chime, pop, wrong } from './sound.js';
+import { chime, pop, oops } from './sound.js';
 import { figure } from './app.js';
 
 const W = 1600, H = 1100, COLS = 40, ROWS = 25;
@@ -61,8 +61,9 @@ export function render(body, ctx) {
   const idx = new Set(); while (idx.size < 5) idx.add(Math.floor(rand() * deer.length));
   idx.forEach(i => { deer[i].acc = 'black'; deer[i].target = true; });
 
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const cv = el('canvas', { width: W * dpr, height: H * dpr });
+  // (V23.6) lienzo con más resolución: al acercarse con los dedos se ve nítido
+  const dpr = Math.min(2.5, Math.max(1.5, (window.devicePixelRatio || 1) * 1.25));
+  const cv = el('canvas', { width: Math.round(W * dpr), height: Math.round(H * dpr) });
   const c = cv.getContext('2d'); c.scale(dpr, dpr);
   const draw = () => {
     c.clearRect(0, 0, W, H);
@@ -72,7 +73,7 @@ export function render(body, ctx) {
     deer.filter(d => d.found).forEach(d => {
       const [hx, hy] = headOf(d); c.strokeStyle = '#ffcc00'; c.lineWidth = 4; c.beginPath(); c.arc(hx, hy, 22, 0, 7); c.stroke();
     });
-    // pista: se oscurece todo menos una zona (no muy grande) donde está el próximo reno
+    // pista: se oscurece todo menos una zona donde está el reno
     if (hint && performance.now() < hint.until) {
       c.save(); c.fillStyle = 'rgba(20,10,30,.55)'; c.beginPath(); c.rect(0, 0, W, H); c.moveTo(hint.x + hint.r, hint.y); c.arc(hint.x, hint.y, hint.r, 0, Math.PI * 2, true); c.closePath(); c.fill('evenodd');
       const gl = c.createRadialGradient(hint.x, hint.y, hint.r * .75, hint.x, hint.y, hint.r * 1.05); gl.addColorStop(0, 'rgba(255,214,90,0)'); gl.addColorStop(1, 'rgba(255,214,90,.55)');
@@ -83,89 +84,193 @@ export function render(body, ctx) {
   let hint = null;
   draw(); ready.then(draw);
 
-  const counter = el('div', {}, t('d4count', 0));
   const L3 = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
-  // cuando faltan 3 renos (o menos): botón de pista
-  const hintBtn = el('button', { class: 'btn small-btn btn-green no-delay d4-hint', style: 'display:none', onclick: () => {
-    const left = deer.filter(d => d.target && !d.found); if (!left.length) return;
-    const d = left[Math.floor(Math.random() * left.length)], [hx, hy] = headOf(d);
-    const r = 165, a = Math.random() * Math.PI * 2, off = r * (.25 + Math.random() * .4); // el reno no queda en el centro justo
-    hint = { x: Math.max(r * .6, Math.min(W - r * .6, hx + Math.cos(a) * off)), y: Math.max(r * .6, Math.min(H - r * .6, hy + Math.sin(a) * off)), r, until: performance.now() + 5000 };
-    // se mueve la vista para que la zona se vea
-    // (V22.6) se centra en la parte del tablero que de verdad se ve, no en todo el recuadro
-    { try { scroll.scrollIntoView({ block: 'nearest', behavior: 'instant' }); } catch { scroll.scrollIntoView(false); }
-      const sr = scroll.getBoundingClientRect(), box = (scroll.closest('.note-body') || document.documentElement).getBoundingClientRect();
-      const foot = scroll.closest('.note-layer')?.querySelector('.note-foot, .note-btns')?.getBoundingClientRect();
-      const top = Math.max(sr.top, box.top, 0), bot = Math.min(sr.bottom, box.bottom, foot ? foot.top : 1e9, innerHeight);
-      const vw = scroll.clientWidth, vh = Math.max(80, bot - top), cy = (top + bot) / 2 - sr.top;
-      zoom = Math.max(1, Math.min(6, Math.min(vw, vh) * .85 / (2 * r / W * base)));   // el círculo ocupa casi toda la parte visible
-      const w = base * zoom, h = w * H / W; tx = vw / 2 - hint.x / W * w; ty = cy - hint.y / H * h; apply(); }
-    draw(); chime(); clearTimeout(hintBtn._t); hintBtn._t = setTimeout(draw, 5100);
-  } }, '💡 ' + L3('Pista', 'Pista', 'Hint'));
-  const showHint = () => { hintBtn.style.display = !finished && found >= 2 && found < 5 ? '' : 'none'; };
-  // zoom y desplazamiento propios: un dedo arrastra, dos dedos pellizcan, toque = pulsar reno
-  const scroll = el('div', { class: 'reindeer-scroll' }, cv);
-  let zoom = 1, tx = 0, ty = 0, base = 0;
+  const counter = el('div', {}, t('d4count', 0));
+
+  // ---------- vista: el lienzo se mueve y se agranda con transform (fluido con los dedos) ----------
+  const stage = el('div', { class: 'd4-stage' }, cv);           // lienzo + marcas, se mueven juntos
+  const scroll = el('div', { class: 'reindeer-scroll d4-view' }, stage);
+  let zoom = 1, tx = 0, ty = 0, base = 0, zoom0 = 1, raf = 0, anim = null;
+  const ZMAX = 7;
+  const vwh = () => [scroll.clientWidth || 1, scroll.clientHeight || 1];
   const clamp = () => {
-    const vw = scroll.clientWidth, vh = scroll.clientHeight, w = base * zoom, h = w * H / W;
-    tx = Math.min(0, Math.max(vw - w, tx)); ty = h > vh ? Math.min(0, Math.max(vh - h, ty)) : (vh - h) / 2;
+    const [vw, vh] = vwh(), w = base * zoom, h = w * H / W;
+    tx = w > vw ? Math.min(0, Math.max(vw - w, tx)) : (vw - w) / 2;
+    ty = h > vh ? Math.min(0, Math.max(vh - h, ty)) : (vh - h) / 2;
   };
-  const apply = () => { clamp(); cv.style.width = base * zoom + 'px'; cv.style.height = base * zoom * H / W + 'px'; cv.style.transform = `translate(${tx}px,${ty}px)`; };
-  const zoomAt = (nz, px, py) => { nz = Math.max(1, Math.min(6, nz)); const k = nz / zoom; tx = px - (px - tx) * k; ty = py - (py - ty) * k; zoom = nz; apply(); };
-  const center = () => [scroll.clientWidth / 2, scroll.clientHeight / 2];
-  const zoomBar = el('div', { class: 'zoom-bar' },
-    el('button', { onclick: () => zoomAt(zoom / 1.5, ...center()) }, '−'),
-    el('span', {}, t('zoomHelp')),
-    el('button', { onclick: () => zoomAt(zoom * 1.5, ...center()) }, '+'));
+  const paint = () => { raf = 0; stage.style.transform = `translate3d(${tx}px,${ty}px,0) scale(${zoom})`; stage.style.setProperty('--z', zoom); };
+  const apply = () => { clamp(); if (!raf) raf = requestAnimationFrame(paint); };
+  const stopAnim = () => { if (anim) { cancelAnimationFrame(anim); anim = null; } };
+  // movimiento suave hasta una vista (botones, pista, volver)
+  const animateTo = (nz, ntx, nty, ms = 380) => {
+    stopAnim(); stopFling();
+    const z1 = zoom, x1 = tx, y1 = ty, t0 = performance.now();
+    const step = now => {
+      const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+      zoom = z1 + (nz - z1) * e; tx = x1 + (ntx - x1) * e; ty = y1 + (nty - y1) * e; clamp(); paint();
+      anim = k < 1 ? requestAnimationFrame(step) : null;
+    };
+    anim = requestAnimationFrame(step);
+  };
+  // vista para que el punto (x, y) del dibujo quede en (px, py) de la pantalla con el zoom nz
+  const viewFor = (nz, x, y, px, py) => { nz = Math.max(1, Math.min(ZMAX, nz)); const w = base * nz, h = w * H / W; return [nz, px - x / W * w, py - y / H * h]; };
+  const zoomBy = f => { const [vw, vh] = vwh(); const cx = (vw / 2 - tx) / (base * zoom) * W, cy = (vh / 2 - ty) / (base * zoom * H / W) * H; animateTo(...viewFor(zoom * f, cx, cy, vw / 2, vh / 2), 260); };
+  const home = () => { const [vw, vh] = vwh(); animateTo(...viewFor(zoom0, W / 2, H / 2, vw / 2, vh / 2)); };
+  const whole = () => { const [vw, vh] = vwh(); animateTo(...viewFor(1, W / 2, H / 2, vw / 2, vh / 2)); };
+
+  const zoomBar = el('div', { class: 'd4-zoom' },
+    el('button', { type: 'button', class: 'no-delay', 'aria-label': '−', onclick: () => zoomBy(1 / 1.6) }, '−'),
+    el('button', { type: 'button', class: 'no-delay d4-home', onclick: home }, '⟲ ' + L3('Como estaba', 'Com estava', 'Reset')),
+    el('button', { type: 'button', class: 'no-delay d4-home', onclick: whole }, '🗺️ ' + L3('Todo', 'Tot', 'All')),
+    el('button', { type: 'button', class: 'no-delay', 'aria-label': '+', onclick: () => zoomBy(1.6) }, '+'));
+  const zoomTip = el('div', { class: 'd4-tip' }, '🤏 ' + L3('Pellizca con dos dedos para acercarte o alejarte; arrastra con un dedo.', 'Pessiga amb dos dits per apropar-te o allunyar-te; arrossega amb un dit.', 'Pinch with two fingers to zoom; drag with one finger.'));
+
+  // ---------- ayudas ----------
+  // 💡 Pista: un reno cada vez. Si vuelves a pulsar, la zona se hace más pequeña (más ayuda) hasta señalarlo.
+  const RADII = [200, 120, 60];
+  let hintDeer = null, hintLevel = 0, usedHints = 0;
+  const left = () => deer.filter(d => d.target && !d.found);
+  // mueve la vista para que se vea bien la zona (x, y, r) en la parte del tablero que de verdad se ve
+  const showArea = (x, y, r) => {
+    let top = 0, bot = 0;
+    try { scroll.scrollIntoView({ block: 'nearest', behavior: 'instant' }); } catch { scroll.scrollIntoView(false); }
+    const sr2 = scroll.getBoundingClientRect(), box = (scroll.closest('.note-body') || document.documentElement).getBoundingClientRect();
+    const foot = scroll.closest('.note-layer')?.querySelector('.note-foot, .note-btns')?.getBoundingClientRect();
+    top = Math.max(sr2.top, box.top, 0); bot = Math.min(sr2.bottom, box.bottom, foot ? foot.top : 1e9, innerHeight);
+    const [vw] = vwh(), vh = Math.max(80, bot - top), cy = (top + bot) / 2 - sr2.top;
+    const nz = Math.min(vw, vh) * .85 / (2 * r / W * base);
+    animateTo(...viewFor(nz, x, y, vw / 2, cy), 450);
+  };
+  const hintBtn = el('button', { type: 'button', class: 'btn small-btn btn-green no-delay d4-hint', onclick: () => {
+    const L = left(); if (!L.length) return;
+    if (!hintDeer || hintDeer.found) { hintDeer = L[Math.floor(Math.random() * L.length)]; hintLevel = 0; }
+    else hintLevel = Math.min(RADII.length - 1, hintLevel + 1);
+    usedHints++;
+    const [hx, hy] = headOf(hintDeer), r = RADII[hintLevel];
+    const off = hintLevel === RADII.length - 1 ? 0 : r * (.25 + Math.random() * .35), a = Math.random() * Math.PI * 2; // el reno no queda justo en el centro
+    hint = { x: Math.max(r * .6, Math.min(W - r * .6, hx + Math.cos(a) * off)), y: Math.max(r * .6, Math.min(H - r * .6, hy + Math.sin(a) * off)), r, until: performance.now() + 6000 };
+    showArea(hint.x, hint.y, r); draw(); chime();
+    clearTimeout(hintBtn._t); hintBtn._t = setTimeout(draw, 6100);
+    hintLabel();
+  } });
+  const hintLabel = () => {
+    const more = hintDeer && !hintDeer.found && hintLevel < RADII.length - 1;
+    hintBtn.textContent = '💡 ' + (more ? L3('Más ayuda', 'Més ajuda', 'More help') : L3('Pista', 'Pista', 'Hint'));
+  };
+  // 👀 Los que quedan: señala todos los renos que faltan durante unos segundos
+  const marks = el('div', { class: 'd4-marks' }); stage.append(marks);
+  const allBtn = el('button', { type: 'button', class: 'btn small-btn no-delay d4-all', style: 'display:none', onclick: () => {
+    const L = left(); if (!L.length) return;
+    marks.innerHTML = ''; if (hint) { hint = null; clearTimeout(hintBtn._t); draw(); }
+    L.forEach(d => { const [hx, hy] = headOf(d); marks.append(el('i', { style: `left:${hx / W * 100}%;top:${hy / H * 100}%` })); });
+    // la vista abarca todos los que faltan
+    const hs = L.map(headOf), x0 = Math.min(...hs.map(h => h[0])), x1 = Math.max(...hs.map(h => h[0])), y0 = Math.min(...hs.map(h => h[1])), y1 = Math.max(...hs.map(h => h[1]));
+    const [vw, vh] = vwh(), nz = Math.min(vw / ((x1 - x0 + 160) / W * base), vh / ((y1 - y0 + 160) / W * base));
+    animateTo(...viewFor(nz, (x0 + x1) / 2, (y0 + y1) / 2, vw / 2, vh / 2), 450); chime();
+    clearTimeout(allBtn._t); allBtn._t = setTimeout(() => { marks.innerHTML = ''; }, 5000);
+  } }, '👀 ' + L3('Los que quedan', 'Els que queden', 'Show the rest'));
+  hintLabel();
+  const showHelp = () => {
+    hintBtn.style.display = finished ? 'none' : '';
+    allBtn.style.display = !finished && usedHints > 0 ? '' : 'none';
+  };
+  hintBtn.addEventListener('click', () => showHelp());
+
   body.append(el('h2', { class: 'q-title' }, t('d4title')), el('p', { class: 'game-help' }, t('d4help')),
-    el('div', { class: 'game-stats' }, counter, hintBtn), zoomBar, scroll);
-  requestAnimationFrame(() => { base = scroll.clientWidth || 800; zoomAt(Math.max(1, 1000 / base), ...center()); });
-  const pts = new Map(); let g0 = null, moved = 0;
+    el('div', { class: 'game-stats' }, counter), el('div', { class: 'd4-helps' }, hintBtn, allBtn), zoomBar, scroll, zoomTip);
+  const sizeUp = () => {
+    const nb = scroll.clientWidth || 800; if (nb === base) return;
+    const first = !base; base = nb; zoom0 = Math.max(1, 1000 / base);
+    stage.style.width = base + 'px'; stage.style.height = base * H / W + 'px';
+    if (first) { const [vw, vh] = vwh(); [zoom, tx, ty] = viewFor(zoom0, W / 2, H / 2, vw / 2, vh / 2); }
+    apply();
+  };
+  requestAnimationFrame(sizeUp);
+  try { new ResizeObserver(() => sizeUp()).observe(scroll); } catch {}
+
+  // ---------- gestos: un dedo arrastra (con inercia), dos dedos pellizcan, toque = pulsar reno ----------
+  const pts = new Map(); let g0 = null, moved = 0, vel = null, fling = 0;
+  const stopFling = () => { if (fling) { cancelAnimationFrame(fling); fling = 0; } };
   const local = (x, y) => { const r = scroll.getBoundingClientRect(); return [x - r.left, y - r.top]; };
-  const gest = () => { const p = [...pts.values()]; return p.length > 1 ? { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2, d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) } : { x: p[0].x, y: p[0].y, d: 0 }; };
-  const startG = () => { g0 = { ...gest(), tx, ty, zoom }; };
+  const gest = () => {
+    const p = [...pts.values()];
+    if (p.length > 1) return { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2, d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) };
+    return { x: p[0].x, y: p[0].y, d: 0 };
+  };
+  const startG = () => { if (!pts.size) { g0 = null; return; } g0 = { ...gest(), tx, ty, zoom, n: pts.size }; vel = { x: g0.x, y: g0.y, t: performance.now(), vx: 0, vy: 0 }; };
   scroll.addEventListener('pointerdown', e => {
-    e.preventDefault(); try { scroll.setPointerCapture(e.pointerId); } catch {}
+    e.preventDefault(); stopAnim(); stopFling(); try { scroll.setPointerCapture(e.pointerId); } catch {}
     if (e.isPrimary) pts.clear(); // un dedo nuevo empieza un gesto nuevo (si se perdió un «soltar», no se queda bloqueado)
-    pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 1) moved = 0; startG(); });
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 1) moved = 0; startG();
+  });
   scroll.addEventListener('pointermove', e => {
     if (!pts.has(e.pointerId) || !g0) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    const g = gest(); moved = Math.max(moved, Math.hypot(g.x - g0.x, g.y - g0.y) + (g.d && g0.d ? Math.abs(g.d - g0.d) : 0));
-    if (g.d && g0.d) { const [px, py] = local(g0.x, g0.y); zoom = g0.zoom; tx = g0.tx; ty = g0.ty; zoomAt(g0.zoom * g.d / g0.d, px, py); }
-    if (g.d && g0.d) { tx += g.x - g0.x; ty += g.y - g0.y; }
-    if (!(g.d && g0.d)) { tx = g0.tx + g.x - g0.x; ty = g0.ty + g.y - g0.y; }
+    const g = gest();
+    moved = Math.max(moved, Math.hypot(g.x - g0.x, g.y - g0.y) + (g.d && g0.d ? Math.abs(g.d - g0.d) : 0));
+    const [mx, my] = local(g0.x, g0.y), [nx, ny] = local(g.x, g.y);
+    const nz = g.d && g0.d ? Math.max(1, Math.min(ZMAX, g0.zoom * g.d / g0.d)) : g0.zoom;
+    // el punto que estaba bajo los dedos sigue bajo los dedos
+    const k = nz / g0.zoom; zoom = nz; tx = nx - (mx - g0.tx) * k; ty = ny - (my - g0.ty) * k;
+    const now = performance.now(), dt = now - vel.t;
+    if (dt > 0) { const a = Math.min(1, dt / 50); vel.vx = vel.vx * (1 - a) + (g.x - vel.x) / dt * a; vel.vy = vel.vy * (1 - a) + (g.y - vel.y) / dt * a; vel.x = g.x; vel.y = g.y; vel.t = now; }
     apply();
   });
   const up = e => {
-    const single = pts.size === 1 && moved < 8 && e.type === 'pointerup';
+    const single = pts.size === 1 && moved < 9 && e.type === 'pointerup';
+    const wasPan = pts.size === 1 && g0 && g0.n === 1 && moved >= 9;
     pts.delete(e.pointerId);
     if (single) tap(e.clientX, e.clientY);
-    if (pts.size) startG(); else g0 = null;
+    if (pts.size) { startG(); return; }
+    // inercia al soltar después de arrastrar
+    if (wasPan && vel && performance.now() - vel.t < 80 && Math.hypot(vel.vx, vel.vy) > .25) {
+      let vx = vel.vx, vy = vel.vy, last = performance.now();
+      const step = now => { const dt = Math.min(32, now - last); last = now; tx += vx * dt; ty += vy * dt; const f = Math.pow(.94, dt / 16); vx *= f; vy *= f; clamp(); paint();
+        fling = Math.hypot(vx, vy) > .03 ? requestAnimationFrame(step) : 0; };
+      fling = requestAnimationFrame(step);
+    }
+    g0 = null;
   };
   scroll.addEventListener('pointerup', up); scroll.addEventListener('pointercancel', up);
   scroll.addEventListener('lostpointercapture', e => { if (pts.has(e.pointerId)) { pts.delete(e.pointerId); if (pts.size) startG(); else g0 = null; } });
-  scroll.addEventListener('wheel', e => { e.preventDefault(); const [px, py] = local(e.clientX, e.clientY); zoomAt(zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15), px, py); }, { passive: false });
-  setTimeout(() => popup(`<h2>🦌🕶️</h2><p style="font-size:20px">${t('d4help')}</p>`, { buttons: [{ label: '¡OK!', value: 1 }] }), 1600);
+  scroll.addEventListener('wheel', e => { e.preventDefault(); stopAnim(); const [px, py] = local(e.clientX, e.clientY); const nz = Math.max(1, Math.min(ZMAX, zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15))), k = nz / zoom; tx = px - (px - tx) * k; ty = py - (py - ty) * k; zoom = nz; apply(); }, { passive: false });
+  // Safari del iPhone: que el pellizco no amplíe toda la página
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => scroll.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+  setTimeout(() => popup(`<h2>🦌🕶️</h2><p style="font-size:20px">${t('d4help')}</p><p style="font-size:16px">🤏 ${L3('Pellizca con dos dedos para acercarte. Si te cuesta, pulsa 💡 Pista.', 'Pessiga amb dos dits per apropar-te. Si et costa, prem 💡 Pista.', 'Pinch to zoom in. If it’s hard, tap 💡 Hint.')}</p>`, { buttons: [{ label: '¡OK!', value: 1 }] }), 1600);
 
   cv._left = () => deer.filter(d => d.target && !d.found).map(d => headOf(d).map((v, i) => v / (i ? H : W)));
   let found = 0, finished = !!ctx.prev;
   if (finished) { deer.filter(d => d.target).forEach(d => d.found = true); found = 5; counter.textContent = t('d4count', 5); draw(); }
+  showHelp();
+
+  // chispa cuando se pulsa un reno que no es
+  const spark = (x, y) => {
+    const s = el('div', { class: 'd4-spark' }); s.style.left = x + 'px'; s.style.top = y + 'px';
+    for (let i = 0; i < 10; i++) { const a = i / 10 * 360 + Math.random() * 20; s.append(el('i', { style: `--a:${a}deg;--d:${26 + Math.random() * 18}px;--c:${['#ffd24a', '#ff8a00', '#ff3b1f', '#fff3a0'][i % 4]}` })); }
+    s.append(el('b', {}, '✖'));
+    document.body.append(s); setTimeout(() => s.remove(), 750);
+  };
+  let lastOops = 0;
   function tap(cx, cy) {
-    const e = { clientX: cx, clientY: cy };
     if (finished) return;
     const rect = cv.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width * W, y = (e.clientY - rect.top) / rect.height * H;
+    const x = (cx - rect.left) / rect.width * W, y = (cy - rect.top) / rect.height * H;
     const R = Math.max(26, 28 / (rect.width / W)); // en la pantalla, siempre unos 28 px de margen (aunque la imagen esté pequeña)
-    const hit = deer.filter(d => d.target && !d.found).map(d => { const [hx, hy] = headOf(d); return { d, k: Math.hypot(hx - x, hy - y) }; }).filter(o => o.k < R).sort((a, b) => a.k - b.k)[0]?.d;
+    const hit = left().map(d => { const [hx, hy] = headOf(d); return { d, k: Math.hypot(hx - x, hy - y) }; }).filter(o => o.k < R).sort((a, b) => a.k - b.k)[0]?.d;
     if (hit) {
-      hit.found = true; found++; draw(); pop(); starBurst(e.clientX, e.clientY);
-      counter.textContent = t('d4count', found); hint = null; showHint();
-      if (found === 2) setTimeout(() => toast('💡 ' + L3('Si te cuesta encontrarlos, pulsa «Pista».', 'Si et costa trobar-los, prem «Pista».', 'If you can’t find them, tap “Hint”.'), 3500), 900);
+      hit.found = true; found++; pop(); starBurst(cx, cy);
+      counter.textContent = t('d4count', found);
+      if (hint) { hint = null; clearTimeout(hintBtn._t); }
+      if (hit === hintDeer) { hintDeer = null; hintLevel = 0; }
+      marks.innerHTML = ''; draw(); hintLabel(); showHelp();
       if (found === 5) {
-        finished = true; chime();
+        finished = true; showHelp(); chime();
         ctx.submit({ answer: '5/5', status: 'correct' });
         setTimeout(async () => { await popup(ctx.replay ? `<h2>🦌✨</h2><p class="prize-text">${L3('¡Los has vuelto a encontrar todos!', 'Els has tornat a trobar tots!', 'You found them all again!')}</p>` : `<h2>🏆</h2><p class="prize-text">${t('prizeGot')[figure()]}</p>`); ctx.finish(); }, 900);
       }
-    } else wrong();
+      return;
+    }
+    // ¿has tocado otro reno? → chispa + sonido de decepción
+    const near = deer.some(d => !d.target && Math.hypot(d.x - x, d.y - y) < Math.max(DW * d.s * .55, 14 / (rect.width / W)));
+    if (near) { spark(cx, cy); const now = performance.now(); if (now - lastOops > 450) { oops(); lastOops = now; } }
   }
 }

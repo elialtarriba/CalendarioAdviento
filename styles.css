@@ -2814,3 +2814,30 @@ html.gm-lock, html.gm-lock body { overflow: hidden; }
 .gi-pic svg { display: block; width: 100%; max-width: 120px; height: auto; margin: 0 auto; }
 /* V23.4 – regal del dia 24 a dalt de tot */
 .gift-box-24 { margin: 2px 0 18px; }
+
+/* V23.6 · día 4: zoom fluido con los dedos, ayudas y chispa */
+.d4-view { background: #e9f4ff; }
+.d4-stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; --z: 1; }
+.d4-stage canvas { position: static !important; display: block; width: 100% !important; height: 100% !important; transform: none !important; }
+.d4-helps { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 0 0 8px; }
+.d4-helps .btn { margin: 0 !important; }
+.d4-all { background: linear-gradient(#ffe48a, #f4b400) !important; color: #5a2a00 !important; box-shadow: 0 4px 0 #a86f00 !important; }
+.d4-zoom { display: flex; gap: 6px; justify-content: center; align-items: center; margin: 0 0 6px; flex-wrap: wrap; }
+.d4-zoom button { min-width: 42px; height: 42px; padding: 0 12px; border-radius: 999px; border: 2px solid #c79a42; background: #fff; font-size: 22px; font-weight: 800; color: #7a1020;
+  box-shadow: 0 3px 0 #c9a978; font-family: var(--font-ui); line-height: 1; }
+.d4-zoom button.d4-home { font-size: 14px; }
+.d4-zoom button:active { transform: translateY(2px); box-shadow: 0 1px 0 #c9a978; }
+.d4-tip { text-align: center; font-size: 12.5px; color: #7a5a2a; margin-top: 6px; font-family: var(--font-ui); }
+.d4-marks { position: absolute; inset: 0; pointer-events: none; }
+.d4-marks i { position: absolute; width: calc(50px / var(--z)); height: calc(50px / var(--z)); border-radius: 50%; transform: translate(-50%, -50%);
+  border: calc(5px / var(--z)) solid #ffd24a; box-shadow: 0 0 calc(14px / var(--z)) calc(4px / var(--z)) #ffb300cc, inset 0 0 calc(10px / var(--z)) #ffd24a99; animation: d4Ring 1s ease-in-out infinite; }
+@keyframes d4Ring { 0%, 100% { scale: 1; opacity: 1; } 50% { scale: 1.35; opacity: .65; } }
+.d4-spark { position: fixed; z-index: 420; width: 0; height: 0; pointer-events: none; }
+.d4-spark i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px 2px var(--c);
+  animation: d4Spark .6s ease-out forwards; }
+.d4-spark b { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); color: #d01818; font-size: 26px; font-weight: 900; text-shadow: 0 0 6px #fff, 0 0 2px #fff;
+  animation: d4X .7s ease-out forwards; }
+@keyframes d4Spark { 0% { transform: rotate(var(--a)) translateX(0) scale(1.3); opacity: 1; } 100% { transform: rotate(var(--a)) translateX(var(--d)) scale(.2); opacity: 0; } }
+@keyframes d4X { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 1; } 40% { transform: translate(-50%, -50%) scale(1.25) rotate(-8deg); } 100% { transform: translate(-50%, -50%) scale(1) rotate(8deg); opacity: 0; } }
+@media (max-width: 420px) { .g23-names { gap: 5px; } .g23-name { padding: 6px 10px; font-size: 13.5px; } }
+@media (max-height: 760px) { .g23-pop .g23-pic { width: 120px; height: 106px; margin-top: 2px; } .g23-card h2 { font-size: 21px !important; } }

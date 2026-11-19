@@ -20,9 +20,10 @@ export function special(n, key) {
 
 // ================================================================ DÍA 23
 const NAMES = {
-  act1: ['Yaya', 'Julio Padre', 'Julio Hijo', 'Marian', 'Lorena', 'Santi', 'Txell', 'Agustí', 'Raimon Padre', 'Raimon Hijo', 'Yan', 'Pruna', 'Elisabeth'],
-  act2: ['Raimon Padre', 'Raimon Hijo', 'Yan', 'Pruna', 'Elisabeth Mamá', 'Marc'],
+  // (V23.6) los mismos nombres para la actividad 1 (árboles) y la 2 (gnomos)
+  act1: ['Yaya', 'Julio Padre', 'Julio Hijo', 'Marian', 'Lorena', 'Santi', 'Txell', 'Agustí', 'Raimon Padre', 'Raimon Hijo', 'Yan', 'Pruna', 'Elisabeth', 'Pilar', 'Carles Padre', 'Carles C', 'Júlia', 'Carla', 'Thor'],
 };
+NAMES.act2 = NAMES.act1;
 // Dibujos al estilo del calendario (recortados de la imagen del calendario)
 const TREE = 'ilu-5.webp';
 const GIFT_PICS = ['ilu-gr.webp', 'ilu-gl.webp', 'ilu-4.webp'];
