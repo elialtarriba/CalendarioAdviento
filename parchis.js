@@ -14,6 +14,8 @@ import { pawnSvg, dragToken, bigCongrats } from './gamefx.js';
 import { store } from './store.js';
 import { S, figure } from './app.js';
 
+// replaceChildren sin «null» escrito en pantalla
+const rc = (n, ...k) => n.replaceChildren(...k.flat().filter(x => x != null && x !== false));
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const FIG = { galleta: 'galleta.png', arbol: 'arbol.png', gnomo: 'gnomo.png' };
 // ---------------------------------------------------------------- tablero
@@ -148,11 +150,12 @@ export function render(body, ctx) {
     el('div', { class: 'pch-cta-row' },
       el('button', { type: 'button', class: 'oca-cta pch-cta no-delay', onclick: () => { unlockAudio(); openParchis(ctx, { mode: 'online' }); } }, '🌐 ' + L('Jugar en línea', 'Jugar en línia', 'Play online')),
       el('button', { type: 'button', class: 'oca-cta pch-cta solo no-delay', onclick: () => { unlockAudio(); openParchis(ctx, { mode: 'solo' }); } }, '🎅 ' + L('Jugar contra Papá Noel', 'Jugar contra el Pare Noel', 'Play against Santa'))),
-    el('button', { type: 'button', class: 'btn btn-ghost no-delay', onclick: () => showRules(document.body) }, '📜 ' + L('Reglas', 'Regles', 'Rules'))));
+    el('button', { type: 'button', class: 'btn btn-ghost no-delay', onclick: () => showRules() }, '📜 ' + L('Reglas', 'Regles', 'Rules'))));
 }
 
 // ---- reglas (botón a mano, dentro y fuera del juego)
-export function showRules(host) {
+export function showRules() {
+  const host = document.body; document.querySelector('.pch-rules')?.remove();
   const R = (ico, t, d) => el('div', { class: 'oca-rule' }, el('div', { class: 'pch-rico' }, ico), el('div', {}, el('b', {}, t), el('small', {}, d)));
   const box = el('div', { class: 'cc8-end oca-helpbox pch-rules' }, el('div', { class: 'cc8-endcard oca-help' },
     el('h2', {}, '📜 ' + L('Reglas del parchís', 'Regles del parxís', 'Ludo rules')),
@@ -195,7 +198,7 @@ function buildShell(ctx) {
   const top = el('div', { class: 'oca-top' },
     el('div', { class: 'oca-side oca-timer' }, el('span', {}, '⏱'), timeEl),
     el('div', { class: 'oca-diebox' }, hole, dieHint),
-    el('button', { type: 'button', class: 'oca-side no-delay', onclick: () => showRules(wrap) }, el('span', {}, '📜'), el('small', {}, L('Reglas', 'Regles', 'Rules'))));
+    el('button', { type: 'button', class: 'oca-side no-delay', onclick: () => showRules() }, el('span', {}, '📜'), el('small', {}, L('Reglas', 'Regles', 'Rules'))));
   const players = el('div', { class: 'pch-players' });
   const board = el('div', { class: 'pch-board' });
   const msg = el('div', { class: 'oca-msg' });
@@ -213,7 +216,7 @@ function buildShell(ctx) {
   const onR = () => layout(W); addEventListener('resize', onR); W.cleanups.push(() => removeEventListener('resize', onR));
   // dado
   const PIPS = { 1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9] };
-  W.face = n => { die.replaceChildren(...Array.from({ length: 9 }, (_, i) => el('i', { class: PIPS[n].includes(i + 1) ? 'on' : '' }))); };
+  W.face = n => { rc(die, ...Array.from({ length: 9 }, (_, i) => el('i', { class: PIPS[n].includes(i + 1) ? 'on' : '' }))); };
   W.face(1);
   let spinIv = 0;
   W.spin = () => { clearInterval(spinIv); hole.classList.add('spin'); let last = 1; spinIv = setInterval(() => { let n; do { n = 1 + Math.floor(Math.random() * 6); } while (n === last); last = n; W.face(n); clickSound(); }, 85); };
@@ -232,7 +235,7 @@ function buildShell(ctx) {
   });
   let msgT = 0;
   W.say = async (txt, kind = '', vkey = '') => {
-    msg.replaceChildren(el('span', {}, txt)); msg.className = 'oca-msg on ' + kind; clearTimeout(msgT);
+    rc(msg, el('span', {}, txt)); msg.className = 'oca-msg on ' + kind; clearTimeout(msgT);
     msgT = setTimeout(() => msg.classList.remove('on'), 2400);
     if (vkey) { try { await sayVoice(vkey, getLang(), txt.replace(/[!¡]/g, '')); } catch {} clearTimeout(msgT); msgT = setTimeout(() => msg.classList.remove('on'), 600); }
   };
@@ -346,7 +349,7 @@ async function humanMove(W, moves) {
 }
 function paintPlayers(W, info) {
   const G = W.G;
-  W.players.replaceChildren(...G.order.map(c => {
+  rc(W.players, ...G.order.map(c => {
     const p = info[c] || {};
     const place = G.fin.indexOf(c);
     return el('div', { class: 'pch-pl pc-' + c + (G.turn === c && G.status === 'play' ? ' now' : '') + (G.out.includes(c) ? ' gone' : ''), style: `--tk:${CHEX[c]}` },
@@ -364,13 +367,14 @@ function soloSetup(W) {
   let myC = 'y', n = 1;
   const card = el('div', { class: 'cc8-endcard oca-mode pch-setup' });
   const box = el('div', { class: 'cc8-end' }, card);
-  const draw = () => card.replaceChildren(
+  const draw = () => rc(card, 
     el('h2', {}, '🎅 ' + L('Contra Papá Noel', 'Contra el Pare Noel', 'Against Santa')),
     el('p', {}, L('Elige tu color:', 'Tria el teu color:', 'Choose your colour:')),
     el('div', { class: 'pch-colpick' }, ...COLORS.map(c => el('button', { type: 'button', class: 'pch-colbtn no-delay' + (c === myC ? ' on' : ''), style: `--tk:${CHEX[c]}`, onclick: () => { myC = c; draw(); } }, el('span', { html: pawnSvg(c) }), el('small', {}, CNAME[c]())))),
     el('p', {}, L('¿Contra cuántos Papás Noel?', 'Contra quants Pares Noel?', 'Against how many Santas?')),
     el('div', { class: 'pch-colpick' }, ...[1, 2, 3].map(k => el('button', { type: 'button', class: 'pch-numbtn no-delay' + (k === n ? ' on' : ''), onclick: () => { n = k; draw(); } }, '🎅'.repeat(k)))),
-    el('div', { class: 'cc8-endbtns' }, el('button', { type: 'button', class: 'btn btn-big no-delay', onclick: () => { box.remove(); soloPlay(W, myC, n); } }, '🎲 ' + L('¡A jugar!', 'A jugar!', 'Let’s play!'))));
+    el('div', { class: 'cc8-endbtns' }, el('button', { type: 'button', class: 'btn btn-big no-delay', onclick: () => { box.remove(); soloPlay(W, myC, n); } }, '🎲 ' + L('¡A jugar!', 'A jugar!', 'Let’s play!')),
+      el('button', { type: 'button', class: 'btn btn-ghost no-delay', onclick: () => W.close() }, '⏰ ' + L('Lo haré más tarde', 'Ho faré més tard', 'Later'))));
   draw(); W.wrap.append(box);
   layout(W);
   W.G = newGame(COLORS); W.G.order.forEach(c => { W.G.tok[c] = [-1, -1, -1, -1]; }); placeAll(W);
@@ -446,59 +450,117 @@ async function onlineLobby(W, join) {
   try { localStorage.setItem(CUR, gid); } catch {}
   W.gid = gid;
   const lobby = el('div', { class: 'cc8-endcard pch-lobby' });
-  const box = el('div', { class: 'cc8-end' }, lobby);
+  const box = el('div', { class: 'cc8-end pch-lobby-back' }, lobby);
   W.wrap.append(box);
-  let doc = null, onlineList = [], started = false;
-  // salir del vestíbulo / de la partida
+  let doc = null, started = false, people = [], onlineMap = {}, showPeople = true, query = '', closing = false;
+  // (V26.1) salir siempre se puede: del vestíbulo se sale enseguida («lo haré más tarde»)
+  const leaveLobby = async (thenSolo = false) => {
+    if (closing) return; closing = true;
+    const d = doc;
+    try { localStorage.removeItem(CUR); } catch {}
+    if (d?.status === 'lobby') {
+      if (d.host === me) {
+        store.gTx('pgame', gid, x => x && x.status === 'lobby' ? { ...x, status: 'cancel', v: (x.v || 0) + 1 } : null).catch(() => {});
+        clearGameMsgs(gid, Object.keys(d.pl || {}));
+      } else {
+        store.gPatch('pgame', gid, { [`pl.${me}.st`]: 'no' }).catch(() => {});
+        if (d.host) sendMsg({ gid, to: d.host, tn: d.hostName, k: 'no', txt: L('Lo haré más tarde', 'Ho faré més tard', 'Maybe later') }).catch(() => {});
+      }
+    }
+    W.close();
+    if (thenSolo) setTimeout(() => openParchis(W.ctx, { mode: 'solo' }), 400);
+  };
+  W.canLeaveQuiet = () => !doc || doc.status !== 'play';
+  W.isHostLobby = () => doc?.status === 'lobby' && doc.host === me;
+  W.hasInvited = u => ['inv', 'ok'].includes(doc?.pl?.[u]?.st);
+  W.leaveQuiet = () => leaveLobby();
   W.onX = async () => {
     if (doc?.status === 'play' && doc.pl?.[me]?.st === 'ok' && !doc.G?.fin?.includes(doc.pl[me].c)) {
       const go = await popup(`<h2>🚪</h2><p style="font-size:18px">${L('Si sales ahora, quedas fuera de la partida y pierdes 1 punto. ¿Seguro?', 'Si surts ara, quedes fora de la partida i perds 1 punt. Segur?', 'If you leave now you are out of the game and lose 1 point. Sure?')}</p>`,
         { cls: 'pch-xmas', buttons: [{ label: L('Seguir jugando', 'Continuar jugant', 'Keep playing'), value: false }, { label: L('Salir', 'Sortir', 'Leave'), value: true, cls: 'btn-ghost' }] });
       if (!go) return;
-      await leaveGame(gid, me, true);
-    } else if (doc?.status === 'lobby') {
-      if (doc.host === me) await store.gTx('pgame', gid, d => d && d.status === 'lobby' ? { ...d, status: 'cancel', v: (d.v || 0) + 1 } : null).catch(() => {});
-      else await store.gPatch('pgame', gid, { [`pl.${me}.st`]: 'no' }).catch(() => {});
-      try { localStorage.removeItem(CUR); } catch {}
+      leaveGame(gid, me, true);
+      W.close(); return;
     }
+    if (doc?.status === 'lobby' || !doc) return leaveLobby();
     W.close();
   };
-  // quién está conectado (la app abierta en los últimos 2 minutos y medio)
-  const loadOnline = async () => {
-    const all = await store.gList('online').catch(() => []);
-    onlineList = all.filter(o => o.uid !== me && o.st !== 'off' && Date.now() - (o.at || 0) < 150000);
-    if (doc?.status === 'lobby') drawLobby();
+  // todas las personas apuntadas (con verde si tienen la app abierta ahora)
+  const isOn = o => !!o && o.st === 'online' && Date.now() - (o.at || 0) < 150000;
+  const loadPeople = async () => {
+    const [names, onl] = await Promise.all([store.gList('names').catch(() => []), store.gList('online').catch(() => [])]);
+    onlineMap = {}; onl.forEach(o => { if (o?.uid) onlineMap[o.uid] = o; });
+    const m = new Map();
+    names.forEach(nm => { if (nm?.uid && nm.uid !== me && !m.has(nm.uid)) m.set(nm.uid, { uid: nm.uid, n: onlineMap[nm.uid]?.n || nm.name || '—' }); });
+    onl.forEach(o => { if (o?.uid && o.uid !== me && !m.has(o.uid)) m.set(o.uid, { uid: o.uid, n: o.n || '—' }); });
+    people = [...m.values()].map(p => ({ ...p, f: onlineMap[p.uid]?.f || 'galleta', on: isOn(onlineMap[p.uid]) }))
+      .sort((a, b) => (b.on - a.on) || String(a.n).localeCompare(String(b.n)));
+    drawLobby();
   };
-  loadOnline(); const oIv = setInterval(loadOnline, 10000); W.cleanups.push(() => clearInterval(oIv));
-  const drawLobby = () => {
+  loadPeople(); const oIv = setInterval(loadPeople, 10000); W.cleanups.push(() => clearInterval(oIv));
+  W.cleanups.push(onBox(() => drawLobby()));
+  // el buscador se crea una vez (así no se pierde lo que escribes)
+  const search = el('input', { type: 'search', class: 'pch-search', placeholder: '🔍 ' + L('Buscar…', 'Cercar…', 'Search…'), oninput: e => { query = e.target.value; drawPeople(); } });
+  const peopleList = el('div', { class: 'pch-on-list' });
+  const STEP = (n, t) => el('h3', { class: 'pch-step' }, el('span', { class: 'pch-step-n' }, n), t);
+  const lastMsgFrom = u => boxList().find(m => m.gid === gid && m.from === u);
+  function drawPeople() {
     if (!doc) return;
+    const pls = doc.pl || {};
+    const busy = Object.values(pls).filter(p => p.st === 'ok' || p.st === 'inv').length;
+    const qn = query.trim().toLowerCase();
+    const list = people.filter(p => !qn || String(p.n).toLowerCase().includes(qn));
+    rc(peopleList, ...(list.length ? list.map(p => {
+      const st = pls[p.uid]?.st;
+      const btn = st === 'ok' ? el('span', { class: 'pch-tag ok' }, '✅ ' + L('juega', 'juga', 'playing'))
+        : st === 'inv' ? el('span', { class: 'pch-tag inv' }, '✉️ ' + L('invitado', 'convidat', 'invited'))
+        : p.on ? el('button', { type: 'button', class: 'pch-go no-delay', disabled: busy >= 4, onclick: () => invite(p) }, '▶ ' + L('Invitar', 'Convidar', 'Invite'))
+        : el('span', { class: 'pch-go off' }, L('Fuera de línea', 'Fora de línia', 'Offline'));
+      return el('div', { class: 'pch-on-row' + (p.on ? ' on' : '') },
+        el('i', { class: 'pch-on-dot' + (p.on ? ' on' : '') }), el('img', { src: FIG[p.f] || FIG.galleta, alt: '' }), el('b', {}, p.n), btn);
+    }) : [el('p', { class: 'muted' }, people.length ? L('No hay nadie con ese nombre', 'No hi ha ningú amb aquest nom', 'Nobody with that name') : L('Aún no hay nadie más apuntado', 'Encara no hi ha ningú més apuntat', 'Nobody else has joined yet'))]));
+  }
+  const drawLobby = () => {
+    if (!doc || doc.status !== 'lobby') return;
     const host = doc.host === me, pls = Object.entries(doc.pl || {});
     const ok = pls.filter(([, p]) => p.st === 'ok');
+    const ready = ok.filter(([, p]) => p.c).length;
     const used = new Set(ok.map(([, p]) => p.c).filter(Boolean));
     const mine = doc.pl?.[me];
-    const stTxt = p => p.st === 'ok' ? (p.c ? '✅ ' + CNAME[p.c]() : '🎨 ' + L('eligiendo color…', 'triant color…', 'choosing colour…')) : p.st === 'inv' ? '✉️ ' + L('invitado…', 'convidat…', 'invited…') : p.st === 'no' ? '🙅 ' + L('no juega', 'no juga', 'not playing') : '';
-    const invited = new Set(pls.map(([u]) => u));
-    lobby.replaceChildren(
+    const stTxt = p => p.st === 'ok' ? (p.c ? '✅ ' + CNAME[p.c]() : '🎨 ' + L('eligiendo color…', 'triant color…', 'choosing colour…')) : p.st === 'inv' ? '✉️ ' + L('esperando respuesta…', 'esperant resposta…', 'waiting for an answer…') : p.st === 'no' ? '🙅 ' + L('ahora no', 'ara no', 'not now') : '';
+    const nOn = people.filter(p => p.on).length, un = unread();
+    let n = 0;
+    rc(lobby, 
       el('h2', {}, '🌐 ' + L('Partida en línea', 'Partida en línia', 'Online game')),
-      el('p', { class: 'muted' }, host ? L('Invita a quien quieras (de 1 a 3 personas). Cuando estéis, pulsa ⏱ ¡Empezamos!', 'Convida qui vulguis (d’1 a 3 persones). Quan hi sigueu, prem ⏱ Comencem!', 'Invite up to 3 people. When you’re ready, press ⏱ Start!')
-        : L(`Esperando a que ${doc.hostName || ''} empiece la partida…`, `Esperant que ${doc.hostName || ''} comenci la partida…`, `Waiting for ${doc.hostName || ''} to start…`)),
-      el('div', { class: 'pch-lob-list' }, ...pls.filter(([, p]) => p.st !== 'no' || host).map(([u, p]) => el('div', { class: 'pch-lob-row' + (p.c ? ' pc-' + p.c : ''), style: p.c ? `--tk:${CHEX[p.c]}` : '' },
-        p.c ? el('span', { class: 'pch-dot', html: pawnSvg(p.c) }) : el('span', { class: 'pch-dot' }, '⏳'),
-        el('img', { src: FIG[p.f] || FIG.galleta, alt: '' }), el('div', { class: 'pch-lob-who' }, el('b', {}, p.n + (u === me ? ' (' + L('tú', 'tu', 'you') + ')' : '')), p.msg ? el('em', { class: 'pch-lob-msg' }, '✉️ ' + p.msg) : null), el('small', {}, stTxt(p))))),
-      // mi color
-      mine?.st === 'ok' ? el('div', {}, el('p', {}, L('Tu color:', 'El teu color:', 'Your colour:')),
+      host ? null : el('p', { class: 'pch-wait' }, '⏳ ' + L(`Esperando a que ${doc.hostName || ''} empiece la partida…`, `Esperant que ${doc.hostName || ''} comenci la partida…`, `Waiting for ${doc.hostName || ''} to start…`)),
+      // 1 · mi color
+      mine?.st === 'ok' ? el('div', { class: 'pch-sec' }, STEP(++n, L('Elige tu color', 'Tria el teu color', 'Choose your colour')),
         el('div', { class: 'pch-colpick' }, ...COLORS.map(c => el('button', { type: 'button', class: 'pch-colbtn no-delay' + (mine.c === c ? ' on' : ''), disabled: used.has(c) && mine.c !== c, style: `--tk:${CHEX[c]}`,
           onclick: () => pickColor(c) }, el('span', { html: pawnSvg(c) }), el('small', {}, CNAME[c]()))))) : null,
-      host ? el('div', { class: 'pch-online' },
-        el('h3', {}, '🟢 ' + L('Con la app abierta ahora', 'Amb l’app oberta ara', 'With the app open now')),
-        onlineList.length ? el('div', { class: 'pch-on-list' }, ...onlineList.map(o => el('div', { class: 'pch-on-row' },
-          el('img', { src: FIG[o.f] || FIG.galleta, alt: '' }), el('b', {}, o.n || '—'),
-          invited.has(o.uid) && doc.pl[o.uid].st === 'ok' ? el('small', {}, '✅ ' + L('juega', 'juga', 'playing'))
-            : el('button', { type: 'button', class: 'pch-go no-delay', disabled: ok.length + pls.filter(([, p]) => p.st === 'inv').length >= 4, onclick: e => { e.currentTarget.disabled = true; invite(o); } }, '▶'))))
-          : el('p', { class: 'muted' }, L('Ahora mismo no hay nadie más con la app abierta.', 'Ara mateix no hi ha ningú més amb l’app oberta.', 'Nobody else has the app open right now.'))) : null,
-      host ? el('button', { type: 'button', class: 'btn btn-big pch-start no-delay', disabled: ok.filter(([, p]) => p.c).length < 2, onclick: startGame }, '⏱ ' + L('¡Empezamos!', 'Comencem!', 'Start!')) : null,
-      host && ok.filter(([, p]) => p.c).length < 2 ? el('small', { class: 'muted' }, L('Hacen falta al menos 2 jugadores con color.', 'Calen almenys 2 jugadors amb color.', 'At least 2 players with a colour are needed.')) : null,
-      el('button', { type: 'button', class: 'btn btn-ghost no-delay', onclick: () => showRules(W.wrap) }, '📜 ' + L('Reglas', 'Regles', 'Rules')));
+      // 2 · con quién (solo quien organiza)
+      host ? el('div', { class: 'pch-sec' }, STEP(++n, L('¿Con quién juegas?', 'Amb qui jugues?', 'Who are you playing with?')),
+        el('button', { type: 'button', class: 'pch-drop no-delay' + (showPeople ? ' open' : ''), onclick: () => { showPeople = !showPeople; drawLobby(); } },
+          '👥 ' + L('Personas', 'Persones', 'People') + ` · 🟢 ${nOn} ` + L('en línea', 'en línia', 'online'), el('span', {}, showPeople ? '▲' : '▼')),
+        showPeople ? el('div', { class: 'pch-drop-in' }, people.length > 4 ? search : null, peopleList) : null,
+        el('small', { class: 'muted' }, L('🟢 = tiene la app abierta: toca ▶ para invitarle. ⚪ = fuera de línea.', '🟢 = té l’app oberta: toca ▶ per convidar-lo. ⚪ = fora de línia.', '🟢 = app open: tap ▶ to invite. ⚪ = offline.'))) : null,
+      // 3 · quién juega
+      el('div', { class: 'pch-sec' }, STEP(++n, L('Jugadores de la partida', 'Jugadors de la partida', 'Players in this game')),
+        el('div', { class: 'pch-lob-list' }, ...pls.filter(([, p]) => p.st !== 'no' || host).map(([u, p]) => {
+          const lm = u !== me ? lastMsgFrom(u) : null;
+          return el('div', { class: 'pch-lob-row' + (p.c ? ' pc-' + p.c : ''), style: p.c ? `--tk:${CHEX[p.c]}` : '' },
+            p.c ? el('span', { class: 'pch-dot', html: pawnSvg(p.c) }) : el('span', { class: 'pch-dot' }, p.st === 'no' ? '🙅' : '⏳'),
+            el('img', { src: FIG[p.f] || FIG.galleta, alt: '' }),
+            el('div', { class: 'pch-lob-who' }, el('b', {}, p.n + (u === me ? ' (' + L('tú', 'tu', 'you') + ')' : '')), el('small', {}, stTxt(p)),
+              lm?.txt ? el('em', { class: 'pch-lob-msg' }, '💬 ' + lm.txt) : null));
+        }))),
+      host ? el('button', { type: 'button', class: 'btn btn-big pch-start no-delay', disabled: ready < 2, onclick: startGame }, '⏱ ' + L('¡Empezamos!', 'Comencem!', 'Start!')) : null,
+      host && ready < 2 ? el('small', { class: 'muted pch-hint' }, L('Cuando haya al menos 2 jugadores con color, se enciende «¡Empezamos!».', 'Quan hi hagi almenys 2 jugadors amb color, s’encén «Comencem!».', '«Start!» lights up when at least 2 players have a colour.')) : null,
+      el('div', { class: 'pch-lob-btns' },
+        el('button', { type: 'button', class: 'btn no-delay pch-msgbtn' + (un ? ' new' : ''), onclick: () => openInbox() }, '💬 ' + L('Mensajes', 'Missatges', 'Messages'), un ? el('i', { class: 'pch-badge' }, un) : null),
+        el('button', { type: 'button', class: 'btn no-delay', onclick: () => showRules() }, '📜 ' + L('Reglas', 'Regles', 'Rules')),
+        el('button', { type: 'button', class: 'btn no-delay pch-santa', onclick: () => leaveLobby(true) }, '🎅 ' + L('Jugar contra Papá Noel', 'Jugar contra el Pare Noel', 'Play against Santa')),
+        el('button', { type: 'button', class: 'btn btn-ghost no-delay', onclick: () => leaveLobby() }, '⏰ ' + L('Lo haré más tarde', 'Ho faré més tard', 'Later'))));
+    if (host && showPeople) drawPeople();
   };
   const pickColor = c => store.gTx('pgame', gid, d => {
     if (!d || d.status !== 'lobby' || !d.pl?.[me]) return null;
@@ -506,19 +568,19 @@ async function onlineLobby(W, join) {
     return { ...d, pl: { ...d.pl, [me]: { ...d.pl[me], c } }, v: (d.v || 0) + 1 };
   }).then(ok => { if (!ok) toast('🎨 ' + L('Ese color ya lo tiene otra persona', 'Aquest color ja el té una altra persona', 'That colour is taken')); }).catch(e => toast('⚠️ ' + e.message));
   const invite = async o => {
-    // (V26) se puede enviar con el mensaje de la app o escribir uno propio
+    // se puede enviar con el mensaje de la app o escribir uno propio
     const ta = el('textarea', { class: 'pch-msg-in', rows: 3, maxlength: 200, placeholder: L('Escribe tu mensaje (opcional)…', 'Escriu el teu missatge (opcional)…', 'Write your message (optional)…') });
     const how = await popup(el('div', { class: 'pch-invbox' },
       el('h2', {}, '✉️ ' + L(`Invitar a ${o.n}`, `Convidar ${o.n}`, `Invite ${o.n}`)),
       el('p', {}, L('¿Cómo quieres invitar?', 'Com vols convidar?', 'How do you want to invite?')),
-      el('p', { class: 'muted pch-appmsg' }, '🎲 «' + L(`${myName()} quiere jugar contigo. ¿Juegas?`, `${myName()} vol jugar amb tu. Hi jugues?`, `${myName()} wants to play with you. Will you play?`) + '»'),
+      el('p', { class: 'muted pch-appmsg' }, '🎲 «' + L(`${myName()} quiere jugar contigo al parchís. ¿Juegas?`, `${myName()} vol jugar amb tu al parxís. Hi jugues?`, `${myName()} wants to play ludo with you. Will you play?`) + '»'),
       ta),
       { cls: 'pch-xmas', buttons: [{ label: '🎲 ' + L('Mensaje de la app', 'Missatge de l’app', 'App message'), value: 'app' }, { label: '✍️ ' + L('Enviar mi mensaje', 'Enviar el meu missatge', 'Send my message'), value: 'mine' }, { label: L('Cancelar', 'Cancel·lar', 'Cancel'), value: null, cls: 'btn-ghost' }] });
-    if (!how) { drawLobby(); return; }
+    if (!how) return;
     const msgTxt = how === 'mine' ? ta.value.trim().slice(0, 200) : '';
     try {
       await store.gTx('pgame', gid, d => d && d.status === 'lobby' ? { ...d, pl: { ...d.pl, [o.uid]: { n: o.n, f: o.f, c: null, st: 'inv', seen: 0 } }, v: (d.v || 0) + 1 } : null);
-      await store.gMerge('pinv', o.uid, { gid, from: me, fn: myName(), at: Date.now(), msg: msgTxt });
+      await sendMsg({ gid, to: o.uid, tn: o.n, k: 'inv', txt: msgTxt });
       toast('✉️ ' + L(`Invitación enviada a ${o.n}`, `Invitació enviada a ${o.n}`, `Invitation sent to ${o.n}`));
     } catch (e) { toast('⚠️ ' + (e.code || e.message), 5000); }
   };
@@ -539,8 +601,8 @@ async function onlineLobby(W, join) {
     if (d === undefined) return; // error de conexión: seguirá cuando vuelva
     if (!d) { toast(L('La partida ya no existe', 'La partida ja no existeix', 'The game no longer exists')); W.close(); return; }
     const prev = doc; doc = d;
-    if (d.status === 'cancel') { try { localStorage.removeItem(CUR); } catch {} if (prev) { toast('🚪 ' + L('Se ha anulado la partida', 'S’ha anul·lat la partida', 'The game was cancelled'), 3500); W.close(); } return; }
-    if (d.status === 'lobby') { if (d.pl?.[me]?.st === 'inv') { /* aceptar */ store.gPatch('pgame', gid, { [`pl.${me}.st`]: 'ok', [`pl.${me}.seen`]: Date.now() }).catch(() => {}); } drawLobby(); return; }
+    if (d.status === 'cancel') { try { localStorage.removeItem(CUR); } catch {} clearGameMsgs(gid); if (!closing) { toast('🚪 ' + L('Se ha anulado la partida', 'S’ha anul·lat la partida', 'The game was cancelled'), 3500); W.close(); } return; }
+    if (d.status === 'lobby') { if (d.pl?.[me]?.st === 'inv') store.gPatch('pgame', gid, { [`pl.${me}.st`]: 'ok', [`pl.${me}.seen`]: Date.now() }).catch(() => {}); drawLobby(); return; }
     if (!d.pl?.[me] || d.pl[me].st === 'no') { toast(L('La partida ya ha empezado sin ti', 'La partida ja ha començat sense tu', 'The game started without you'), 4000); try { localStorage.removeItem(CUR); } catch {} W.close(); return; }
     if (!started) { started = true; box.remove(); W.t0 = d.startAt; layout(W); }
     if (d.v === lastV) return; lastV = d.v;
@@ -678,6 +740,7 @@ async function onlineLobby(W, join) {
   let finished = false;
   async function finishOnline(d) {
     if (finished) return; finished = true; W.t0 = 0;
+    clearGameMsgs(gid, Object.keys(d.pl || {})); // (V26.1) se acaba la partida: se borran sus mensajes
     document.querySelectorAll('.gfx-back, .gfx-fw').forEach(x => x.remove());
     try { localStorage.removeItem(CUR); } catch {}
     const myC = colorOf(d), G = d.G, N = d.n || G.order.length;
@@ -716,7 +779,151 @@ async function leaveGame(gid, me, self = false) {
   if (self) await penalize(gid);
 }
 
-// ---------------------------------------------------------------- invitaciones (en toda la app) y partidas que se quedaron a medias
+// ---------------------------------------------------------------- (V26.1) MENSAJES DEL PARCHÍS
+// pinv/{uid}.box = { id: { gid, from, fn, to, tn, k: inv|msg|yes|no, txt, at, read } } — cada mensaje se guarda en el buzón de los dos
+// (así ves lo que te envían y lo que has enviado). Cuando la partida se acaba o se anula, se borran sus mensajes.
+let BOX = {};
+const boxSubs = new Set();
+const onBox = f => { boxSubs.add(f); return () => boxSubs.delete(f); };
+const boxChanged = () => { boxSubs.forEach(f => { try { f(); } catch (e) { console.warn(e); } }); paintFab(); };
+const boxList = () => Object.entries(BOX).filter(([, m]) => m && m.at).map(([id, m]) => ({ id, ...m })).sort((a, b) => b.at - a.at);
+const unread = () => boxList().filter(m => m.to === myUid() && !m.read).length;
+const newMsgId = () => 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+async function sendMsg({ gid, to, tn, k = 'msg', txt = '', mut = null }) {
+  const me = myUid(), id = newMsgId(), m = { gid, from: me, fn: myName(), to, tn: tn || '', k, txt: String(txt || '').slice(0, 200), at: Date.now() };
+  if (mut) m.mut = mut;
+  BOX[id] = { ...m, read: true }; boxChanged();
+  await Promise.all([store.gMerge('pinv', to, { box: { [id]: m } }), store.gMerge('pinv', me, { box: { [id]: { ...m, read: true } } })]);
+}
+function markRead() {
+  const ids = boxList().filter(m => m.to === myUid() && !m.read).map(m => m.id);
+  if (!ids.length) return;
+  const p = {}; ids.forEach(id => { p['box.' + id + '.read'] = true; BOX[id].read = true; });
+  store.gPatch('pinv', myUid(), p).catch(() => {}); boxChanged();
+}
+// borrar los mensajes de una partida (los míos, y los de los demás que tengo yo)
+function clearGameMsgs(gid, others = []) {
+  const mine = boxList().filter(m => m.gid === gid);
+  if (!mine.length) return;
+  mine.forEach(m => delete BOX[m.id]); boxChanged();
+  store.gUnset('pinv', myUid(), mine.map(m => 'box.' + m.id)).catch(() => {});
+  others.filter(u => u && u !== myUid()).forEach(u => {
+    const ids = mine.filter(m => m.from === u || m.to === u).map(m => 'box.' + m.id);
+    if (ids.length) store.gUnset('pinv', u, ids).catch(() => {});
+  });
+}
+const KIND = { inv: () => '✉️ ' + L('Invitación', 'Invitació', 'Invitation'), msg: () => '💬 ' + L('Mensaje', 'Missatge', 'Message'),
+  yes: () => '✅ ' + L('¡Sí, juega!', 'Sí, juga!', 'Yes, playing!'), no: () => '🙅 ' + L('Ahora no', 'Ara no', 'Not now') };
+const msgText = m => m.txt || (m.k === 'inv' ? L(`${m.fn} quiere jugar contigo al parchís. ¿Juegas?`, `${m.fn} vol jugar amb tu al parxís. Hi jugues?`, `${m.fn} wants to play ludo with you. Will you play?`) : '');
+
+// ---- botón flotante con el número de mensajes (en toda la app)
+let fab = null;
+function paintFab() {
+  const all = boxList().length, n = unread();
+  if (!all) { fab?.remove(); fab = null; return; }
+  if (!fab) { fab = el('button', { type: 'button', class: 'pch-fab no-delay', onclick: () => openInbox() }); document.body.append(fab); }
+  rc(fab, el('span', { class: 'pch-fab-ico' }, '🎲'), el('b', {}, '💬'), n ? el('i', { class: 'pch-badge' }, n) : null);
+  fab.classList.toggle('new', n > 0);
+}
+
+// ---- contestar a una invitación
+async function answerInvite(m, yes, txt = '') {
+  const me = myUid();
+  const d = await store.gDoc('pgame', m.gid).catch(() => null);
+  if (!d || d.__denied || d.status !== 'lobby') {
+    toast(L('Esta partida ya ha empezado o se ha anulado', 'Aquesta partida ja ha començat o s’ha anul·lat', 'That game already started or was cancelled'), 4000);
+    clearGameMsgs(m.gid); return false;
+  }
+  if (yes) {
+    // (V26.2) nos hemos invitado el uno al otro: siempre se juega en UNA sola partida, la más antigua (gid menor)
+    if (OPEN && OPEN.gid && OPEN.gid !== m.gid && OPEN.isHostLobby?.() && OPEN.hasInvited?.(m.from) && OPEN.gid < m.gid) {
+      await store.gPatch('pgame', m.gid, { [`pl.${me}.st`]: 'no' }).catch(() => {});
+      await sendMsg({ gid: m.gid, to: m.from, tn: m.fn, k: 'no', mut: OPEN.gid, txt: L('¡Nos hemos invitado a la vez! Juguemos en mi partida 😊', 'Ens hem convidat alhora! Juguem a la meva partida 😊', 'We invited each other! Let’s play in my game 😊') });
+      document.querySelector('.pch-inbox-back')?.remove();
+      toast('🤝 ' + L(`${m.fn} y tú os habéis invitado a la vez: jugáis en tu partida`, `${m.fn} i tu us heu convidat alhora: jugueu a la teva partida`, `You and ${m.fn} invited each other: you’ll play in your game`), 5000);
+      return true;
+    }
+    if (OPEN && OPEN.gid !== m.gid) {
+      if (OPEN.canLeaveQuiet?.() !== false) { await OPEN.leaveQuiet?.(); OPEN?.close?.(); await sleep(450); }
+      else { toast(L('Primero acaba la partida que estás jugando', 'Primer acaba la partida que estàs jugant', 'Finish your current game first'), 4000); return false; }
+    }
+    await store.gPatch('pgame', m.gid, { [`pl.${me}.st`]: 'ok', [`pl.${me}.seen`]: Date.now(), [`pl.${me}.n`]: myName(), [`pl.${me}.f`]: figure() });
+    await sendMsg({ gid: m.gid, to: m.from, tn: m.fn, k: 'yes', txt });
+    document.querySelector('.pch-inbox-back')?.remove();
+    if (!OPEN) openParchis(null, { mode: 'online', join: m.gid });
+  } else {
+    await store.gPatch('pgame', m.gid, { [`pl.${me}.st`]: 'no' }).catch(() => {});
+    await sendMsg({ gid: m.gid, to: m.from, tn: m.fn, k: 'no', txt });
+  }
+  return true;
+}
+
+// ---- la ventana de mensajes: recibidos y enviados
+export function openInbox() {
+  if (document.querySelector('.pch-inbox-back')) return;
+  const me = myUid();
+  const list = el('div', { class: 'pch-inbox-list' });
+  const close = () => { off(); back.remove(); };
+  const card = el('div', { class: 'pch-inbox popup pch-xmas' },
+    el('button', { type: 'button', class: 'pch-inbox-x no-delay', onclick: () => close() }, '✕'),
+    el('h2', {}, '💬 ' + L('Mensajes del parchís', 'Missatges del parxís', 'Ludo messages')), list,
+    el('div', { class: 'popup-btns' }, el('button', { type: 'button', class: 'btn no-delay', onclick: () => close() }, L('Cerrar', 'Tancar', 'Close'))));
+  const back = el('div', { class: 'popup-back pch-inbox-back' }, card);
+  back.addEventListener('click', e => { if (e.target === back) close(); });
+  document.body.append(back);
+  const games = {}; let replyOpen = null;
+  const gameOf = async gid => { if (!(gid in games)) { games[gid] = null; games[gid] = await store.gDoc('pgame', gid).catch(() => null); draw(); } return games[gid]; };
+  const item = m => {
+    const got = m.to === me, g = games[m.gid];
+    gameOf(m.gid);
+    const acts = el('div', { class: 'pch-im-acts' });
+    const ta = el('textarea', { class: 'pch-msg-in', rows: 2, maxlength: 200, placeholder: L('Escribe tu mensaje…', 'Escriu el teu missatge…', 'Write your message…') });
+    const other = got ? { u: m.from, n: m.fn } : { u: m.to, n: m.tn };
+    const live = g && !g.__denied && g.status === 'lobby';
+    const canAnswer = got && m.k === 'inv' && live && g.pl?.[me]?.st === 'inv';
+    if (canAnswer) acts.append(
+      el('button', { type: 'button', class: 'btn btn-big no-delay', onclick: () => answerInvite(m, true, ta.value.trim()) }, '✅ ' + L('¡Sí, a jugar!', 'Sí, a jugar!', 'Yes, let’s play!')),
+      el('button', { type: 'button', class: 'btn btn-ghost no-delay', onclick: () => answerInvite(m, false, ta.value.trim()) }, '🙅 ' + L('Ahora no', 'Ara no', 'Not now')));
+    if (live || canAnswer) acts.append(el('button', { type: 'button', class: 'btn btn-ghost no-delay', onclick: () => { replyOpen = replyOpen === m.id ? null : m.id; draw(); } }, '✍️ ' + L('Responder', 'Respondre', 'Reply')));
+    if (got && m.k === 'inv' && g && !live) acts.append(el('small', { class: 'muted' }, L('Esta partida ya ha empezado o se ha anulado.', 'Aquesta partida ja ha començat o s’ha anul·lat.', 'This game already started or was cancelled.')));
+    return el('div', { class: 'pch-im' + (got ? ' got' : ' sent') + (got && !m.read ? ' unread' : '') },
+      el('div', { class: 'pch-im-head' }, el('b', {}, got ? L(`De ${m.fn}`, `De ${m.fn}`, `From ${m.fn}`) : L(`Para ${m.tn}`, `Per a ${m.tn}`, `To ${m.tn}`)), el('small', {}, KIND[m.k]?.() + ' · ' + hhmm(m.at))),
+      msgText(m) ? el('p', {}, msgText(m)) : null,
+      replyOpen === m.id ? el('div', { class: 'pch-im-reply' }, ta, el('button', { type: 'button', class: 'btn no-delay', onclick: async () => {
+        const t = ta.value.trim(); if (!t) return; replyOpen = null;
+        await sendMsg({ gid: m.gid, to: other.u, tn: other.n, k: 'msg', txt: t }).catch(e => toast('⚠️ ' + e.message));
+        toast('✉️ ' + L('Mensaje enviado', 'Missatge enviat', 'Message sent'));
+      } }, '📨 ' + L('Enviar', 'Enviar', 'Send'))) : (canAnswer ? ta : null),
+      acts);
+  };
+  function draw() {
+    const all = boxList(), got = all.filter(m => m.to === me), sent = all.filter(m => m.from === me && m.to !== me);
+    rc(list, 
+      !all.length ? el('p', { class: 'muted' }, L('No tienes mensajes.', 'No tens missatges.', 'You have no messages.')) : null,
+      got.length ? el('h3', { class: 'pch-im-sec' }, '📥 ' + L('Recibidos', 'Rebuts', 'Received')) : null, ...got.map(item),
+      sent.length ? el('h3', { class: 'pch-im-sec' }, '📤 ' + L('Enviados', 'Enviats', 'Sent')) : null, ...sent.map(item));
+  }
+  const off = onBox(() => { if (document.activeElement?.tagName !== 'TEXTAREA') draw(); });
+  draw(); setTimeout(markRead, 1200);
+}
+
+// ---- ventana bonita cuando te invitan (salga donde salga la app)
+async function invitePopup(m) {
+  chime();
+  const ans = el('textarea', { class: 'pch-msg-in', rows: 2, maxlength: 200, placeholder: L('Contesta con un mensaje (opcional): «a las 18:00 estaré»…', 'Respon amb un missatge (opcional): «a les 18:00 hi seré»…', 'Reply with a message (optional)…') });
+  const r = await popup(el('div', { class: 'pch-invite' }, el('div', { class: 'pch-intro-pics' }, ...COLORS.map(c => el('div', { class: 'pch-intro-pawn', html: pawnSvg(c) }))),
+    el('h2', {}, '🎲 ' + L('¡Te invitan al parchís!', 'Et conviden al parxís!', 'You’re invited to play ludo!')),
+    el('div', { class: 'pch-invmsg' }, el('small', {}, '✉️ ' + m.fn + ':'), el('p', {}, msgText(m))), ans),
+    { cls: 'pch-xmas', buttons: [{ label: '✅ ' + L('¡Sí, a jugar!', 'Sí, a jugar!', 'Yes, let’s play!'), value: 'yes' }, { label: '✍️ ' + L('Solo enviar el mensaje', 'Només enviar el missatge', 'Just send the message'), value: 'msg' }, { label: '🙅 ' + L('Ahora no', 'Ara no', 'Not now'), value: 'no' }, { label: L('Lo miro luego', 'M’ho miro després', 'Later'), value: null, cls: 'btn-ghost' }] });
+  const t = ans.value.trim().slice(0, 200);
+  if (r === 'yes') return answerInvite(m, true, t);
+  if (r === 'no') return answerInvite(m, false, t);
+  if (r === 'msg') { if (t) { await sendMsg({ gid: m.gid, to: m.from, tn: m.fn, k: 'msg', txt: t }).catch(() => {}); toast('✉️ ' + L('Mensaje enviado', 'Missatge enviat', 'Message sent')); } return; }
+  toast('💬 ' + L('Lo tienes en el botón de mensajes 🎲💬', 'El tens al botó de missatges 🎲💬', 'It’s in the messages button 🎲💬'), 4000);
+}
+
+// ---------------------------------------------------------------- en toda la app: buzón, avisos y partidas que se quedaron a medias
 let invStarted = false;
 export function startParchisInvites() {
   if (invStarted || !S.user) return; invStarted = true;
@@ -730,49 +937,44 @@ export function startParchisInvites() {
     if (d.status === 'play' && d.pl?.[me]?.st === 'ok' && d.G?.fin?.includes(d.pl[me].c)) { try { localStorage.removeItem(CUR); } catch {} return; }
     if (d.status === 'play' && d.pl?.[me]?.st === 'ok') {
       if (Date.now() - (d.pl[me].seen || 0) > AWAY_MS) { await leaveGame(gid, me, true); return; }
-      // aún estoy a tiempo: volver a la partida
       const go = await popup(`<h2>🎲</h2><p style="font-size:18px">${L('Tienes una partida de parchís en marcha. ¿Vuelves?', 'Tens una partida de parxís en marxa. Hi tornes?', 'You have a ludo game in progress. Go back?')}</p>`,
         { cls: 'pch-xmas', buttons: [{ label: L('Volver a la partida', 'Tornar a la partida', 'Back to the game'), value: true }, { label: L('Dejarla (−1)', 'Deixar-la (−1)', 'Leave it (−1)'), value: false, cls: 'btn-ghost' }] });
       if (go) openParchis(null, { mode: 'online', join: gid }); else await leaveGame(gid, me, true);
     } else if (d.status === 'end' && d.pl?.[me]?.st === 'left') await penalize(gid);
     else if (d.status !== 'play') { try { localStorage.removeItem(CUR); } catch {} }
   })().catch(e => console.warn(e));
-  const seen = new Set();
+  const seen = new Set(); let first = true;
   store.gWatch('pinv', me, async inv => {
-    if (!inv) return;
+    if (inv === undefined) return;
     // me dejaron fuera de una partida (5 minutos sin estar): −1
-    Object.keys(inv.pen || {}).forEach(g => { if (inv.pen[g] && !seen.has('pen' + g)) { seen.add('pen' + g); penalize(g).then(() => store.gMerge('pinv', me, { pen: { [g]: false } }).catch(() => {})); } });
-    // (V26) me han contestado a una invitación con un mensaje
-    const rp = inv.reply;
-    if (rp?.msg && !seen.has('rp' + rp.at) && Date.now() - (rp.at || 0) < 600000) {
-      seen.add('rp' + rp.at);
-      let shown = false; try { shown = !!localStorage.getItem('adv_pch_rp_' + rp.at); localStorage.setItem('adv_pch_rp_' + rp.at, '1'); } catch {}
-      if (!shown) { chime(); popup(el('div', { class: 'pch-invite' }, el('h2', {}, '✉️ ' + L(`${rp.fn} te contesta`, `${rp.fn} et respon`, `${rp.fn} replies`)), el('div', { class: 'pch-invmsg' }, el('p', {}, rp.msg))), { cls: 'pch-xmas', buttons: [{ label: '👍 ' + L('¡Entendido!', 'Entesos!', 'Got it!'), value: true }] }); }
+    Object.keys(inv?.pen || {}).forEach(g => { if (inv.pen[g] && !seen.has('pen' + g)) { seen.add('pen' + g); penalize(g).then(() => store.gMerge('pinv', me, { pen: { [g]: false } }).catch(() => {})); } });
+    BOX = { ...(inv?.box || {}) }; Object.keys(BOX).forEach(k => { if (!BOX[k]) delete BOX[k]; });
+    boxChanged();
+    if (first) { first = false; tidyBox(); }
+    // mensajes nuevos que aún no he visto
+    for (const m of boxList().filter(m => m.to === me && !m.read && Date.now() - m.at < 3 * 3600e3)) {
+      if (seen.has(m.id)) continue; seen.add(m.id);
+      let shown = false; try { shown = !!localStorage.getItem('adv_pch_pop_' + m.id); localStorage.setItem('adv_pch_pop_' + m.id, '1'); } catch {}
+      if (shown) continue;
+      const playing = OPEN && OPEN.canLeaveQuiet?.() === false;
+      // (V26.2) la otra persona se queda en su partida porque nos invitamos a la vez: entro yo en la suya
+      if (m.k === 'no' && m.mut) {
+        const invm = boxList().find(x => x.k === 'inv' && x.gid === m.mut && x.from === m.from && x.to === me);
+        if (invm) { toast('🤝 ' + L(`Os habéis invitado a la vez: entras en la partida de ${m.fn}`, `Us heu convidat alhora: entres a la partida de ${m.fn}`, `You invited each other: joining ${m.fn}’s game`), 5000); document.querySelectorAll('.popup-back').forEach(x => { if (x.querySelector('.pch-invite')) x.remove(); }); await answerInvite(invm, true); continue; }
+      }
+      if (m.k === 'inv' && !playing && !document.querySelector('.pch-inbox-back')) await invitePopup(m);
+      else { chime(); toast(`${KIND[m.k]?.() || '💬'} · ${m.fn}${m.txt ? ': ' + m.txt : ''}`, 5000); }
     }
-    const ik = inv.gid + ':' + inv.at;
-    if (!inv.gid || seen.has(ik) || Date.now() - (inv.at || 0) > 180000) return;
-    seen.add(ik);
-    let done = false; try { done = !!localStorage.getItem('adv_pch_inv_' + ik); localStorage.setItem('adv_pch_inv_' + ik, '1'); } catch {}
-    if (done || OPEN) return;
-    chime();
-    // (V26) se puede contestar con un mensaje (por ejemplo: «¡A las 18:00 estaré lista!»), además de Sí / Ahora no
-    const ans = el('textarea', { class: 'pch-msg-in', rows: 2, maxlength: 200, placeholder: L('Contesta con un mensaje (opcional)…', 'Respon amb un missatge (opcional)…', 'Reply with a message (optional)…') });
-    const yes = await popup(el('div', { class: 'pch-invite' }, el('div', { class: 'pch-intro-pics' }, ...COLORS.map(c => el('div', { class: 'pch-intro-pawn', html: pawnSvg(c) }))),
-      el('h2', {}, '🎲 ' + L('¡Te invitan al parchís!', 'Et conviden al parxís!', 'You’re invited to play ludo!')),
-      inv.msg ? el('div', { class: 'pch-invmsg' }, el('small', {}, '✉️ ' + inv.fn + ':'), el('p', {}, inv.msg)) : null,
-      el('p', { style: 'font-size:18px' }, L(`${inv.fn} quiere jugar contigo. ¿Juegas?`, `${inv.fn} vol jugar amb tu. Hi jugues?`, `${inv.fn} wants to play with you. Will you play?`)), ans),
-      { cls: 'pch-xmas', buttons: [{ label: '✅ ' + L('¡Sí, a jugar!', 'Sí, a jugar!', 'Yes, let’s play!'), value: true }, { label: '✍️ ' + L('Solo enviar el mensaje', 'Només enviar el missatge', 'Just send the message'), value: 'msg' }, { label: L('Ahora no', 'Ara no', 'Not now'), value: false, cls: 'btn-ghost' }] });
-    const reply = ans.value.trim().slice(0, 200);
-    if (reply) { // el mensaje le llega a quien invita (en la partida y en su app)
-      store.gPatch('pgame', inv.gid, { [`pl.${me}.msg`]: reply }).catch(() => {});
-      store.gMerge('pinv', inv.from, { reply: { from: me, fn: myName(), msg: reply, at: Date.now(), gid: inv.gid } }).catch(e => console.warn(e));
-      if (yes === 'msg') toast('✉️ ' + L('Mensaje enviado', 'Missatge enviat', 'Message sent'));
-    }
-    if (yes === 'msg') return;
-    const d = await store.gDoc('pgame', inv.gid).catch(() => null);
-    if (!d || d.__denied || d.status !== 'lobby') { if (yes) toast(L('La partida ya ha empezado o se ha anulado', 'La partida ja ha començat o s’ha anul·lat', 'The game already started or was cancelled'), 4000); return; }
-    if (!yes) { store.gPatch('pgame', inv.gid, { [`pl.${me}.st`]: 'no' }).catch(() => {}); return; }
-    await store.gPatch('pgame', inv.gid, { [`pl.${me}.st`]: 'ok', [`pl.${me}.seen`]: Date.now(), [`pl.${me}.n`]: myName(), [`pl.${me}.f`]: figure() }).catch(e => console.warn(e));
-    openParchis(null, { mode: 'online', join: inv.gid });
   });
+}
+// mensajes viejos (más de un día) o de partidas que ya no están en marcha: fuera
+async function tidyBox() {
+  const all = boxList(), gids = [...new Set(all.map(m => m.gid))];
+  for (const g of gids) {
+    const ms = all.filter(m => m.gid === g);
+    const old = ms.every(m => Date.now() - m.at > 24 * 3600e3);
+    let dead = old;
+    if (!dead) { const d = await store.gDoc('pgame', g).catch(() => null); dead = !d || d.__denied || d.status === 'cancel' || d.status === 'end'; }
+    if (dead) clearGameMsgs(g);
+  }
 }

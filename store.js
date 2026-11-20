@@ -224,6 +224,7 @@ async function firebaseApi() {
     gTx: (col, id, fn) => F.runTransaction(db, async tx => { const ref = d(col, id); const s = await tx.get(ref); const nx = fn(s.exists() ? tsToMs(s.data()) : null); if (!nx) return false; tx.set(ref, nx); return true; }),
     gPatch: (col, id, obj) => F.updateDoc(d(col, id), obj),
     gMerge: (col, id, obj) => F.setDoc(d(col, id), obj, { merge: true }),
+    gUnset: (col, id, paths) => F.updateDoc(d(col, id), Object.fromEntries(paths.map(p => [p, F.deleteField()]))),
   };
 }
 // (V24) fechas de Firebase (Timestamp) ↔ milisegundos
@@ -376,6 +377,7 @@ function demoApi() {
     gTx: async (col, id, fn) => { const c = ld('g_' + col, {}); const nx = fn(c[id] ? JSON.parse(JSON.stringify(c[id])) : null); if (!nx) return false; c[id] = nx; sv('g_' + col, c); return true; },
     gPatch: async (col, id, obj) => { const c = ld('g_' + col, {}); if (!c[id]) throw err('not-found'); for (const [k, v] of Object.entries(obj)) { const ks = k.split('.'); let o = c[id]; ks.slice(0, -1).forEach(x => { o = o[x] = o[x] || {}; }); o[ks[ks.length - 1]] = v; } sv('g_' + col, c); },
     gMerge: async (col, id, obj) => { const c = ld('g_' + col, {}); c[id] = deepMerge(c[id] || {}, obj); sv('g_' + col, c); },
+    gUnset: async (col, id, paths) => { const c = ld('g_' + col, {}); if (!c[id]) return; for (const p of paths) { const ks = p.split('.'); let o = c[id]; ks.slice(0, -1).forEach(x => { o = o?.[x]; }); if (o) delete o[ks[ks.length - 1]]; } sv('g_' + col, c); },
   };
 }
 

@@ -225,12 +225,11 @@ service cloud.firestore {
       allow read: if signedIn() && (member() || isAdmin());
       allow write: if me(uid) && member();
     }
-    // Invitaciones: cualquiera de la familia puede invitar; cada uno lee las suyas
+    // Buzón del parchís (V26.1): invitaciones y mensajes; cualquiera de la familia puede dejar un mensaje; cada uno lee el suyo
     match /pinv/{uid} {
       allow read: if me(uid) || isAdmin();
       allow create, update: if signedIn() && member()
-        && request.resource.data.keys().hasOnly(['gid', 'from', 'fn', 'at', 'pen', 'msg', 'reply'])
-        && (!('msg' in request.resource.data) || (request.resource.data.msg is string && request.resource.data.msg.size() <= 200));
+        && request.resource.data.keys().hasOnly(['gid', 'from', 'fn', 'at', 'pen', 'msg', 'reply', 'box']);
       allow delete: if me(uid) || isAdmin();
     }
     // Cada partida: la ven y la mueven solo los que están en ella
