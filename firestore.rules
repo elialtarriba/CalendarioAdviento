@@ -202,21 +202,43 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['uid', 'game', 'start', 'lv', 'pts', 'at', 'neg', 'negd', 'nat'])
         && (!('neg' in request.resource.data) || (request.resource.data.neg is int && request.resource.data.neg >= 0 && request.resource.data.neg <= 60))
         && request.resource.data.game is string && request.resource.data.game.matches('[a-z0-9]{1,16}')
-        && request.resource.data.lv is int && request.resource.data.lv >= 0 && request.resource.data.lv <= 5
-        && request.resource.data.pts is int && request.resource.data.pts >= 0 && request.resource.data.pts <= 5;
+        && request.resource.data.lv is int && request.resource.data.lv >= 0 && request.resource.data.lv <= 300
+        && request.resource.data.pts is int && request.resource.data.pts >= 0 && request.resource.data.pts <= 300;
       allow delete: if isAdmin();
     }
 
-    // (V24.2) ⭐ Marcador de Navidad (para todos): cada uno escribe solo el suyo y no puede sumar más de 2 de golpe; todos ven la clasificación
+    // (V24.2) ⭐ Marcador de Navidad (para todos): cada uno escribe solo el suyo y no puede sumar más de 4 de golpe (V26: el parchís da 4 al 1.º); todos ven la clasificación
     match /pts/{uid} {
       allow read: if signedIn() && (member() || isAdmin());
       allow create, update: if me(uid) && member() && request.resource.data.uid == uid
         && request.resource.data.keys().hasOnly(['uid', 'name', 'fig', 'total', 'games', 'hist', 'at'])
         && request.resource.data.total is int && request.resource.data.total >= 0
-        && request.resource.data.total <= (resource == null ? 0 : resource.data.total) + 2
+        && request.resource.data.total <= (resource == null ? 0 : resource.data.total) + 4
         && request.resource.data.name is string && request.resource.data.name.size() < 60
         && request.resource.data.hist is list && request.resource.data.hist.size() <= 120;
       allow write: if isAdmin();
+    }
+
+    // ================= (V26) PARCHÍS EN LÍNEA =================
+    // Quién tiene la app abierta (solo el nombre y la figura): lo ve la familia para invitar a jugar
+    match /online/{uid} {
+      allow read: if signedIn() && (member() || isAdmin());
+      allow write: if me(uid) && member();
+    }
+    // Invitaciones: cualquiera de la familia puede invitar; cada uno lee las suyas
+    match /pinv/{uid} {
+      allow read: if me(uid) || isAdmin();
+      allow create, update: if signedIn() && member()
+        && request.resource.data.keys().hasOnly(['gid', 'from', 'fn', 'at', 'pen', 'msg', 'reply'])
+        && (!('msg' in request.resource.data) || (request.resource.data.msg is string && request.resource.data.msg.size() <= 200));
+      allow delete: if me(uid) || isAdmin();
+    }
+    // Cada partida: la ven y la mueven solo los que están en ella
+    match /pgame/{gid} {
+      allow read: if signedIn() && (isAdmin() || request.auth.uid in resource.data.pl);
+      allow create: if signedIn() && member() && request.resource.data.host == request.auth.uid && request.auth.uid in request.resource.data.pl;
+      allow update: if signedIn() && member() && request.auth.uid in resource.data.pl && request.resource.data.host == resource.data.host;
+      allow delete: if isAdmin() || (signedIn() && resource.data.host == request.auth.uid);
     }
 
     // Tarjeta de Navidad del día 25

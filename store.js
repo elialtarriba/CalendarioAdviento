@@ -219,6 +219,11 @@ async function firebaseApi() {
     // la hora de la respuesta la pone el servidor de Firebase (así nadie hace trampas con el reloj del móvil)
     gAnswer: (q, uid, a) => F.setDoc(d('ga', q), { [uid]: { ...a, at: F.serverTimestamp() } }, { merge: true }),
     gSteal: (q, by, to) => F.setDoc(d('ga', q), { steal: { by, to, at: Date.now() } }, { merge: true }),
+    // (V26) parchís en línea: escuchar un documento en directo, cambiarlo «de golpe» (transacción) y retocar un campo
+    gWatch: (col, id, cb) => F.onSnapshot(d(col, id), s => cb(s.exists() ? tsToMs(s.data()) : null), e => { console.warn(e); cb(undefined, e); }),
+    gTx: (col, id, fn) => F.runTransaction(db, async tx => { const ref = d(col, id); const s = await tx.get(ref); const nx = fn(s.exists() ? tsToMs(s.data()) : null); if (!nx) return false; tx.set(ref, nx); return true; }),
+    gPatch: (col, id, obj) => F.updateDoc(d(col, id), obj),
+    gMerge: (col, id, obj) => F.setDoc(d(col, id), obj, { merge: true }),
   };
 }
 // (V24) fechas de Firebase (Timestamp) ↔ milisegundos
@@ -365,6 +370,12 @@ function demoApi() {
     gDel: async (col, id) => { const c = ld('g_' + col, {}); delete c[id]; sv('g_' + col, c); },
     gAnswer: async (q, uid, a) => { const c = ld('g_ga', {}); c[q] = { ...(c[q] || {}) }; if (c[q][uid]) throw err('permission-denied'); c[q][uid] = { ...a, at: Date.now() }; sv('g_ga', c); },
     gSteal: async (q, by, to) => { const c = ld('g_ga', {}); c[q] = { ...(c[q] || {}) }; if (c[q].steal) throw err('permission-denied'); c[q].steal = { by, to, at: Date.now() }; sv('g_ga', c); },
+    // (V26) en modo demo, «en directo» = mirar cada medio segundo (sirve entre pestañas del mismo navegador)
+    gWatch: (col, id, cb) => { let last = null; const f = () => { const v = ld('g_' + col, {})[id] ?? null, j = JSON.stringify(v); if (j !== last) { last = j; cb(v ? JSON.parse(j) : null); } };
+      f(); const iv = setInterval(f, 500); return () => clearInterval(iv); },
+    gTx: async (col, id, fn) => { const c = ld('g_' + col, {}); const nx = fn(c[id] ? JSON.parse(JSON.stringify(c[id])) : null); if (!nx) return false; c[id] = nx; sv('g_' + col, c); return true; },
+    gPatch: async (col, id, obj) => { const c = ld('g_' + col, {}); if (!c[id]) throw err('not-found'); for (const [k, v] of Object.entries(obj)) { const ks = k.split('.'); let o = c[id]; ks.slice(0, -1).forEach(x => { o = o[x] = o[x] || {}; }); o[ks[ks.length - 1]] = v; } sv('g_' + col, c); },
+    gMerge: async (col, id, obj) => { const c = ld('g_' + col, {}); c[id] = deepMerge(c[id] || {}, obj); sv('g_' + col, c); },
   };
 }
 

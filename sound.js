@@ -238,6 +238,36 @@ export function speak(text, lang = 'es', { hoho = false } = {}) {
 }
 if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
 
+// ---------------- (V26) Voz de hombre grabada (natural): un archivo por idioma (voz-es.mp3, voz-ca.mp3, voz-en.mp3)
+// con todas las frases seguidas; aquí está dónde empieza y cuánto dura cada una (en segundos).
+// Si el archivo no se puede cargar, se usa la voz del navegador como antes.
+const VOZ = {"es":{"w1":[0.15,3.309],"w2":[3.809,3.274],"w3":[7.433,3.39],"w4":[11.173,3.715],"w5":[15.238,3.529],"w6":[19.118,3.587],"w7":[23.055,3.599],"w8":[27.004,3.539],"w9":[30.893,3.506],"w10":[34.749,3.471],"w11":[38.57,3.483],"w12":[42.403,3.437],"w13":[46.19,3.599],"w14":[50.139,3.634],"w15":[54.123,3.46],"w16":[57.933,3.669],"w17":[61.951,3.796],"w18":[66.098,3.831],"w19":[70.279,3.947],"w20":[74.576,3.646],"w21":[78.572,3.587],"w22":[82.509,3.727],"w23":[86.586,3.878],"w24":[90.814,3.727],"w25":[94.891,3.715],"goose":[98.956,1.916],"bridge":[101.222,2.62],"dice":[104.191,2.283],"ocawin":[106.824,2.693],"pcap":[109.868,1.363],"pmeta":[111.581,1.54],"pwin":[113.471,1.934],"psix":[115.754,1.44]},"ca":{"w1":[0.15,3.616],"w2":[4.116,3.728],"w3":[8.194,3.616],"w4":[12.16,3.728],"w5":[16.238,3.68],"w6":[20.268,3.792],"w7":[24.41,3.616],"w8":[28.376,3.504],"w9":[32.23,3.456],"w10":[36.036,3.424],"w11":[39.81,3.472],"w12":[43.632,3.776],"w13":[47.758,3.712],"w14":[51.82,3.872],"w15":[56.042,3.696],"w16":[60.088,3.729],"w17":[64.167,3.696],"w18":[68.213,3.952],"w19":[72.515,3.984],"w20":[76.849,3.552],"w21":[80.751,3.79],"w22":[84.891,3.856],"w23":[89.097,3.805],"w24":[93.252,3.868],"w25":[97.47,3.826],"goose":[101.646,2.097],"bridge":[104.093,2.889],"dice":[107.332,2.639],"ocawin":[110.321,2.816],"pcap":[113.487,1.77],"pmeta":[115.606,2.062],"pwin":[118.018,2.304],"psix":[120.672,1.328]},"en":{"w1":[0.15,4.108],"w2":[4.608,4.389],"w3":[9.347,4.226],"w4":[13.923,4.214],"w5":[18.487,4.017],"w6":[22.855,4.342],"w7":[27.547,4.266],"w8":[32.163,4.169],"w9":[36.682,4.133],"w10":[41.165,4.095],"w11":[45.61,4.344],"w12":[50.304,4.059],"w13":[54.713,4.369],"w14":[59.432,4.226],"w15":[64.009,4.293],"w16":[68.652,4.47],"w17":[73.471,4.561],"w18":[78.383,4.417],"w19":[83.15,4.22],"w20":[87.72,4.07],"w21":[92.141,4.841],"w22":[97.332,4.614],"w23":[102.296,4.679],"w24":[107.325,4.563],"w25":[112.238,4.372],"goose":[116.96,2.601],"bridge":[119.91,2.562],"dice":[122.823,2.763],"ocawin":[125.936,3.472],"pcap":[129.757,2.038],"pmeta":[132.145,2.015],"pwin":[134.511,2.603],"psix":[137.463,1.683]}};
+const vozBuf = {};
+function vozLoad(lang) {
+  if (!vozBuf[lang]) vozBuf[lang] = fetch(`voz-${lang}.mp3`).then(r => { if (!r.ok) throw new Error('voz'); return r.arrayBuffer(); })
+    .then(b => new Promise((res, rej) => { try { const p = ac().decodeAudioData(b, res, rej); if (p && p.then) p.then(res, rej); } catch (e) { rej(e); } }))
+    .catch(e => { delete vozBuf[lang]; throw e; });
+  return vozBuf[lang];
+}
+export const preloadVoice = (lang = 'es') => { if (VOZ[lang]) vozLoad(lang).catch(() => {}); };
+// dice la frase entera y espera a que acabe (devuelve una promesa)
+export async function sayVoice(key, lang = 'es', fallback = '') {
+  if (muted) return;
+  const L = VOZ[lang] ? lang : 'es', seg = VOZ[L][key];
+  try {
+    if (!seg) throw new Error('sin frase');
+    const buf = await Promise.race([vozLoad(L), new Promise((_, r) => setTimeout(() => r(new Error('lento')), 6000))]);
+    const c = ac(); if (c.state !== 'running') { try { await c.resume(); } catch {} }
+    try { speechSynthesis.cancel(); } catch {}
+    await new Promise(res => {
+      const src = c.createBufferSource(); src.buffer = buf;
+      const g = c.createGain(); g.gain.value = 1; src.connect(g); g.connect(c.destination);
+      src.onended = res; src.start(0, seg[0], seg[1] + .05);
+      setTimeout(res, (seg[1] + 1) * 1000);
+    });
+  } catch (e) { if (fallback) await speak(fallback, lang); }
+}
+
 // ---------------- Un sonido distinto para cada casilla
 function bellTone(f, at, dur = 1.2, vol = .12) {
   // campana: parciales inarmónicos

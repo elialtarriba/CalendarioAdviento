@@ -2,7 +2,7 @@ import { clearLocalGames } from './games25.js';
 import { initStore, store, DEMO, nameKey, isPlayerEmail, famKey } from './store.js';
 import { t, tx, setLang, getLang } from './i18n.js';
 import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState, toggleMuted } from './sound.js';
+import { creak, speak, sayVoice, preloadVoice, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState, toggleMuted } from './sound.js';
 import { typeRich, gallery, lightbox } from './richact.js';
 import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js';
 import { APP_VERSION, CONTACT_EMAIL, isOwnerEmail } from './version.js';
@@ -423,6 +423,7 @@ async function boot() {
     import('./surprise.js').then(m => m.showSurprise(u.uid)).catch(() => {});
     import('./qpop.js').then(m => m.startPops()).catch(e => console.warn(e)); // preguntas sorpresa
     import('./gnomes.js').then(m => m.startGnomes()).catch(e => console.warn(e)); // (V24) juego de los gnomos
+    import('./parchis.js').then(m => m.startParchisInvites()).catch(e => console.warn(e)); // (V26) invitaciones al parchís en línea
     startSettingsWatch(u.uid); // si la administradora cambia algo (casillas abiertas, figura…), se aplica sin volver a entrar
   });
 }
@@ -1023,6 +1024,7 @@ async function openDoorInner(n, door, mode = null) {
   const content = await Promise.race([loadDay(n), sleep(10000).then(() => 'slow')]);
   if (content === 'slow') { door.classList.remove('lighting', 'opening'); toast('📶 ' + L3('La conexión va lenta. Vuelve a tocar la casilla.', 'La connexió va lenta. Torna a tocar la casella.', 'The connection is slow. Tap the box again.'), 4000); return; }
   if (!content) { toast(t('locked', n)); return; }
+  DAYC.set(n, content); MEDIAP.delete(n); prefetchAct(n); // (V26) la actividad ya tiene su texto y sus fotos cuando se acaba el reto: el papel sale enseguida
   // la luz se enciende dentro de la ventana y después se abre
   door.classList.add('lighting');
   hohoho(); // al abrir cualquier puerta: el «Ho, ho, ho, Merry Christmas» de Papá Noel
@@ -1048,7 +1050,8 @@ async function openDoorInner(n, door, mode = null) {
     { opacity: 1, offset: .25 },
     { transform: 'translate(0,0) scale(1) rotate(0)', opacity: 1 },
   ], { duration: 1500, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' });
-  setTimeout(() => speak(t('welcome', n), getLang()), 4800); // después del ho, ho, ho (en el iPhone la voz corta el sonido)
+  preloadVoice(getLang());
+  setTimeout(() => sayVoice('w' + n, getLang(), t('welcome', n)), 4800); // (V26) voz de hombre grabada, después del ho, ho, ho
 
   let closed = false;
   const ctx = {
@@ -1086,7 +1089,7 @@ async function openDoorInner(n, door, mode = null) {
   try {
     // juegos que se pueden repetir: se juegan de nuevo, pero la respuesta guardada (y los premios) no cambian
     if (ctx.prev && ['hats', 'reindeer', 'differences', 'memory', 'goodcheck'].includes(content.type)) { ctx.replay = true; ctx.prev = null; }
-    if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze', 'colors', 'mastermind', 'oca'].includes(content.type)) renderSummary(body, ctx);
+    if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze', 'colors', 'mastermind', 'oca', 'parchis'].includes(content.type)) renderSummary(body, ctx);
     else (await import(`./${content.type}.js`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   // casilla 25: el regalo sorpresa abajo del todo (si el juego se vuelve a pintar, se vuelve a poner)
@@ -1166,6 +1169,7 @@ async function closeDayInner(n, layer, note, door, later = false) {
   const fresh = n === 25 && mode25 === 'fresh'; mode25 = null;
   if (!later && fig !== 'galleta' && done && (actPending(n) || fresh)) {
     // la actividad sale siempre que esté pendiente (y solo una vez: la de tu figura)
+    dayForActivity(n).catch(() => {}); prefetchAct(n); // (V26) se prepara mientras se arruga el papel
     await crumpleAway(note);
     const res = await runActivity(n, layer);
     if (res === 'done') fullView = true; // al acabar: el calendario en grande
@@ -1363,9 +1367,23 @@ export async function crumpleAnim(node, out = true) {
   }
 }
 
+// (V26) el contenido del día se guarda al abrir la casilla (con sus textos de la administradora), y las fotos se piden ya
+const DAYC = new Map(), MEDIAP = new Map();
+function prefetchAct(n) {
+  if (!MEDIAP.has(n)) MEDIAP.set(n, Promise.resolve(store.getMedia(n)).catch(() => null).then(m => { if (!m) MEDIAP.delete(n); return m || []; }));
+  import('./acts.js').catch(() => {});
+}
+// nunca enseña las actividades de ejemplo si la administradora ha escrito las suyas: si la traducción o la conexión tardan, sale su texto
+async function dayForActivity(n) {
+  if (DAYC.has(n)) return DAYC.get(n);
+  let c = await withTimeout(loadDay(n), 7000);
+  if (!c) { const raw = await withTimeout(loadDayRaw(n), 6000); if (raw) c = raw; }
+  if (c) DAYC.set(n, c);
+  return c || defaultDay(n);
+}
 async function showActivity(n, layer, simple = false) {
   const fig = figure();
-  const content = (await withTimeout(loadDay(n), 7000)) || defaultDay(n); // sin conexión no se queda colgado
+  const content = await dayForActivity(n);
   const key = fig === 'arbol' ? 'act1' : 'act2';
   const over = null; // ya no hay actividades por persona: todos ven las del día
   const text = (over && over.trim()) || tx(content[key]);
@@ -1373,7 +1391,8 @@ async function showActivity(n, layer, simple = false) {
   setTimeout(() => { note.style.opacity = ''; note.style.visibility = ''; }, 4500); // pase lo que pase, la nota se ve
   applyPaper(note);
   const textBox = el('div', { class: 'activity-text rich' });
-  const media = ((await withTimeout(store.getMedia(n), 6000)) || []).filter(m => m.act === key);
+  prefetchAct(n);
+  const media = ((await withTimeout(MEDIAP.get(n), 6000)) || []).filter(m => m.act === key);
   const gal = gallery(media);
   const btn = el('button', { class: 'btn btn-finish no-delay', disabled: true }, t('finish'));
   const later = el('button', { class: 'btn btn-cancel no-delay' }, t('cancelLater'));
@@ -1463,6 +1482,7 @@ const actPending = n => {
 
 // volver a un día con el reto hecho pero la actividad pendiente
 async function remindActivity(n) {
+  DAYC.delete(n); MEDIAP.delete(n); dayForActivity(n).catch(() => {}); prefetchAct(n); // (V26) texto recién cargado, preparado mientras se lee el aviso
   const fig = figure();
   const layer = el('div', { class: 'note-layer' }); document.body.append(layer);
   const note = el('div', { class: 'note activity-note' }); applyPaper(note);

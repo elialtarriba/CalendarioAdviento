@@ -51,10 +51,13 @@ export async function startPresence(S) {
   if (!whoName() && S.profile?.who) { try { localStorage.setItem('adv_who', S.profile.who); } catch {} }
   await ensureName(S);
   const uid = S.user.uid, since = Date.now();
-  const ping = (state = document.visibilityState === 'visible' ? 'online' : 'away') =>
-    store.presencePing(uid, { name: whoName() || S.profile?.name || '', profileName: S.profile?.name || '', email: S.user.email || '', device: device(), state, lastSeen: Date.now(), since }).catch(() => {});
+  const ping = (state = document.visibilityState === 'visible' ? 'online' : 'away') => {
+    // (V26) lista pública de quién tiene la app abierta (solo el nombre y la figura), para invitar a jugar al parchís
+    store.gPut('online', uid, { uid, n: whoName() || S.profile?.name || '', f: S.settings?.figure || 'galleta', st: state, at: Date.now() }).catch(() => {});
+    return store.presencePing(uid, { name: whoName() || S.profile?.name || '', profileName: S.profile?.name || '', email: S.user.email || '', device: device(), state, lastSeen: Date.now(), since }).catch(() => {});
+  };
   ping();
-  const iv = setInterval(() => ping(), 60000);
+  const iv = setInterval(() => ping(), 30000);
   document.addEventListener('visibilitychange', () => ping());
   addEventListener('pagehide', () => ping('off'));
   // si la administradora lo echa: fuera de la app

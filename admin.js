@@ -13,7 +13,7 @@ const FIGS = [['galleta', 'Hombrecito de jengibre (solo la puerta)'], ['arbol', 
 const FIG_IMG = { galleta: 'galleta.png', arbol: 'arbol.png', gnomo: 'gnomo.png' };
 const ST = { correct: '✓', incorrect: '✗', pending: '⏳' };
 const TYPE_NAME = { hats: 'Atrapa los 3 gorros', quiz: 'Pregunta con 4 respuestas', reindeer: 'Busca los renos con gafas', differences: 'Las 5 diferencias + susto', tree: 'Decorar el árbol',
-  memory: 'Ojo de lince (objeto que falta)', goodcheck: '¿Has sido bueno?', diploma: 'Diploma absurdo', roulette: 'Ruleta del disparate', dance: 'El baile secreto', santa: 'Tu cara en Papá Noel', puzzle: 'Puzle que cobra vida', pairs: 'Memory navideño (parejas)', ttt: 'Tres en raya navideño', crossword: 'Crucigrama de Navidad', wordsearch: 'Sopa de letras de animales', slidepuzzle: 'Puzle deslizante que cobra vida', ballsort: 'Ordena las bolas por colores', catch: 'Atrapa los regalos', simon: 'Papá Noel dice (Simón)', colors: 'Desafío de colores (rueda de 4 colores, 1–20 min)', mastermind: 'El código secreto de Papá Noel (Mastermind)', sudoku: 'Sudoku de Navidad (4×4, 6×6, 9×9)', maze: 'Laberinto: los regalos perdidos' };
+  memory: 'Ojo de lince (objeto que falta)', parchis: 'El parchís de Navidad (solo o en línea)', oca: 'La oca de Navidad', goodcheck: '¿Has sido bueno?', diploma: 'Diploma absurdo', roulette: 'Ruleta del disparate', dance: 'El baile secreto', santa: 'Tu cara en Papá Noel', puzzle: 'Puzle que cobra vida', pairs: 'Memory navideño (parejas)', ttt: 'Tres en raya navideño', crossword: 'Crucigrama de Navidad', wordsearch: 'Sopa de letras de animales', slidepuzzle: 'Puzle deslizante que cobra vida', ballsort: 'Ordena las bolas por colores', catch: 'Atrapa los regalos', simon: 'Papá Noel dice (Simón)', colors: 'Desafío de colores (rueda de 4 colores, 1–20 min)', mastermind: 'El código secreto de Papá Noel (Mastermind)', sudoku: 'Sudoku de Navidad (4×4, 6×6, 9×9)', maze: 'Laberinto: los regalos perdidos' };
 
 // las contraseñas de la administradora se recuerdan SOLO en este aparato (para verlas con el ojo); no se guardan en internet
 const CFG_KEY = 'adv_cfgpw';
@@ -443,16 +443,16 @@ const VIEWS = {
       parts.push(actCard(n, L, d, 'act1', '🎄 Actividad 1 (personas con árbol)'), actCard(n, L, d, 'act2', '🧙 Actividad 2 (personas con gnomo)'));
       const save = el('button', { class: 'btn', onclick: async () => {
         const nd = JSON.parse(JSON.stringify(d)); delete nd.openAt;
-        const setL = (k, v) => { nd[k] = { ...(nd[k] || {}), [L]: v }; };
+        const setL = (k, v) => { nd[k] = L === 'es' && (d[k]?.es ?? '') !== v ? { es: v } : { ...(nd[k] || {}), [L]: v }; if (L !== 'es') nd.trSrc = { ...(nd.trSrc || {}), [k]: { ...(nd.trSrc?.[k] || {}), [L]: nd[k]?.es ?? '' } }; }; // (V26) cambio en español: los otros idiomas se traducen de nuevo
         if (d.type === 'quiz') {
           setL('q', f.q.value.trim());
-          nd.options = { ...(nd.options || {}), [L]: f.opts.map(o => o.value.trim()) };
+          { const op = f.opts.map(o => o.value.trim()); nd.options = L === 'es' && JSON.stringify(op) !== JSON.stringify(d.options?.es) ? { es: op } : { ...(nd.options || {}), [L]: op }; }
           nd.correct = f.correct.findIndex(r => r.checked);
         }
         if (d.type === 'roulette') {
           const lines = f.mis.map(s => s.trim()).filter(Boolean).slice(0, 10);
           if (lines.length < 2) return toast('La ruleta necesita al menos 2 casillas');
-          nd.missions = lines.map((s, i) => ({ ...(d.missions?.[i] || {}), [L]: s }));
+          nd.missions = lines.map((s, i) => L === 'es' && s !== d.missions?.[i]?.es ? { es: s } : { ...(d.missions?.[i] || {}), [L]: s });
           setL('rouletteNote', f.note.value.trim());
         }
         if (d.type === 'hats') Object.entries(f.hats).forEach(([k, x]) => setL(k, x.value.trim()));
@@ -643,7 +643,7 @@ const VIEWS = {
 
 // Respuestas → una persona: un desplegable por casilla con lo que ha hecho
 const DAY_NAMES = ['', 'Los gorros', 'Pregunta', 'Sudoku', 'Los renos', 'Desafío de colores', 'Las diferencias', 'Puzle del tren', 'El árbol', 'Papá Noel dice', 'Pregunta',
-  'Laberinto', 'Ojo de lince', 'Ruleta de superpoderes', 'Atrapa los regalos', 'Ordena las bolas', 'Diploma', 'Tres en raya', 'Puzle de Papá Noel', 'El código secreto',
+  'Laberinto', 'Parchís de Navidad', 'Ruleta de superpoderes', 'Atrapa los regalos', 'Ordena las bolas', 'Diploma', 'Tres en raya', 'Puzle de Papá Noel', 'El código secreto',
   'Ruleta del disparate', 'Puzle deslizante', 'Sopa de letras', 'Crucigrama', 'El baile', 'Memory y resumen'];
 const ST_TXT = { correct: '✅ Correcta', incorrect: '❌ Incorrecta', pending: '⏳ Por corregir' };
 const when = t => t && t !== true ? new Date(t).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
@@ -835,7 +835,9 @@ function actCard(n, L, d, key, label) {
     if (r == null) return;
     try {
       const nd = JSON.parse(JSON.stringify(cur)); delete nd.openAt;
-      nd[key] = { ...(nd[key] || {}), [L]: r.html };
+      // (V26) si cambia el texto en español, los otros idiomas se vuelven a traducir solos (si no, se veía el texto viejo)
+      nd[key] = L === 'es' ? { es: r.html } : { ...(nd[key] || {}), [L]: r.html };
+      if (L !== 'es') nd.trSrc = { ...(nd.trSrc || {}), [key]: { ...(nd.trSrc?.[key] || {}), [L]: nd[key]?.es ?? '' } }; // este idioma está escrito a mano para este texto en español
       const qk = key + 'Q', qs = { ...(nd[qk] || {}) };
       if (r.quiz) qs[L] = r.quiz; else delete qs[L];
       if (L === 'es' && r.quiz) { delete qs.ca; delete qs.en; } // los otros idiomas se traducen solos desde el español

@@ -3,7 +3,7 @@
 //  · Nueva versión: cambia solo APP_VERSION (y sube este archivo + los que hayan cambiado).
 //  · El resto de archivos ya no llevan el número de versión (…?v=), así no hay que tocarlos.
 // =====================================================================
-export const APP_VERSION = 'V25.3';
+export const APP_VERSION = 'V26';
 
 // Correo que ven los jugadores (la «i» de la pantalla de la nieve)
 export const CONTACT_EMAIL = 'bisbetjoy@gmail.com';

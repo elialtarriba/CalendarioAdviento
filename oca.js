@@ -8,7 +8,8 @@
 //   Perder contra el Pare Noel: −1 en el Marcador de Navidad y −1 a los gnomos (como mucho una vez al día).
 import { getLang } from './i18n.js';
 import { el, sleep, confetti } from './fx.js';
-import { pop, chime, clickSound, fanfare, sadTrombone, snapSound, unlockAudio, speak, wrong } from './sound.js';
+import { pop, chime, clickSound, fanfare, sadTrombone, snapSound, unlockAudio, speak, wrong, sayVoice, preloadVoice } from './sound.js';
+import { token3d, dragToken, bigCongrats } from './gamefx.js';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const FIG = { galleta: 'galleta.png', arbol: 'arbol.png', gnomo: 'gnomo.png' };
@@ -81,8 +82,10 @@ async function openOca(ctx) {
   if (document.querySelector('.oca-wrap')) return;
   const uid = ctx.user?.uid || '';
   const fig = ctx.settings?.figure || 'galleta';
-  let alive = true, timerIv = 0;
-  const close = () => { alive = false; clearInterval(timerIv); clearInterval(spinIv); wrap.classList.add('out'); document.documentElement.classList.remove('gm-lock'); setTimeout(() => wrap.remove(), 350); };
+  let alive = true, timerIv = 0; const dragCancel = {};
+  preloadVoice(getLang());
+  const cellAt = (x, y) => { const c = document.elementsFromPoint(x, y).find(e => e.classList?.contains('oca-cell')); return c ? +c.dataset.n : null; };
+  const close = () => { alive = false; try { dragCancel.fn?.(); } catch {} clearInterval(timerIv); clearInterval(spinIv); wrap.classList.add('out'); document.documentElement.classList.remove('gm-lock'); setTimeout(() => wrap.remove(), 350); };
 
   // ---- cabecera: cronómetro · dado en su hueco · instrucciones
   const timeEl = el('b', {}, '0:00');
@@ -107,36 +110,54 @@ async function openOca(ctx) {
   // ---- dibujar el tablero
   const pos = spiral(8);
   const cells = {};
-  const decorFor = n => DECOR[(n * 7) % DECOR.length];
+  // (V26) el camino: una pista nevada que une las casillas por orden (se dibuja detrás de las casillas)
+  const road = el('div', { class: 'oca-road' }); board.append(road);
   for (let n = 1; n <= 62; n++) {
-    const [r, c] = pos[n - 1], sp = SPECIAL[n], goose = GEESE.includes(n);
-    const cell = el('div', { class: 'oca-cell' + (goose ? ' goose' : '') + (sp ? ' sp sp-' + sp.k : ''), style: `grid-row:${r + 1};grid-column:${c + 1}` },
+    const [r, c] = pos[n - 1], sp = SPECIAL[n], goose = GEESE.includes(n), plain = !sp && !goose;
+    const cell = el('div', { class: 'oca-cell' + (goose ? ' goose' : '') + (sp ? ' sp sp-' + sp.k : '') + (plain ? ' plain' : '') + (n === 1 ? ' first' : ''), style: `grid-row:${r + 1};grid-column:${c + 1}`, 'data-n': n },
       el('span', { class: 'oca-n' }, n),
-      goose ? el('div', { class: 'oca-pic', html: GOOSE_SVG }) : el('img', { class: 'oca-pic' + (sp ? '' : ' deco'), src: sp ? sp.img : decorFor(n), alt: '' }));
+      plain ? null : goose ? el('div', { class: 'oca-pic', html: GOOSE_SVG }) : el('img', { class: 'oca-pic', src: sp.img, alt: '' }),
+      n === 1 ? el('small', { class: 'oca-start' }, '🚩') : null);
     cells[n] = cell; board.append(cell);
   }
   { // el jardín (63): las dos casillas del centro
     const a = pos[62], b = pos[63];
     const r1 = Math.min(a[0], b[0]) + 1, r2 = Math.max(a[0], b[0]) + 2, c1 = Math.min(a[1], b[1]) + 1, c2 = Math.max(a[1], b[1]) + 2;
-    const g = el('div', { class: 'oca-cell sp sp-garden', style: `grid-row:${r1}/${r2};grid-column:${c1}/${c2}` },
-      el('span', { class: 'oca-n' }, 63), el('img', { class: 'oca-pic', src: SPECIAL[63].img, alt: '' }), el('small', { class: 'oca-glabel' }, '🏆'));
+    const g = el('div', { class: 'oca-cell sp sp-garden', style: `grid-row:${r1}/${r2};grid-column:${c1}/${c2}`, 'data-n': 63 },
+      el('span', { class: 'oca-n' }, 63), el('img', { class: 'oca-tree', src: 'ilu-arbolito.webp', alt: '' }), el('small', { class: 'oca-glabel' }, '🏆'));
     cells[63] = g; board.append(g);
   }
 
   // ---- fichas
-  const mkTok = (src, cls) => el('div', { class: 'oca-tok ' + cls }, el('img', { src, alt: '' }));
+  const mkTok = (src, cls) => token3d({ img: src, color: cls === 'cpu' ? '#c8263f' : '#f2c14e', cls: 'oca-tok ' + cls });
   let players = [], cur = 0, mode = null, started = false, t0 = 0, rolling = false, spinIv = 0, waitingRoll = null, over = false;
-  const placeTok = p => {
-    const target = p.pos > 0 ? cells[p.pos] : cells[1];
-    const br = board.getBoundingClientRect(), cr = target.getBoundingClientRect();
-    const off = players.length > 1 ? (p.i === 0 ? -0.18 : 0.18) : 0;
-    const x = cr.left - br.left + cr.width * (0.5 + off), y = cr.top - br.top + cr.height * (p.pos > 0 ? 0.55 : 1.05);
-    p.tok.style.transform = `translate(${x}px, ${y}px) translate(-50%, -60%)`;
+  // centro de una casilla, dentro del tablero (la 0 es la salida, debajo de la 1)
+  const center = n => {
+    const br = board.getBoundingClientRect(), cr = cells[Math.max(1, n)].getBoundingClientRect();
+    return { x: cr.left - br.left + cr.width / 2, y: cr.top - br.top + cr.height * (n > 0 ? .5 : .95) };
+  };
+  const spotOf = p => { const c = center(p.pos), w = cells[1].getBoundingClientRect().width;
+    const share = players.length > 1 && players.some(q => q !== p && q.pos === p.pos);
+    return { x: c.x + (share ? (p.i === 0 ? -.2 : .2) * w : 0), y: c.y }; };
+  const placeTok = p => { const s = spotOf(p); p.tok.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -62%)`; };
+  const cellSize = () => cells[1].getBoundingClientRect().width;
+  const drawRoad = () => {
+    const br = board.getBoundingClientRect(), W = br.width, H = br.height, u = cellSize();
+    const pts = []; for (let n = 1; n <= 62; n++) pts.push(center(n)); pts.push(center(63));
+    const d = 'M' + pts.map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)}`).join(' L');
+    // flechitas que dicen hacia dónde se va
+    const arrows = []; for (let n = 2; n <= 62; n += 3) { const a = center(n), b = center(n + 1), ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+      arrows.push(`<path d="M-4 -4 L3 0 L-4 4" transform="translate(${((a.x + b.x) / 2).toFixed(1)} ${((a.y + b.y) / 2).toFixed(1)}) rotate(${ang.toFixed(0)}) scale(${(u / 30).toFixed(2)})" fill="none" stroke="#b3122e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`); }
+    road.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="${d}" stroke="#7a4a1a" stroke-opacity=".35" stroke-width="${(u * .62).toFixed(1)}"/>
+      <path d="${d}" stroke="#fff" stroke-width="${(u * .56).toFixed(1)}"/>
+      <path d="${d}" stroke="#f3dfb6" stroke-width="${(u * .42).toFixed(1)}"/>
+      <path d="${d}" stroke="#e0a800" stroke-width="${(u * .05).toFixed(1)}" stroke-dasharray="${(u * .12).toFixed(1)} ${(u * .18).toFixed(1)}"/></g>${arrows.join('')}</svg>`;
   };
   const layout = () => {
     const w = Math.min(innerWidth * .96, innerHeight * .62, 640);
     board.style.width = board.style.height = w + 'px';
-    players.forEach(placeTok);
+    requestAnimationFrame(() => { drawRoad(); players.forEach(placeTok); });
   };
   addEventListener('resize', layout);
 
@@ -162,10 +183,11 @@ async function openOca(ctx) {
 
   // ---- mensajes
   let msgT = 0;
-  const say = (txt, kind = '', talk = false) => {
+  // (V26) con voz: la frase se dice entera (voz de hombre grabada) y el juego espera a que acabe
+  const say = async (txt, kind = '', vkey = '') => {
     msg.replaceChildren(el('span', {}, txt)); msg.className = 'oca-msg on ' + kind; clearTimeout(msgT);
     msgT = setTimeout(() => msg.classList.remove('on'), 2600);
-    if (talk) { try { speak(txt.replace(/[!¡]/g, ''), getLang()); } catch {} }
+    if (vkey) { try { await sayVoice(vkey, getLang(), txt.replace(/[!¡]/g, '')); } catch {} clearTimeout(msgT); msgT = setTimeout(() => msg.classList.remove('on'), 700); }
   };
   const paintTurn = () => {
     const p = players[cur];
@@ -187,9 +209,22 @@ async function openOca(ctx) {
     const n = p.cpu ? await cpuRoll() : await humanRoll();
     if (!alive) return false;
     if (!started) { started = true; t0 = Date.now(); timerIv = setInterval(() => { timeEl.textContent = fmt((Date.now() - t0) / 1000); }, 500); }
-    let target = p.pos + n;
-    if (target > 63) { await walk(p, 63); say(RHYME.bounce(), 'warn'); await sleep(500); target = 63 - (target - 63); await walk(p, target); }
-    else await walk(p, target);
+    let target = p.pos + n; const path = [];
+    for (let k = p.pos + 1; k <= Math.min(63, target); k++) path.push(k);
+    if (target > 63) { target = 63 - (target - 63); for (let k = 62; k >= target; k--) path.push(k); }
+    if (p.cpu) {
+      if (path.includes(63) && target !== 63) { await walk(p, 63); say(RHYME.bounce(), 'warn'); await sleep(500); await walk(p, target); }
+      else await walk(p, target);
+    } else {
+      // (V26) la ficha la mueves tú: la coges con el dedo y la llevas hasta la casilla que brilla
+      if (target !== p.pos + n) say(RHYME.bounce(), 'warn');
+      dieHint.textContent = '👆 ' + L(`Lleva tu ficha a la casilla ${target}`, `Porta la teva fitxa a la casella ${target}`, `Drag your token to square ${target}`);
+      const ok = await dragToken({ tok: p.tok, layer: board, path, cellEl: k => cells[k], cellAt, center, size: cellSize(), home: () => spotOf(p), cancel: dragCancel,
+        onMiss: () => { dieHint.classList.remove('nudge'); void dieHint.offsetWidth; dieHint.classList.add('nudge'); } });
+      dieHint.textContent = '';
+      if (!ok || !alive) return false;
+      p.pos = target; await sleep(260); placeTok(p); paintTurn();
+    }
     return await land(p);
   }
   // devuelve true si vuelve a tirar
@@ -198,13 +233,13 @@ async function openOca(ctx) {
     if (p.pos === 63) return 'win';
     if (GEESE.includes(p.pos)) {
       const next = GEESE.find(g => g > p.pos) || 63;
-      say(RHYME.goose(), 'goose', !p.cpu); chime(); cells[p.pos].classList.add('flash'); setTimeout(() => cells[p.pos]?.classList.remove('flash'), 1200);
-      await sleep(900); await jump(p, next); paintTurn();
+      chime(); cells[p.pos].classList.add('flash'); setTimeout(() => cells[p.pos]?.classList.remove('flash'), 1200);
+      await say(RHYME.goose(), 'goose', 'goose'); await jump(p, next); paintTurn();
       return p.pos === 63 ? 'win' : 'again';
     }
     const sp = SPECIAL[p.pos]; if (!sp) return false;
     cells[p.pos].classList.add('flash'); setTimeout(() => cells[p.pos]?.classList.remove('flash'), 1400);
-    if (sp.k === 'bridge' || sp.k === 'dice') { say(RHYME[sp.k](), 'goose', !p.cpu); chime(); await sleep(900); await jump(p, sp.to); paintTurn(); return 'again'; }
+    if (sp.k === 'bridge' || sp.k === 'dice') { chime(); await say(RHYME[sp.k](), 'goose', sp.k); await jump(p, sp.to); paintTurn(); return 'again'; }
     if (sp.k === 'inn' || sp.k === 'well' || sp.k === 'jail') { p.skip = sp.skip; say(RHYME[sp.k](), 'warn'); wrong(); await sleep(1300); paintTurn(); return false; }
     if (sp.k === 'maze') { say(RHYME.maze(), 'warn'); wrong(); await sleep(1100); await jump(p, sp.to); paintTurn(); return false; }
     if (sp.k === 'death') { say(RHYME.death(), 'bad'); sadTrombone(); await sleep(1300); await jump(p, 0); paintTurn(); return false; }
@@ -236,7 +271,6 @@ async function openOca(ctx) {
     const lines = [];
     let G = null;
     if (meWon) {
-      fanfare(); confetti(260);
       try { ctx.won?.(); } catch {} // ⭐ Marcador de Navidad (+2 la 1.ª vez, +1 las siguientes)
       let best = null; try { best = JSON.parse(localStorage.getItem(BEST + '_' + uid) || 'null'); } catch {}
       if (!best || secs < best) { try { localStorage.setItem(BEST + '_' + uid, JSON.stringify(secs)); } catch {} if (best) lines.push('🏅 ' + L('¡Nuevo récord de tiempo!', 'Nou rècord de temps!', 'New time record!')); }
@@ -266,6 +300,16 @@ async function openOca(ctx) {
         claim.replaceWith(el('p', { class: 'cc8-rec' }, '🍄 ' + L('¡Puntos cobrados!', 'Punts cobrats!', 'Points collected!') + ' ✅')); };
       card.append(claim);
     }
+    if (meWon) { // (V26) ¡ha llegado al árbol! fuegos artificiales y una felicitación bonita
+      const extra = [...card.querySelectorAll('.cc8-rec, .cc8-gn')];
+      const fx = await bigCongrats(wrap, { title: L('¡Felicidades!', 'Felicitats!', 'Congratulations!'),
+        sub: vsCpu ? L('¡Has ganado al Pare Noel y has llegado al árbol de Navidad!', 'Has guanyat el Pare Noel i has arribat a l’arbre de Nadal!', 'You beat Santa and reached the Christmas tree!')
+          : L('¡Has llegado al árbol de Navidad!', 'Has arribat a l’arbre de Nadal!', 'You reached the Christmas tree!'),
+        img: FIG[fig] || FIG.galleta, lines: [el('p', { class: 'gfx-line' }, '⏱ ', el('b', {}, fmt(secs))), ...extra], buttons: [again, out] });
+      again.onclick = () => { fx.close(); chooseMode(); };
+      sayVoice('ocawin', getLang()).catch(() => {});
+      return;
+    }
     card.append(el('div', { class: 'cc8-endbtns' }, again, out));
     const box = el('div', { class: 'cc8-end' }, card);
     again.onclick = () => { box.remove(); chooseMode(); };
@@ -277,9 +321,9 @@ async function openOca(ctx) {
     const R = (img, t, d, svg) => el('div', { class: 'oca-rule' }, svg ? el('div', { class: 'oca-rpic', html: GOOSE_SVG }) : el('img', { class: 'oca-rpic', src: img, alt: '' }), el('div', {}, el('b', {}, t), el('small', {}, d)));
     const box = el('div', { class: 'cc8-end oca-helpbox' }, el('div', { class: 'cc8-endcard oca-help' },
       el('h2', {}, '📜 ' + L('Cómo se juega', 'Com es juga', 'How to play')),
-      el('p', {}, L('Toca el dado para que gire y vuelve a tocarlo para pararlo. Tu ficha avanza esas casillas. ¡Gana quien llega antes al árbol de Navidad (63)! Hay que llegar justo: si te pasas, rebotas hacia atrás.',
-        'Toca el dau perquè giri i torna’l a tocar per parar-lo. La teva fitxa avança aquestes caselles. Guanya qui arriba abans a l’arbre de Nadal (63)! Cal arribar-hi just: si te’n passes, rebotes enrere.',
-        'Tap the dice to spin it and tap again to stop it. Your token moves that many squares. Whoever reaches the Christmas tree (63) first wins! You must land exactly: if you go past, you bounce back.')),
+      el('p', {}, L('Toca el dado para que gire y vuelve a tocarlo para pararlo. Después coge tu ficha con el dedo y llévala hasta la casilla que brilla: al soltarla, encaja y hace «clic». ¡Gana quien llega antes al árbol de Navidad (63)! Hay que llegar justo: si te pasas, rebotas hacia atrás.',
+        'Toca el dau perquè giri i torna’l a tocar per parar-lo. Després agafa la teva fitxa amb el dit i porta-la fins a la casella que brilla: en deixar-la, encaixa i fa «clic». Guanya qui arriba abans a l’arbre de Nadal (63)! Cal arribar-hi just: si te’n passes, rebotes enrere.',
+        'Tap the dice to spin it and tap again to stop it. Then drag your token with your finger to the glowing square: it clicks into place. Whoever reaches the Christmas tree (63) first wins! You must land exactly: if you go past, you bounce back.')),
       R('', L('Oca', 'Oca', 'Goose'), L('Saltas a la siguiente oca y vuelves a tirar.', 'Saltes a la següent oca i tornes a tirar.', 'Jump to the next goose and roll again.'), true),
       R('trineo11.webp', L('Trineo (6 y 12)', 'Trineu (6 i 12)', 'Sleigh (6 and 12)'), L('Saltas al otro trineo y vuelves a tirar.', 'Saltes a l’altre trineu i tornes a tirar.', 'Jump to the other sleigh and roll again.')),
       R('ilu-gr.webp', L('Regalo (26 y 53)', 'Regal (26 i 53)', 'Present (26 and 53)'), L('Saltas al otro regalo y vuelves a tirar.', 'Saltes a l’altre regal i tornes a tirar.', 'Jump to the other present and roll again.')),

@@ -96,7 +96,7 @@ function compute(st) {
     .forEach(b => ev.push({ uid: b.uid, pts: +b.pts || 0, at: b.at, k: 'game', why: gameName(b.game), id: b.id }));
   // (V25.3) lo que se resta por perder (la oca): un apunte con el total
   (st.gb || []).filter(b => (+b.neg || 0) > 0 && b.nat >= st.since && b.nat < st.endAt && b.start >= st.since)
-    .forEach(b => ev.push({ uid: b.uid, pts: -(+b.neg || 0), at: b.nat, k: 'game', why: gameName(b.game) + ' · ' + L('perder', 'perdre', 'losing'), id: b.id + '_neg' }));
+    .forEach(b => ev.push({ uid: b.uid, pts: -(+b.neg || 0), at: b.nat, k: 'game', why: gameName(b.game) + ' · ' + (b.game === 'parchis12' ? L('abandonar', 'abandonar', 'leaving') : L('perder', 'perdre', 'losing')), id: b.id + '_neg' }));
   ev.sort((a, b) => a.at - b.at);
   st.score = {}; st.max = {}; st.hist = {};
   st.players.forEach(p => { st.score[p.uid] = 0; st.max[p.uid] = 0; st.hist[p.uid] = []; });
@@ -841,6 +841,11 @@ export const GAMES = [
     help: 'La PRIMERA vez que ganan a la máquina ganan estos puntos. Si pierden contra la máquina: −1 (como mucho 1 al día).', def: { on: true, pw: 2 },
     fields: [['pw', 'Al ganar a la máquina (1.ª vez)']], prog: b => (b.lv ? '🏆 ha ganado' : 'aún no ha ganado') + (b.neg ? ` · −${b.neg} por perder` : ''),
     owed: (lv, r) => lv >= 1 ? +r.pw || 0 : 0 },
+  // (V26) el parchís en línea del día 12: su PRIMERA partida acabada, puntos según el puesto (con 4 jugadores: 4, 3, 2, 1); abandonar o no acabarla: −1
+  { id: 'parchis12', day: 12, name: () => L('El parchís de Navidad', 'El parxís de Nadal', 'Christmas ludo'), adm: 'El parchís en línea (día 12)',
+    help: 'Solo cuenta su PRIMERA partida en línea que acaba: el 1.º gana tantos puntos como jugadores hay (4 si son 4), el 2.º uno menos… y el último 1. Quien abandona o no la acaba: −1 (cada vez).', def: { on: true },
+    fields: [], prog: b => `${b.lv || 0} puntos ganados` + (b.neg ? ` · −${b.neg} por abandonar` : ''),
+    owed: lv => lv || 0 },
 ];
 export const gameName = id => GAMES.find(g => g.id === id)?.name() || id;
 const gameRules = (cfg, id) => { const g = GAMES.find(x => x.id === id); return { ...(g?.def || {}), ...(cfg?.games?.[id] || {}) }; };
@@ -878,6 +883,21 @@ export async function gamePenalty(bs) {
   if (d.negd === today) return 0;
   bs.doc = { ...d, neg: (d.neg || 0) + 1, negd: today, nat: now };
   try { await store.gPut('gb', S.user.uid + '_' + bs.id, bs.doc); LAST = null; try { reloadFab(); } catch {} return 1; } catch (e) { console.warn(e); return 0; }
+}
+// (V26) parchís: suma los puntos del puesto (se cobran solos) / resta 1 por abandonar
+export async function gamePlacePts(id, add) {
+  const bs = await gameBonusState(id); if (!bs || !(add > 0)) return 0;
+  const now = Date.now(), d = bs.doc || { uid: S.user.uid, game: id, start: now, lv: 0, pts: 0, at: now };
+  if ((d.lv || 0) > 0) return 0; // solo cuenta la PRIMERA partida en línea que acaba (como Dulce Navidad y la oca)
+  const lv = Math.min(300, (d.lv || 0) + add);
+  bs.doc = { ...d, lv, pts: lv, at: now };
+  try { await store.gPut('gb', S.user.uid + '_' + id, bs.doc); LAST = null; try { reloadFab(); } catch {} return add; } catch (e) { console.warn(e); return 0; }
+}
+export async function gameAbandon(id) {
+  const bs = await gameBonusState(id); if (!bs) return 0;
+  const now = Date.now(), d = bs.doc || { uid: S.user.uid, game: id, start: now, lv: 0, pts: 0, at: now };
+  bs.doc = { ...d, neg: Math.min(60, (d.neg || 0) + 1), nat: now };
+  try { await store.gPut('gb', S.user.uid + '_' + id, bs.doc); LAST = null; try { reloadFab(); } catch {} return 1; } catch (e) { console.warn(e); return 0; }
 }
 export async function gameBonusClaim(bs) {
   const owed = gameBonusOwed(bs), add = owed - (bs.doc?.pts || 0); if (add <= 0) return 0;

@@ -58,20 +58,23 @@ const FIELDS = ['act1', 'act2', 'q', 'rouletteNote', 'hat1Title', 'hat1Text', 'h
 export async function localizeDay(c, def, lang) {
   if (!c || lang === 'es') return c;
   const out = { ...c };
-  const needs = (cur, d) => cur?.es && cur.es !== d?.es && (!cur[lang] || cur[lang] === d?.[lang]);
+  // (V26) el texto del idioma solo vale si se escribió para el español que hay ahora (trSrc); si no, se traduce el español actual
+  const needs = (cur, d, f) => cur?.es && cur.es !== d?.es && (!cur[lang] || cur[lang] === d?.[lang] || (f && c.trSrc?.[f]?.[lang] !== cur.es));
   const jobs = [];
   for (const f of FIELDS) {
-    const cur = c[f]; if (!cur || typeof cur !== 'object' || !needs(cur, def[f])) continue;
-    jobs.push(tr(cur.es, lang).then(t => { out[f] = { ...cur, [lang]: t }; }));
+    const cur = c[f]; if (!cur || typeof cur !== 'object' || !needs(cur, def[f], f)) continue;
+    out[f] = { ...cur, [lang]: cur.es }; // (V26) mientras llega la traducción (o si no llega): su texto en español, nunca el de ejemplo
+    jobs.push(tr(cur.es, lang).then(t => { out[f] = { ...cur, [lang]: t || cur.es }; }));
   }
   if (c.options?.es && JSON.stringify(c.options.es) !== JSON.stringify(def.options?.es) && (!c.options[lang] || JSON.stringify(c.options[lang]) === JSON.stringify(def.options?.[lang])))
-    jobs.push(Promise.all(c.options.es.map(o => tr(o, lang))).then(a => { out.options = { ...c.options, [lang]: a }; }));
+    { out.options = { ...c.options, [lang]: c.options.es }; jobs.push(Promise.all(c.options.es.map(o => tr(o, lang))).then(a => { out.options = { ...c.options, [lang]: a }; })); }
   // pregunta con 4 respuestas de las actividades 1 y 2
   for (const f of ['act1Q', 'act2Q']) {
     const qz = c[f]; if (!qz?.es?.q || qz[lang]) continue;
     jobs.push(Promise.all([tr(qz.es.q, lang), qz.es.exp ? tr(qz.es.exp, lang) : '', ...qz.es.opts.map(o => (o ? tr(o, lang) : ''))]).then(([q, exp, ...opts]) => { out[f] = { ...qz, [lang]: { q, opts, ok: qz.es.ok, ...(exp ? { exp } : {}), ...(qz.es.expImg ? { expImg: qz.es.expImg } : {}) } }; }));
   }
+  if (Array.isArray(c.missions)) out.missions = c.missions.map((m, i) => needs(m, def.missions?.[i]) ? { ...m, [lang]: m.es } : m);
   if (Array.isArray(c.missions)) jobs.push(Promise.all(c.missions.map((m, i) => needs(m, def.missions?.[i]) ? tr(m.es, lang).then(t => ({ ...m, [lang]: t })) : m)).then(a => { out.missions = a; }));
-  await Promise.race([Promise.all(jobs), new Promise(r => setTimeout(r, 6000))]);
+  await Promise.race([Promise.all(jobs), new Promise(r => setTimeout(r, 4000))]);
   return out;
 }

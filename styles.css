@@ -3278,3 +3278,177 @@ body:has(.hg-bar) .snd-fab, body:has(.adm-sub) .snd-fab { display: none !importa
 .oca-pts { margin: 10px 0; padding: 8px 10px; border-radius: 12px; background: #fff6d6; border: 2px dashed #e0a800; display: flex; flex-direction: column; gap: 2px; }
 .oca-vs { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(180deg, #e0435a, #a3122c) !important; }
 .oca-vs img { width: 34px; height: 34px; object-fit: contain; }
+
+/* ================= (V26) fichas 3D que se arrastran · tablero de la oca con camino · gran felicitación ================= */
+.tk3 { position: absolute; left: 0; top: 0; width: 11%; aspect-ratio: .9; z-index: 5; pointer-events: none; transition: transform .18s ease-out; }
+.tk3 > * { transition: translate .18s, scale .18s, opacity .18s; }
+.tk3-shadow { position: absolute; left: 12%; bottom: -6%; width: 76%; height: 20%; border-radius: 50%; background: radial-gradient(closest-side, #000a, #0000); }
+.tk3-base { position: absolute; left: 6%; bottom: 0; width: 88%; height: 30%; border-radius: 50%;
+  background: radial-gradient(ellipse at 45% 25%, #ffffffcc 0 8%, var(--tk) 38%, color-mix(in srgb, var(--tk) 55%, #000) 100%);
+  box-shadow: inset 0 -5px 0 color-mix(in srgb, var(--tk) 50%, #000), inset 0 2px 2px #fff8, 0 2px 1px #0007; }
+.tk3-fig { position: absolute; left: 50%; bottom: 13%; height: 88%; max-width: 100%; object-fit: contain; transform: translateX(-50%); filter: drop-shadow(0 2px 2px #0008) drop-shadow(0 0 2px #fff); }
+.tk3.cpu .tk3-fig { filter: drop-shadow(0 2px 2px #0008) drop-shadow(0 0 3px #ffd24a); }
+.tk3.tk-can { pointer-events: auto; cursor: grab; touch-action: none; z-index: 12; }
+.tk3.tk-can .tk3-base { animation: tkCall 1s ease-in-out infinite; }
+@keyframes tkCall { 50% { box-shadow: inset 0 -5px 0 color-mix(in srgb, var(--tk) 50%, #000), 0 0 0 4px #fff, 0 0 18px 6px #ffd24a; } }
+.tk3.tk-can .tk3-fig { animation: tkHop 1s ease-in-out infinite; }
+@keyframes tkHop { 50% { translate: 0 -8%; } }
+.tk3.tk-lift { z-index: 30; cursor: grabbing; transition: none; }
+.tk3.tk-lift .tk3-base, .tk3.tk-lift .tk3-fig { translate: 0 -22%; scale: 1.22; animation: none; }
+.tk3.tk-lift .tk3-shadow { translate: 0 30%; scale: 1.35; opacity: .55; }
+.tk3.tk-snap .tk3-base, .tk3.tk-snap .tk3-fig { animation: tkSnap .42s cubic-bezier(.3,1.7,.5,1); }
+@keyframes tkSnap { 0% { scale: 1.25; translate: 0 -14%; } 60% { scale: .92; translate: 0 2%; } 100% { scale: 1; translate: 0 0; } }
+.tk-lit { z-index: 2; }
+.tk-target { z-index: 2; animation: tkTarget 1s ease-in-out infinite; }
+@keyframes tkTarget { 50% { filter: drop-shadow(0 0 8px #ffd24a) brightness(1.12); } }
+
+.oca-board { gap: 4px; }
+.oca-road { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.oca-road svg { position: absolute; left: 0; top: 0; overflow: visible; }
+.oca-cell { z-index: 1; }
+.oca-cell.plain { background: none !important; border: 0; box-shadow: none; overflow: visible; }
+.oca-cell.plain::before { content: ''; position: absolute; inset: 15%; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fff, #fff4dc 70%, #f3dfb6);
+  border: 2px solid #e8c98a; box-shadow: 0 2px 0 #c9a46a, 0 0 6px #fff inset; transition: background .15s, box-shadow .15s; }
+.oca-cell.plain .oca-n { left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: clamp(10px, 2.9vw, 15px); color: #8a1020; }
+.oca-cell.tk-lit:not(.plain) { box-shadow: 0 0 0 3px #ffd24a, 0 0 16px #ffd24a; }
+.oca-cell.plain.tk-lit::before { background: radial-gradient(circle at 40% 35%, #fff, #ffe27a 70%, #f2c14e); box-shadow: 0 0 0 3px #fff, 0 0 16px 4px #ffd24a; }
+.oca-cell.tk-target:not(.plain) { box-shadow: 0 0 0 3px #4ade80, 0 0 18px #4ade80; }
+.oca-cell.plain.tk-target::before { border-color: #1f9a4a; box-shadow: 0 0 0 3px #4ade80, 0 0 16px 4px #4ade80; }
+.oca-start { position: absolute; left: 2px; bottom: 0; font-size: 13px; z-index: 2; }
+.oca-cell.sp-garden { overflow: visible; z-index: 3; }
+.oca-tree { position: absolute; left: 50%; bottom: 4%; height: 205%; transform: translateX(-50%); z-index: 3; pointer-events: none; filter: drop-shadow(0 4px 6px #0006) drop-shadow(0 0 10px #fff8); animation: ocaTree 3s ease-in-out infinite; }
+@keyframes ocaTree { 50% { filter: drop-shadow(0 4px 6px #0006) drop-shadow(0 0 18px #ffe27a); } }
+.oca-cell.sp-garden .oca-n { z-index: 4; }
+.oca-cell.sp-garden .oca-glabel { z-index: 4; }
+.oca-tok.tk3 { width: 11.5%; }
+.oca-diehint.nudge { animation: ocaNudge .5s; }
+@keyframes ocaNudge { 20%, 60% { transform: translateX(-6px); color: #fff; } 40%, 80% { transform: translateX(6px); } }
+
+.gfx-fw { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 30; pointer-events: none; }
+.gfx-back { position: absolute; inset: 0; z-index: 31; display: grid; place-items: center; padding: 16px; background: radial-gradient(circle, #0004, #000a); animation: fadeIn .4s; }
+.gfx-card { position: relative; width: min(92vw, 400px); text-align: center; padding: 34px 18px 20px; border-radius: 28px; color: #7a1020;
+  background: radial-gradient(circle at 50% 0%, #fffef6, #fff1cc); border: 5px solid #f2c14e; box-shadow: 0 0 0 4px #a3122c, 0 10px 0 #7a0c1c, 0 0 60px #ffd24a99, 0 30px 60px #000a;
+  animation: gfxIn .7s cubic-bezier(.2,1.5,.4,1); }
+@keyframes gfxIn { 0% { transform: scale(.3) rotate(-8deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.gfx-ribbon { position: absolute; left: 50%; top: -22px; transform: translateX(-50%); white-space: nowrap; padding: 8px 22px; border-radius: 14px;
+  background: linear-gradient(180deg, #e0435a, #a3122c); color: #fff; font: 700 clamp(24px, 7vw, 32px) 'Mountains of Christmas', cursive; box-shadow: 0 4px 0 #6d0a1c, 0 8px 18px #0006; }
+.gfx-hero img { width: 120px; height: 130px; object-fit: contain; filter: drop-shadow(0 6px 8px #0005); animation: bob 2.4s ease-in-out infinite; }
+.gfx-sub { font: 800 18px 'Montserrat', sans-serif; margin: 6px 0; }
+.gfx-line { margin: 4px 0; font-size: 16px; }
+.gfx-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+
+/* ================= (V26) EL PARCHÍS DE NAVIDAD (día 12) ================= */
+.pch-intro { text-align: center; }
+.pch-intro-pics { display: flex; justify-content: center; gap: 6px; margin: 6px 0; }
+.pch-intro-pawn { width: 54px; height: 64px; filter: drop-shadow(0 5px 6px #0005); animation: bob 2.6s ease-in-out infinite; }
+.pch-intro-pawn:nth-child(2) { animation-delay: .3s; } .pch-intro-pawn:nth-child(3) { animation-delay: .6s; } .pch-intro-pawn:nth-child(4) { animation-delay: .9s; }
+.pch-intro-pawn svg, .pch-dot svg, .pch-colbtn span svg { width: 100%; height: 100%; display: block; }
+.pch-cta-row { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pch-cta.solo { background: linear-gradient(180deg, #e0435a, #a3122c); }
+.pch-board { position: relative; border-radius: 18px; flex: 0 0 auto;
+  background: radial-gradient(circle at 50% 50%, #fffef8, #fff3d2 75%, #ffe7a8); box-shadow: 0 0 0 5px #f2c14e, 0 0 0 10px #1f6b45, 0 0 36px 6px #fff6c8aa, 0 18px 40px #000a; }
+.pch-cell { position: absolute; left: calc(var(--x) * 100% / 19); top: calc(var(--y) * 100% / 19); width: calc(100% / 19); height: calc(100% / 19);
+  box-sizing: border-box; border: 1px solid #d9b98a; background: #fffdf6; display: grid; place-items: center; transition: background .15s, box-shadow .15s; }
+.pch-cell.safe { background: radial-gradient(circle, #ffffff, #e6f4ff); }
+.pch-safe { font-size: calc(min(97vw, 60vh, 680px) / 19 * .6); line-height: 1; color: #6aa7d8; pointer-events: none; }
+.pch-cell.sal .pch-safe { color: #fff; text-shadow: 0 0 3px #0006; }
+.pch-cell.pc-y.sal, .pch-cell.corr.pc-y { background: linear-gradient(160deg, #ffe680, #f2b705); }
+.pch-cell.pc-b.sal, .pch-cell.corr.pc-b { background: linear-gradient(160deg, #8fd3ff, #1f7ae0); }
+.pch-cell.pc-r.sal, .pch-cell.corr.pc-r { background: linear-gradient(160deg, #ff8a98, #d3203a); }
+.pch-cell.pc-g.sal, .pch-cell.corr.pc-g { background: linear-gradient(160deg, #7be39a, #1f9a4a); }
+.pch-cell.tip { background: radial-gradient(circle, #fff, #ffeec2); }
+.pch-cell.tk-lit { background: radial-gradient(circle, #fff, #ffe27a) !important; box-shadow: 0 0 0 2px #fff, 0 0 12px 3px #ffd24a; z-index: 2; }
+.pch-cell.tk-target { box-shadow: 0 0 0 3px #4ade80, 0 0 16px 4px #4ade80 !important; z-index: 3; }
+.pch-home { position: absolute; left: calc(var(--x) * 100% / 19); top: calc(var(--y) * 100% / 19); width: calc(8 * 100% / 19); height: calc(8 * 100% / 19); box-sizing: border-box; padding: 4%; }
+.pch-home-in { position: relative; width: 100%; height: 100%; border-radius: 22%; box-shadow: inset 0 0 0 4px #fff8, 0 4px 10px #0003; overflow: hidden; display: grid; place-items: center; }
+.pch-home.pc-y .pch-home-in { background: radial-gradient(circle at 40% 30%, #fff3b0, #f2b705 70%, #b88400); }
+.pch-home.pc-b .pch-home-in { background: radial-gradient(circle at 40% 30%, #cdeaff, #1f7ae0 70%, #0b3a7a); }
+.pch-home.pc-r .pch-home-in { background: radial-gradient(circle at 40% 30%, #ffc0c8, #d3203a 70%, #7a0c1c); }
+.pch-home.pc-g .pch-home-in { background: radial-gradient(circle at 40% 30%, #c6f5d2, #1f9a4a 70%, #0b4d22); }
+.pch-home-in img { width: 62%; height: 62%; object-fit: contain; opacity: .5; filter: drop-shadow(0 2px 3px #0004); }
+.pch-nest { position: absolute; width: 26%; height: 26%; border-radius: 50%; background: radial-gradient(circle, #0002, #fff6 70%); box-shadow: inset 0 2px 4px #0004; }
+.pch-nest:nth-child(2) { left: 8%; top: 8%; } .pch-nest:nth-child(3) { right: 8%; left: auto; top: 8%; } .pch-nest:nth-child(4) { left: 8%; bottom: 8%; } .pch-nest:nth-child(5) { right: 8%; left: auto; bottom: 8%; }
+.pch-home-name { position: absolute; left: 0; right: 0; bottom: -2%; text-align: center; font: 800 11px 'Montserrat', sans-serif; color: #7a1020; text-shadow: 0 0 3px #fff, 0 0 3px #fff; pointer-events: none; }
+.pch-home.pc-y .pch-home-name, .pch-home.pc-b .pch-home-name { bottom: auto; top: -2%; }
+.pch-home.tk-target .pch-home-in { box-shadow: 0 0 0 3px #4ade80, 0 0 16px #4ade80; }
+.pch-mid { position: absolute; left: calc(8 * 100% / 19); top: calc(8 * 100% / 19); width: calc(3 * 100% / 19); height: calc(3 * 100% / 19); overflow: visible; }
+.pch-tri { position: absolute; inset: 0; }
+.pch-tri.pc-y { background: #f2b705; clip-path: polygon(0 100%, 100% 100%, 50% 50%); }
+.pch-tri.pc-b { background: #1f7ae0; clip-path: polygon(100% 0, 100% 100%, 50% 50%); }
+.pch-tri.pc-r { background: #d3203a; clip-path: polygon(0 0, 100% 0, 50% 50%); }
+.pch-tri.pc-g { background: #1f9a4a; clip-path: polygon(0 0, 0 100%, 50% 50%); }
+.pch-tri.tk-target, .pch-tri.tk-lit { filter: brightness(1.35) drop-shadow(0 0 6px #fff); }
+.pch-midtree { position: absolute; left: 50%; bottom: 18%; height: 120%; transform: translateX(-50%); pointer-events: none; filter: drop-shadow(0 3px 5px #0006); z-index: 2; }
+.pch-tok.tk3 { width: calc(100% / 19 * 1.25); aspect-ratio: .82; z-index: 6; }
+.pch-pawn { position: absolute; inset: 0; }
+.pch-pawn svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 1px 1px #0006); }
+.pch-tok.tk3 .tk3-shadow { bottom: -4%; }
+.pch-tok.tk-can .pch-pawn { animation: tkHop 1s ease-in-out infinite; filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 10px #ffd24a); }
+.pch-tok.tk-lift .pch-pawn { translate: 0 -22%; scale: 1.3; animation: none; }
+.pch-tok.tk-snap .pch-pawn { animation: tkSnap .42s cubic-bezier(.3,1.7,.5,1); }
+.pch-tok.pch-fly { transition: transform .6s cubic-bezier(.3,1.4,.5,1); }
+.pch-tok.pch-fly .pch-pawn { animation: ocaFly .6s ease-in-out; }
+.pch-players { position: relative; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 96vw; }
+.pch-pl { display: flex; align-items: center; gap: 4px; padding: 3px 10px 3px 4px; border-radius: 99px; background: #ffffff22; border: 2px solid transparent; color: #fff; font-size: 12px; }
+.pch-pl img { width: 24px; height: 26px; object-fit: contain; } .pch-pl b { font-weight: 800; } .pch-pl em { font-style: normal; }
+.pch-dot { display: inline-block; width: 20px; height: 24px; }
+.pch-pl.now { background: #fffaf0; color: #7a1020; border-color: var(--tk); box-shadow: 0 0 14px var(--tk); }
+.pch-pl.gone { opacity: .45; text-decoration: line-through; }
+.pch-clock { font-weight: 800; color: #a3122c; }
+.pch-setup p { margin: 8px 0 4px; font-weight: 700; }
+.pch-colpick { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.pch-colbtn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; border-radius: 14px; border: 3px solid transparent; background: #fff; box-shadow: 0 3px 0 #d9c9ae; cursor: pointer; }
+.pch-colbtn span { width: 34px; height: 40px; }
+.pch-colbtn small { font-weight: 800; color: #5a3218; font-size: 11px; }
+.pch-colbtn.on { border-color: var(--tk); box-shadow: 0 0 0 3px #fff, 0 0 14px var(--tk); transform: translateY(-2px); }
+.pch-colbtn:disabled { opacity: .3; filter: grayscale(1); }
+.pch-numbtn { padding: 8px 12px; border-radius: 14px; border: 3px solid transparent; background: #fff; box-shadow: 0 3px 0 #d9c9ae; font-size: 20px; cursor: pointer; }
+.pch-numbtn.on { border-color: #a3122c; box-shadow: 0 0 0 3px #fff, 0 0 12px #e0435a; }
+.pch-lobby { max-height: 86vh; overflow: auto; width: min(94vw, 420px); }
+.pch-lobby h3 { margin: 12px 0 6px; font-size: 16px; }
+.pch-lob-list, .pch-on-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.pch-lob-row, .pch-on-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 14px; background: #fff; border: 2px solid #f0d6b0; text-align: left; }
+.pch-lob-row[style] { border-color: var(--tk); }
+.pch-lob-row img, .pch-on-row img { width: 28px; height: 30px; object-fit: contain; }
+.pch-lob-row b, .pch-on-row b { flex: 1; } .pch-lob-row small { font-size: 12px; color: #6b4a30; }
+.pch-go { width: 44px; height: 44px; border-radius: 50%; border: 0; background: radial-gradient(circle at 40% 35%, #8ff0a8, #1f9a4a 70%, #0b4d22); color: #fff; font-size: 18px;
+  box-shadow: 0 3px 0 #0b4d22, 0 0 10px #4ade8088; cursor: pointer; }
+.pch-go:active { transform: translateY(3px); box-shadow: 0 0 0 #0b4d22; }
+.pch-go:disabled { opacity: .35; }
+.pch-start { margin-top: 10px; width: 100%; background: linear-gradient(180deg, #4ade80, #1f9a4a) !important; }
+.pch-start:disabled { opacity: .45; }
+.pch-rico { width: 40px; font-size: 28px; text-align: center; flex: 0 0 auto; }
+.pch-invite .pch-intro-pawn { width: 40px; height: 48px; }
+.pch-wrap .oca-stage { margin-top: 2px; }
+.pch-msg-in { width: 100%; box-sizing: border-box; border-radius: 12px; border: 2px solid #f0d6b0; padding: 8px 10px; font: 16px 'Montserrat', sans-serif; resize: vertical; }
+.pch-appmsg { font-style: italic; }
+.pch-invmsg { margin: 8px 0; padding: 10px 12px; border-radius: 14px; background: #fff6d6; border: 2px dashed #e0a800; text-align: left; }
+.pch-invmsg small { font-weight: 800; color: #7a1020; } .pch-invmsg p { margin: 4px 0 0; font-size: 18px; white-space: pre-wrap; }
+.pch-lob-who { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.pch-lob-msg { font-size: 13px; color: #7a1020; font-style: normal; background: #fff6d6; border-radius: 8px; padding: 2px 6px; margin-top: 2px; white-space: pre-wrap; }
+/* (V26) finestres del parxís (invitació, resposta, sortir): nadalenques */
+.popup.pch-xmas { position: relative; overflow: visible; text-align: center; padding: 30px 18px 18px; border-radius: 26px; color: #7a1020;
+  background: radial-gradient(circle at 50% 0%, #fffef6, #fff1cc 70%, #ffe7a8); border: 5px solid #f2c14e;
+  box-shadow: 0 0 0 4px #a3122c, 0 0 0 9px #1f6b45, 0 10px 0 9px #0d3f28, 0 0 50px #ffd24a88, 0 30px 60px #000a; animation: gfxIn .6s cubic-bezier(.2,1.5,.4,1); }
+.popup.pch-xmas::before { content: '🎄'; position: absolute; left: -16px; top: -22px; font-size: 40px; transform: rotate(-14deg); filter: drop-shadow(0 3px 3px #0005); }
+.popup.pch-xmas::after { content: '🎁'; position: absolute; right: -14px; top: -20px; font-size: 36px; transform: rotate(12deg); filter: drop-shadow(0 3px 3px #0005); }
+.popup.pch-xmas h2 { font-family: 'Mountains of Christmas', cursive; font-size: clamp(28px, 8vw, 36px); margin: 4px 0 6px; color: #a3122c; text-shadow: 0 2px 0 #fff; }
+.popup.pch-xmas .popup-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.popup.pch-xmas .popup-btns .btn { width: 100%; }
+.popup.pch-xmas .pch-invite, .popup.pch-xmas .pch-invbox { position: relative; }
+.popup.pch-xmas .pch-invite::before, .popup.pch-xmas .pch-invbox::before { content: ''; display: block; height: 14px; margin: -6px -6px 8px;
+  background: radial-gradient(circle, #ff4d6d 0 4px, transparent 5px) 0 50%/28px 14px repeat-x, radial-gradient(circle, #ffd24a 0 4px, transparent 5px) 14px 50%/28px 14px repeat-x;
+  animation: ocaBulbs 1.6s steps(2) infinite; }
+.popup.pch-xmas .pch-msg-in { background: #fffdf6; border-color: #e8c98a; box-shadow: inset 0 2px 4px #0001; }
+/* (V26) las ventanas y avisos salen por encima de los juegos a pantalla completa (oca, parchís) */
+body:has(.oca-wrap) .popup-back, .popup-back:has(.pch-xmas) { z-index: 3000; }
+body:has(.oca-wrap) .toast { z-index: 3001; }
+.cc8-endcard.pch-lobby, .cc8-endcard.pch-setup, .pch-rules .cc8-endcard { position: relative; overflow: visible; background: radial-gradient(circle at 50% 0%, #fffef6, #fff1cc 70%, #ffe7a8);
+  box-shadow: 0 0 0 4px #a3122c, 0 0 0 9px #1f6b45, 0 10px 0 9px #0d3f28, 0 0 50px #ffd24a66, 0 30px 60px #000a; }
+.cc8-endcard.pch-lobby::before, .cc8-endcard.pch-setup::before, .pch-rules .cc8-endcard::before { content: '🎄'; position: absolute; left: -14px; top: -20px; font-size: 36px; transform: rotate(-14deg); }
+.cc8-endcard.pch-lobby::after, .cc8-endcard.pch-setup::after, .pch-rules .cc8-endcard::after { content: '⭐'; position: absolute; right: -10px; top: -18px; font-size: 32px; transform: rotate(12deg); }
+.cc8-endcard.pch-lobby h2, .cc8-endcard.pch-setup h2 { font-family: 'Mountains of Christmas', cursive; }
+.pch-rules .cc8-endcard { max-height: 80vh; overflow: auto; }
+.pch-rules .cc8-endcard::before, .pch-rules .cc8-endcard::after { content: none; }
+.cc8-endcard.pch-lobby { overflow: auto; max-height: 84vh; }
+.cc8-endcard.pch-lobby::before, .cc8-endcard.pch-lobby::after { content: none; }

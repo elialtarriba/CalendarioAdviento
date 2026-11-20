@@ -146,7 +146,7 @@ const SECTIONS = [
       [6, '🔍', '5 diferencias + susto', 'Puedes cambiar los segundos del susto.'],
       [7, '🧩', 'Puzle del tren', '15 piezas que se mueven y se giran. Al acabar, el puzle cobra vida con el vídeo (puzle7.jpg y puzle7.mp4).'],
       [8, '🎄', 'Decorar el árbol', ''],
-      [12, '👁️', 'Ojo de lince', 'Qué objeto falta. Lo corriges tú en Respuestas.'],
+      [12, '🎲', 'Parchís de Navidad', 'Solo contra Papá Noel o en línea (2 a 4 personas). Se corrige solo.'],
       [13, '😇', '¿Has sido bueno?', 'La máquina de bondad.'],
       [15, '📜', 'Diploma absurdo', ''],
       [17, '⭕', 'Tres en raya navideño', 'Galleta (fichas verdes) contra Perrito (fichas rojas). Al acabar, cada uno pulsa su dibujo: el ganador baila, el que pierde… lluvia y carbón; o empate.'],
@@ -163,7 +163,7 @@ const SECTIONS = [
       el('span', {}, 'Marca los ', B('juegos que dan puntos'), ' (al principio, todos) y pulsa ', btn('💾 Guardar juegos', 'red'), '.'),
       el('span', {}, 'Abajo ves la ', B('clasificación completa'), ': 📜 abre el historial de cada uno y ✕ lo pone a 0.')),
     warn('No tiene nada que ver con el marcador 🍄 de los gnomos. Aquí no se pueden dar puntos a mano.'),
-    tip('Juegos que cuentan: días 1, 3, 4, 5, 6, 7, 8 (árbol y Dulce Navidad), 9, 10 (la oca), 11, 14, 15, 17, 18, 19, 21, 22 y 23. El día 25 ya está cerrado. Las preguntas no dan puntos aquí.'),
+    tip('Juegos que cuentan: días 1, 3, 4, 5, 6, 7, 8 (árbol y Dulce Navidad), 9, 10 (la oca), 11, 12 (parchís en línea: 4-3-2-1 según el puesto, −1 si abandonas), 14, 15, 17, 18, 19, 21, 22 y 23. El día 25 ya está cerrado. Las preguntas no dan puntos aquí.'),
   ] },
   { id: 'candy', ico: '🍬', title: 'Dulce Navidad (día 8) y puntos de gnomos', color: '#a3122c', body: () => [
     P('Un mini juego como el Candy Crush, con tus dibujos. Botón rojo «¡Juega a Dulce Navidad!» arriba del árbol del día 8 (y otra vez al acabar de decorarlo). No cuenta para la casilla.'),

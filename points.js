@@ -26,6 +26,7 @@ export const PGAMES = [
   ['d9', 9, () => L('Papá Noel dice', 'El Pare Noel diu', 'Santa says')],
   ['d10', 10, () => L('La oca de Navidad', 'L’oca de Nadal', 'The Christmas goose game')],
   ['d11', 11, () => L('El laberinto', 'El laberint', 'The maze')],
+  ['d12', 12, () => L('El parchís de Navidad (en línea)', 'El parxís de Nadal (en línia)', 'Christmas ludo (online)')],
   ['d14', 14, () => L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents')],
   ['d15', 15, () => L('Ordena las bolas', 'Ordena les boles', 'Sort the baubles')],
   ['d17', 17, () => L('Tres en raya', 'Tres en ratlla', 'Noughts and crosses')],
@@ -92,6 +93,31 @@ export async function penaltyGame(id) {
   g.pd = today;
   const now = Date.now();
   const next = { uid: S.user.uid, name: myName(), fig: figure(), total: d.total - 1, games: { ...(d.games || {}), [id]: g },
+    hist: [{ g: id, p: -1, at: now }, ...(d.hist || [])].slice(0, HIST), at: now };
+  try { await store.gPut('pts', S.user.uid, next); MINE = next; paintPtsBars(); return 1; } catch (e) { console.warn(e); return 0; }
+}
+// (V26) parchís en línea: puntos según el puesto (con 4 jugadores: 4, 3, 2 y 1). Cuenta como mucho 5 partidas al día.
+export async function awardPlace(id, p) {
+  if (!S.user || !pgOn(id) || !(p > 0)) return 0;
+  if (ptsClosed()) { toast('🏁 ' + L('El Marcador de Navidad ya está cerrado (24 de diciembre a las 23:59).', 'El Marcador de Nadal ja està tancat (24 de desembre a les 23:59).', 'The Christmas scoreboard is closed (24 December at 23:59).'), 4000); return 0; }
+  const d = await loadMine(); if (!d) return 0;
+  const g = { n: 0, d: '', dn: 0, ...(d.games?.[id] || {}) }, today = madridDay();
+  if (g.d !== today) { g.d = today; g.dn = 0; }
+  if (g.dn >= MAX_DAY) { toast('⭐ ' + L(`Hoy ya has sumado ${MAX_DAY} veces con este juego. ¡Mañana más!`, `Avui ja has sumat ${MAX_DAY} cops amb aquest joc. Demà més!`, `You've already scored ${MAX_DAY} times with this game today. More tomorrow!`), 4000); return 0; }
+  g.dn++; g.n++; p = Math.min(4, Math.round(p));
+  const now = Date.now();
+  const next = { uid: S.user.uid, name: myName(), fig: figure(), total: (d.total || 0) + p, games: { ...(d.games || {}), [id]: g },
+    hist: [{ g: id, p, at: now }, ...(d.hist || [])].slice(0, HIST), at: now };
+  try { await store.gPut('pts', S.user.uid, next); MINE = next; } catch (e) { console.warn(e); return 0; }
+  celebrate(id, p, next.total); paintPtsBars();
+  return p;
+}
+// (V26) abandonar una partida en línea (o no acabarla): −1 cada vez; nunca por debajo de 0
+export async function penaltyAbandon(id) {
+  if (!S.user || !pgOn(id) || ptsClosed()) return 0;
+  const d = await loadMine(); if (!d || !(d.total > 0)) return 0;
+  const now = Date.now();
+  const next = { uid: S.user.uid, name: myName(), fig: figure(), total: d.total - 1, games: { ...(d.games || {}) },
     hist: [{ g: id, p: -1, at: now }, ...(d.hist || [])].slice(0, HIST), at: now };
   try { await store.gPut('pts', S.user.uid, next); MINE = next; paintPtsBars(); return 1; } catch (e) { console.warn(e); return 0; }
 }
