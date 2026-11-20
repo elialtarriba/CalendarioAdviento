@@ -94,6 +94,9 @@ function compute(st) {
   // (V24.1) puntos de los juegos: cuentan si se cobraron dentro del juego de los gnomos
   (st.gb || []).filter(b => (+b.pts || 0) > 0 && b.at >= st.since && b.at < st.endAt && b.start >= st.since)
     .forEach(b => ev.push({ uid: b.uid, pts: +b.pts || 0, at: b.at, k: 'game', why: gameName(b.game), id: b.id }));
+  // (V25.3) lo que se resta por perder (la oca): un apunte con el total
+  (st.gb || []).filter(b => (+b.neg || 0) > 0 && b.nat >= st.since && b.nat < st.endAt && b.start >= st.since)
+    .forEach(b => ev.push({ uid: b.uid, pts: -(+b.neg || 0), at: b.nat, k: 'game', why: gameName(b.game) + ' · ' + L('perder', 'perdre', 'losing'), id: b.id + '_neg' }));
   ev.sort((a, b) => a.at - b.at);
   st.score = {}; st.max = {}; st.hist = {};
   st.players.forEach(p => { st.score[p.uid] = 0; st.max[p.uid] = 0; st.hist[p.uid] = []; });
@@ -830,7 +833,14 @@ async function settingsView(root) {
 // Solo cuenta la PRIMERA partida de cada gnomo (desde que empieza el juego de los gnomos).
 export const GAMES = [
   { id: 'candy8', day: 8, name: () => L('Dulce Navidad', 'Dolç Nadal', 'Sweet Christmas'), adm: 'Dulce Navidad (día 8)',
-    help: 'En su PRIMERA partida: si pasan el nivel 2 ganan unos puntos; si pasan los 5 niveles, más.', def: { on: true, p2: 1, p5: 3 } },
+    help: 'En su PRIMERA partida: si pasan el nivel 2 ganan unos puntos; si pasan los 5 niveles, más.', def: { on: true, p2: 1, p5: 3 },
+    fields: [['p2', 'Si pasan 2 niveles'], ['p5', 'Si pasan los 5 niveles (en total)']], prog: b => `${b.lv || 0}/5 niveles`,
+    owed: (lv, r) => lv >= 5 ? +r.p5 || 0 : lv >= 2 ? +r.p2 || 0 : 0 },
+  // (V25.3) la oca del día 10: ganar a la máquina la PRIMERA vez; perder resta 1 (como mucho 1 al día)
+  { id: 'oca10', day: 10, name: () => L('La oca de Navidad', 'L’oca de Nadal', 'The Christmas goose game'), adm: 'La oca de Navidad (día 10)',
+    help: 'La PRIMERA vez que ganan a la máquina ganan estos puntos. Si pierden contra la máquina: −1 (como mucho 1 al día).', def: { on: true, pw: 2 },
+    fields: [['pw', 'Al ganar a la máquina (1.ª vez)']], prog: b => (b.lv ? '🏆 ha ganado' : 'aún no ha ganado') + (b.neg ? ` · −${b.neg} por perder` : ''),
+    owed: (lv, r) => lv >= 1 ? +r.pw || 0 : 0 },
 ];
 export const gameName = id => GAMES.find(g => g.id === id)?.name() || id;
 const gameRules = (cfg, id) => { const g = GAMES.find(x => x.id === id); return { ...(g?.def || {}), ...(cfg?.games?.[id] || {}) }; };
@@ -853,12 +863,22 @@ export async function gameBonusStart(bs) {
   try { await store.gPut('gb', S.user.uid + '_' + bs.id, bs.doc); return true; } catch (e) { console.warn(e); bs.doc = null; return false; }
 }
 // puntos que le tocan según los niveles pasados en su primera partida
-export const gameBonusOwed = bs => { if (!bs?.doc) return 0; const lv = bs.doc.lv || 0, r = bs.rules; return lv >= 5 ? +r.p5 || 0 : lv >= 2 ? +r.p2 || 0 : 0; };
+export const gameBonusOwed = bs => { if (!bs?.doc) return 0; const g = GAMES.find(x => x.id === (bs.id || bs.doc.game)); return g ? g.owed(bs.doc.lv || 0, bs.rules || {}) : 0; };
 export async function gameBonusLevel(bs, lv) {
   if (!bs?.doc || lv <= (bs.doc.lv || 0)) return;
   bs.doc = { ...bs.doc, lv }; try { await store.gPut('gb', S.user.uid + '_' + bs.id, bs.doc); } catch (e) { console.warn(e); }
 }
 // cobrar: el marcador de los gnomos suma la diferencia
+// (V25.3) perder contra la máquina: −1 en el marcador de los gnomos, como mucho una vez al día
+export async function gamePenalty(bs) {
+  if (!bs) return 0;
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+  const now = Date.now();
+  const d = bs.doc || { uid: S.user.uid, game: bs.id, start: now, lv: 0, pts: 0, at: now };
+  if (d.negd === today) return 0;
+  bs.doc = { ...d, neg: (d.neg || 0) + 1, negd: today, nat: now };
+  try { await store.gPut('gb', S.user.uid + '_' + bs.id, bs.doc); LAST = null; try { reloadFab(); } catch {} return 1; } catch (e) { console.warn(e); return 0; }
+}
 export async function gameBonusClaim(bs) {
   const owed = gameBonusOwed(bs), add = owed - (bs.doc?.pts || 0); if (add <= 0) return 0;
   bs.doc = { ...bs.doc, pts: owed, at: Date.now() };
@@ -874,15 +894,14 @@ async function gamesView(root) {
   const rows = GAMES.map(g => {
     const r = gameRules(cfg, g.id);
     const on = el('input', { type: 'checkbox' }); on.checked = !!r.on;
-    const p2 = el('input', { type: 'number', min: 0, max: 5, value: r.p2, class: 'gn-msin' });
-    const p5 = el('input', { type: 'number', min: 0, max: 5, value: r.p5, class: 'gn-msin' });
+    const ins = Object.fromEntries(g.fields.map(([k]) => [k, el('input', { type: 'number', min: 0, max: 5, value: r[k], class: 'gn-msin' })]));
     const got = (st.gb || []).filter(b => b.game === g.id && b.start >= st.since);
-    return { g, on, p2, p5, node: el('div', { class: 'card gn-gamecard' },
+    return { g, on, ins, node: el('div', { class: 'card gn-gamecard' },
       el('label', { class: 'gn-gameon' }, on, el('b', {}, '🎮 ' + g.adm)),
       el('p', { class: 'muted' }, g.help),
-      el('div', { class: 'gn-gamepts' }, el('label', {}, 'Si pasan 2 niveles', p2), el('label', {}, 'Si pasan los 5 niveles (en total)', p5)),
+      el('div', { class: 'gn-gamepts' }, ...g.fields.map(([k, lab]) => el('label', {}, lab, ins[k]))),
       got.length ? el('div', { class: 'gn-hist' }, ...got.map(b => el('div', { class: 'gn-hrow ' + (b.pts > 0 ? 'plus' : '') },
-        el('b', {}, '+' + (b.pts || 0)), el('span', {}, `${nameOf(st, b.uid)} · ${b.lv || 0}/5 niveles` + ((b.pts || 0) < gameBonusOwed({ doc: b, rules: r }) ? ' · aún no lo ha cobrado' : '')), el('small', {}, when(b.start)),
+        el('b', {}, '+' + (b.pts || 0)), el('span', {}, `${nameOf(st, b.uid)} · ${g.prog(b)}` + ((b.pts || 0) < gameBonusOwed({ id: g.id, doc: b, rules: r }) ? ' · aún no lo ha cobrado' : '')), el('small', {}, when(b.start)),
         el('button', { class: 'ed-del no-delay', title: 'Borrar (podrá volver a jugar su partida de puntos)', onclick: async () => {
           if (!await popup(`<h2>🗑️</h2><p>¿Borrar la partida de puntos de ${esc(nameOf(st, b.uid))}? Pierde estos puntos y podrá jugarla otra vez.</p>`, { cls: 'small', buttons: [{ label: 'No', value: false, cls: 'btn-ghost' }, { label: 'Sí', value: true }] })) return;
           try { await store.gDel('gb', b.id); gamesView(root); } catch (e) { toast(errTxt(e), 6000); }
@@ -891,7 +910,7 @@ async function gamesView(root) {
   });
   const save = el('button', { class: 'btn btn-big no-delay', onclick: async () => {
     const games = { ...(cfg.games || {}) };
-    rows.forEach(({ g, on, p2, p5 }) => { games[g.id] = { on: on.checked, p2: Math.max(0, Math.min(5, +p2.value || 0)), p5: Math.max(0, Math.min(5, +p5.value || 0)) }; });
+    rows.forEach(({ g, on, ins }) => { games[g.id] = { on: on.checked, ...Object.fromEntries(Object.entries(ins).map(([k, i]) => [k, Math.max(0, Math.min(5, +i.value || 0))])) }; });
     try { await store.gPut('gnome', 'cfg', { games }, true); toast('💾 Guardado'); gamesView(root); } catch (e) { toast(errTxt(e), 6000); }
   } }, '💾 Guardar');
   // meta del contador de «4 en raya» de Dulce Navidad (para TODOS los jugadores, no solo gnomos)
@@ -904,7 +923,7 @@ async function gamesView(root) {
         try { await store.saveConfig({ candyGoal: v }); S.config.candyGoal = v; toast('💾 Meta: ' + v); } catch (e) { toast(errTxt(e), 6000); }
       } }, '💾 Guardar meta')));
   put(root, back(root), goalCard,
-    el('p', { class: 'muted' }, 'Marca los juegos en los que los gnomos pueden ganar puntos para su marcador. Solo cuenta su PRIMERA partida. Al conseguirlo les sale un botón 🍄 para cobrar los puntos (y aparecen en su historial como «🎮 Juego»).'),
+    el('p', { class: 'muted' }, 'Marca los juegos en los que los gnomos pueden ganar puntos para su marcador. Solo cuenta su PRIMERA partida (en la oca, su primera victoria contra la máquina). Al conseguirlo les sale un botón 🍄 para cobrar los puntos (y aparecen en su historial como «🎮 Juego»).'),
     ...rows.map(r => r.node), save,
     el('p', { class: 'muted', style: 'margin-top:12px' }, 'Más juegos: se pueden ir añadiendo a esta lista.'));
 }

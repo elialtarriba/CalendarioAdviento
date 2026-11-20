@@ -199,7 +199,8 @@ service cloud.firestore {
       allow read: if isAdmin() || gnome();
       allow create, update: if gnome() && request.resource.data.uid == request.auth.uid
         && id == request.auth.uid + '_' + request.resource.data.game
-        && request.resource.data.keys().hasOnly(['uid', 'game', 'start', 'lv', 'pts', 'at'])
+        && request.resource.data.keys().hasOnly(['uid', 'game', 'start', 'lv', 'pts', 'at', 'neg', 'negd', 'nat'])
+        && (!('neg' in request.resource.data) || (request.resource.data.neg is int && request.resource.data.neg >= 0 && request.resource.data.neg <= 60))
         && request.resource.data.game is string && request.resource.data.game.matches('[a-z0-9]{1,16}')
         && request.resource.data.lv is int && request.resource.data.lv >= 0 && request.resource.data.lv <= 5
         && request.resource.data.pts is int && request.resource.data.pts >= 0 && request.resource.data.pts <= 5;

@@ -759,7 +759,7 @@ onAudioState(paintSnd);
 // el mismo botón, flotando arriba a la derecha, en todas las pantallas con sonido (nieve, casillas, actividades, juegos, resumen…)
 (function sndFab() {
   const fab = sndBtn(' snd-fab'); fab.style.display = 'none';
-  const SEL = '.splash, .note-layer, .sum-wrap, .cd-boom, .gm-wrap.gm-on, .mm-stage, .cine-wrap, .ttt-fx, .cc8-wrap';
+  const SEL = '.splash, .note-layer, .sum-wrap, .cd-boom, .gm-wrap.gm-on, .mm-stage, .cine-wrap, .ttt-fx, .cc8-wrap, .oca-wrap';
   const check = () => {
     if (!fab.isConnected) document.body.append(fab);
     fab.style.display = document.querySelector(SEL) ? '' : 'none';
@@ -998,21 +998,31 @@ function buildImage(theme, v) {
 }
 
 // ------------------------------------------------------------------ abrir puerta
-let busy = false;
+let busy = false, busyAt = 0;
+// (V25.2) nunca se queda bloqueado: si algo tarda o falla al abrir, a los pocos segundos se puede volver a tocar
 async function openDoor(n, door, mode = null) {
+  if (busy && Date.now() - busyAt > 12000) busy = false; // algo se quedó a medias (p. ej. el iPhone volvió de otra app): se libera
+  document.querySelectorAll('.note-layer.fade-out').forEach(x => x.remove()); // una ventana que se estaba cerrando y se quedó
   if (busy || document.querySelector('.note-layer') || document.querySelector('.sum-wrap')) return; // nunca dos casillas a la vez
+  busy = true; busyAt = Date.now();
+  try { await openDoorInner(n, door, mode); }
+  catch (e) { console.error(e); document.querySelectorAll('.note-layer').forEach(x => { if (!x.querySelector('.note-body')?.childElementCount) x.remove(); }); toast('⚠️ ' + L3('No se ha podido abrir. Vuelve a tocar la casilla.', 'No s’ha pogut obrir. Torna a tocar la casella.', 'It could not open. Tap the box again.'), 4000); }
+  finally { busy = false; }
+}
+async function openDoorInner(n, door, mode = null) {
   unlockAudio();
   if (!canOpen(n)) { door.classList.add('shake'); setTimeout(() => door.classList.remove('shake'), 600); toast(t('locked', n)); return; }
   // día 25 ya hecho: siempre sale el resumen del mes, con «volver a jugar», «abrir la casilla desde el principio» o «hacer mi actividad»
   if (n === 25 && !mode && S.answers[25]) return day25Menu(); // casilla 25 ya hecha: siempre el resumen del mes (con sus opciones)
   mode25 = n === 25 ? mode : null;
-  busy = true;
   if (actPending(n) && !mode) {
     door.classList.add('lighting'); hohoho(); await sleep(700); door.classList.add('opening'); await sleep(700);
-    busy = false; return remindActivity(n);
+    return remindActivity(n);
   }
-  const content = await loadDay(n);
-  if (!content) { busy = false; toast(t('locked', n)); return; }
+  // si la conexión tarda (el iPhone al volver de otra app), como mucho 10 s: después se puede volver a tocar
+  const content = await Promise.race([loadDay(n), sleep(10000).then(() => 'slow')]);
+  if (content === 'slow') { door.classList.remove('lighting', 'opening'); toast('📶 ' + L3('La conexión va lenta. Vuelve a tocar la casilla.', 'La connexió va lenta. Torna a tocar la casella.', 'The connection is slow. Tap the box again.'), 4000); return; }
+  if (!content) { toast(t('locked', n)); return; }
   // la luz se enciende dentro de la ventana y después se abre
   door.classList.add('lighting');
   hohoho(); // al abrir cualquier puerta: el «Ho, ho, ho, Merry Christmas» de Papá Noel
@@ -1076,7 +1086,7 @@ async function openDoor(n, door, mode = null) {
   try {
     // juegos que se pueden repetir: se juegan de nuevo, pero la respuesta guardada (y los premios) no cambian
     if (ctx.prev && ['hats', 'reindeer', 'differences', 'memory', 'goodcheck'].includes(content.type)) { ctx.replay = true; ctx.prev = null; }
-    if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze', 'colors', 'mastermind'].includes(content.type)) renderSummary(body, ctx);
+    if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze', 'colors', 'mastermind', 'oca'].includes(content.type)) renderSummary(body, ctx);
     else (await import(`./${content.type}.js`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   // casilla 25: el regalo sorpresa abajo del todo (si el juego se vuelve a pintar, se vuelve a poner)
@@ -1143,7 +1153,12 @@ async function runActivity(n, layer) {
   }
 }
 
+// (V25.2) si algo falla al cerrar, la ventana se quita igual (si no, se quedaba invisible encima y no se podía abrir nada)
 async function closeDay(n, layer, note, door, later = false) {
+  try { await closeDayInner(n, layer, note, door, later); }
+  catch (e) { console.error(e); try { layer.remove(); } catch {} document.querySelectorAll('.note-layer').forEach(x => x.remove()); try { renderHome(); } catch {} }
+}
+async function closeDayInner(n, layer, note, door, later = false) {
   fullView = true; // al salir de cualquier casilla: el calendario en grande (con la fila de figuras abajo)
   const fig = figure();
   const done = !!S.answers[n];

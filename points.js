@@ -24,6 +24,7 @@ export const PGAMES = [
   ['d8', 8, () => L('Decora el árbol', 'Decora l’arbre', 'Decorate the tree')],
   ['candy8', 8, () => L('Dulce Navidad', 'Dolç Nadal', 'Sweet Christmas')],
   ['d9', 9, () => L('Papá Noel dice', 'El Pare Noel diu', 'Santa says')],
+  ['d10', 10, () => L('La oca de Navidad', 'L’oca de Nadal', 'The Christmas goose game')],
   ['d11', 11, () => L('El laberinto', 'El laberint', 'The maze')],
   ['d14', 14, () => L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents')],
   ['d15', 15, () => L('Ordena las bolas', 'Ordena les boles', 'Sort the baubles')],
@@ -82,6 +83,18 @@ export async function awardGame(id) {
   paintPtsBars();
   return p;
 }
+// (V25.3) perder (la oca contra la máquina): −1, como mucho una vez al día por juego; nunca por debajo de 0
+export async function penaltyGame(id) {
+  if (!S.user || !pgOn(id) || ptsClosed()) return 0;
+  const d = await loadMine(); if (!d) return 0;
+  const g = { n: 0, d: '', dn: 0, ...(d.games?.[id] || {}) }, today = madridDay();
+  if (g.pd === today || !(d.total > 0)) return 0;
+  g.pd = today;
+  const now = Date.now();
+  const next = { uid: S.user.uid, name: myName(), fig: figure(), total: d.total - 1, games: { ...(d.games || {}), [id]: g },
+    hist: [{ g: id, p: -1, at: now }, ...(d.hist || [])].slice(0, HIST), at: now };
+  try { await store.gPut('pts', S.user.uid, next); MINE = next; paintPtsBars(); return 1; } catch (e) { console.warn(e); return 0; }
+}
 function celebrate(id, p, total) {
   try { chime(); } catch {}
   const b = el('div', { class: 'pt-pop' }, el('div', { class: 'pt-pop-star' }, '⭐'), el('b', {}, '+' + p),
@@ -130,7 +143,7 @@ export async function openPoints() {
       el('div', { class: 'pt-me-num' }, el('b', {}, String(me?.total || 0)), el('small', {}, L('puntos', 'punts', 'points')))),
     el('h3', {}, '🏆 ' + L('Los 5 primeros', 'Els 5 primers', 'Top 5')), podium, mine,
     el('h3', {}, '📜 ' + L('Mi historial', 'El meu historial', 'My history')),
-    hist.length ? el('div', { class: 'pt-hist' }, ...hist.map(h => el('div', { class: 'pt-hrow' }, el('b', {}, '+' + h.p), el('span', {}, pgName(h.g)), el('small', {}, when(h.at)))))
+    hist.length ? el('div', { class: 'pt-hist' }, ...hist.map(h => el('div', { class: 'pt-hrow' }, el('b', { class: h.p < 0 ? 'neg' : '' }, (h.p > 0 ? '+' : '') + h.p), el('span', {}, pgName(h.g)), el('small', {}, when(h.at)))))
       : el('p', { class: 'pt-empty' }, L('Aquí verás cada punto que ganes.', 'Aquí veuràs cada punt que guanyis.', 'Every point you win will show here.')),
     figure() === 'gnomo' ? el('p', { class: 'pt-note' }, '🍄 ' + L('Este no es el marcador de los gnomos: ese es el de la seta, abajo a la izquierda.', 'Aquest no és el marcador dels gnoms: aquest és el del bolet, a baix a l’esquerra.', 'This is not the gnome scoreboard: that one is the mushroom, bottom left.')) : null);
   if (pos === 1 && (me?.total || 0) > 0) setTimeout(() => { try { confetti(120); } catch {} }, 400);
@@ -149,7 +162,7 @@ export async function pointsAdmin(root) {
     try { await store.saveConfig({ ptsOff: o }); S.config.ptsOff = o; toast('💾 Guardado'); } catch (e) { toast('⚠️ ' + (e.code || e.message), 6000); }
   } }, '💾 Guardar juegos');
   const hist = d => popup(el('div', { class: 'pt-box' }, el('h2', {}, el('span', { class: 'pt-name' }, d.name || '—'), ' · ', String(d.total || 0)),
-    el('div', { class: 'pt-hist' }, ...(d.hist || []).map(h => el('div', { class: 'pt-hrow' }, el('b', {}, '+' + h.p), el('span', {}, pgName(h.g)), el('small', {}, when(h.at)))))),
+    el('div', { class: 'pt-hist' }, ...(d.hist || []).map(h => el('div', { class: 'pt-hrow' }, el('b', { class: h.p < 0 ? 'neg' : '' }, (h.p > 0 ? '+' : '') + h.p), el('span', {}, pgName(h.g)), el('small', {}, when(h.at)))))),
   { cls: 'small', outside: true, buttons: [{ label: 'OK', value: true }] });
   const ranking = all.length ? el('div', { class: 'pt-list' }, ...all.map((d, i) => el('div', { class: 'pt-row' + (i < 3 ? ' p' + (i + 1) : '') },
     el('span', { class: 'pt-medal' }, MEDAL[i] || String(i + 1)), el('img', { src: FIG[d.fig] || FIG.galleta, alt: '' }),

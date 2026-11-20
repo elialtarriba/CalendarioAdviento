@@ -163,7 +163,7 @@ const SECTIONS = [
       el('span', {}, 'Marca los ', B('juegos que dan puntos'), ' (al principio, todos) y pulsa ', btn('💾 Guardar juegos', 'red'), '.'),
       el('span', {}, 'Abajo ves la ', B('clasificación completa'), ': 📜 abre el historial de cada uno y ✕ lo pone a 0.')),
     warn('No tiene nada que ver con el marcador 🍄 de los gnomos. Aquí no se pueden dar puntos a mano.'),
-    tip('Juegos que cuentan: días 1, 3, 4, 5, 6, 7, 8 (árbol y Dulce Navidad), 9, 11, 14, 15, 17, 18, 19, 21, 22 y 23. El día 25 ya está cerrado. Las preguntas no dan puntos aquí.'),
+    tip('Juegos que cuentan: días 1, 3, 4, 5, 6, 7, 8 (árbol y Dulce Navidad), 9, 10 (la oca), 11, 14, 15, 17, 18, 19, 21, 22 y 23. El día 25 ya está cerrado. Las preguntas no dan puntos aquí.'),
   ] },
   { id: 'candy', ico: '🍬', title: 'Dulce Navidad (día 8) y puntos de gnomos', color: '#a3122c', body: () => [
     P('Un mini juego como el Candy Crush, con tus dibujos. Botón rojo «¡Juega a Dulce Navidad!» arriba del árbol del día 8 (y otra vez al acabar de decorarlo). No cuenta para la casilla.'),
@@ -177,6 +177,13 @@ const SECTIONS = [
     steps(el('span', {}, 'Configuración → ', btn('🍄 Juego de los gnomos'), ' → ', btn('🎮 Puntos en los juegos'), '.'),
       el('span', {}, 'Arriba: la ', B('meta del contador'), ' (para todos) y ', btn('💾 Guardar meta', 'red'), '.'),
       el('span', {}, 'Debajo: activar Dulce Navidad, los puntos (0 a 5) y quién ha jugado su partida de puntos (✕ la borra y puede volver a jugarla).')),
+  ] },
+  { id: 'oca', ico: '🪿', title: 'La oca de Navidad (día 10)', color: '#1f6b45', body: () => [
+    P('El día 10 ya no es una pregunta: es el ', B('juego de la oca'), ' con dibujos de Navidad y tablero luminoso. Arriba, el dado en su hueco (un toque gira, otro toque para), a un lado el cronómetro y al otro las instrucciones. Se juega solo o contra el Pare Noel.'),
+    el('div', { class: 'hg-list' },
+      el('div', {}, el('span', {}, '⭐'), el('div', {}, B('Marcador de Navidad'), el('small', {}, 'Acabar (solo o ganando) suma +2 la 1.ª vez y +1 las siguientes. Perder contra el Pare Noel: −1, como mucho una vez al día.'))),
+      el('div', {}, el('span', {}, '🍄'), el('div', {}, B('Gnomos'), el('small', {}, 'La 1.ª vez que ganan al Pare Noel: +2 (botón verde para cobrar). Perder: −1, como mucho una vez al día. Se cambia en 🍄 → 🎮 Puntos en los juegos.')))),
+    tip('Casillas: ocas (saltan y vuelven a tirar), trineos 6↔12, regalos 26↔53, casita de galleta 19 (1 turno), bola de nieve 31 y saco 52 (2 turnos), bosque 42 (a la 30), muñeco de nieve 58 (a empezar), árbol 63 (gana).'),
   ] },
   { id: 'general', ico: '🏆', title: 'Premios y ajustes', color: '#b45309', body: () => [
     P('Arriba tienes un solo botón fijo, ', btn('💾 Guardar todo', 'red'), ', que guarda todos los apartados a la vez.'),
@@ -480,6 +487,17 @@ function userSections() {
       item('🪜', L('5 niveles', '5 nivells', '5 levels'), L('Cada nivel, un poco más difícil.', 'Cada nivell, una mica més difícil.', 'Each level a bit harder.')),
       item('⭐', L('Contador «4 en raya»', 'Comptador «4 en ratlla»', '“4 in a row” counter'), L('Cada estrella mágica suma 1. ¡Llega a la meta!', 'Cada estrella màgica suma 1. Arriba a la meta!', 'Each magic star adds 1. Reach the goal!'))),
     tip(L('Los gnomos ganan puntos para su juego en su primera partida: un botón verde 🍄 les avisa para cobrarlos.', 'Els gnoms guanyen punts per al seu joc a la seva primera partida: un botó verd 🍄 els avisa per cobrar-los.', 'Gnomes earn points for their game in their first round: a green 🍄 button tells them to collect them.')),
+  ] },
+  { id: 'u-oca', ico: '🪿', color: '#1f6b45', title: L('La oca de Navidad (día 10)', 'L’oca de Nadal (dia 10)', 'The Christmas goose game (day 10)'), body: () => [
+    P(L('El juego de la oca de siempre, con dibujos de Navidad. Pulsa ', 'El joc de l’oca de sempre, amb dibuixos de Nadal. Prem ', 'The classic goose game with Christmas pictures. Tap '), btn(L('¡A jugar a la oca!', 'A jugar a l’oca!', 'Let’s play!'), 'red'), L(' y elige: solo o contra el Pare Noel.', ' i tria: sol o contra el Pare Noel.', ' and choose: alone or against Santa.')),
+    steps(el('span', {}, B(L('Toca el dado', 'Toca el dau', 'Tap the dice')), L(': empieza a girar.', ': comença a girar.', ': it starts spinning.')),
+      el('span', {}, B(L('Vuelve a tocarlo', 'Torna’l a tocar', 'Tap it again')), L(' para pararlo: tu ficha avanza.', ' per parar-lo: la teva fitxa avança.', ' to stop it: your token moves.')),
+      el('span', {}, L('¡De oca a oca y tiro porque me toca! Llega justo al árbol de Navidad (63).', 'D’oca a oca i tiro perquè em toca! Arriba just a l’arbre de Nadal (63).', 'From goose to goose! Land exactly on the Christmas tree (63).'))),
+    el('div', { class: 'hg-list' },
+      item('⏱', L('Cronómetro', 'Cronòmetre', 'Timer'), L('Mira cuánto tardas en acabar.', 'Mira quant tardes a acabar.', 'See how long you take.')),
+      item('📜', L('Instrucciones', 'Instruccions', 'Rules'), L('Al lado del dado: qué hace cada casilla especial.', 'Al costat del dau: què fa cada casella especial.', 'Next to the dice: what each special square does.')),
+      item('⭐', L('Puntos', 'Punts', 'Points'), L('Acabar suma en el Marcador de Navidad. Si pierdes contra el Pare Noel: −1 (como mucho una vez al día).', 'Acabar suma al Marcador de Nadal. Si perds contra el Pare Noel: −1 (com a molt un cop al dia).', 'Finishing adds to the scoreboard. Lose to Santa: −1 (at most once a day).'))),
+    tip(L('Gnomos: la primera vez que ganáis al Pare Noel, ¡premio para vuestro juego! 🍄', 'Gnoms: la primera vegada que guanyeu el Pare Noel, premi per al vostre joc! 🍄', 'Gnomes: the first time you beat Santa, a prize for your game! 🍄')),
   ] },
   { id: 'u-prizes', ico: '🏆', color: '#b45309', title: L('Los premios', 'Els premis', 'The prizes'), body: () => [
     P(L('Hay ', 'Hi ha ', 'There are '), B(L('4 premios', '4 premis', '4 prizes')), L(': al llegar a la casilla 10, a la 15, a la 20 y a la 25.', ': en arribar a la casella 10, a la 15, a la 20 i a la 25.', ': on reaching box 10, 15, 20 and 25.')),

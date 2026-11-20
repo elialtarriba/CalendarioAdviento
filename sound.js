@@ -20,9 +20,11 @@ try {
   const AN = window.AudioNode && AudioNode.prototype, orig = AN && AN.connect;
   if (orig) AN.connect = function (dest, ...r) {
     if (window.AudioDestinationNode && dest instanceof AudioDestinationNode) {
-      let m = masters.get(dest.context);
-      if (!m) { m = dest.context.createGain(); m.gain.value = muted ? 0 : 1; orig.call(m, dest); masters.set(dest.context, m); }
-      orig.call(this, m, ...r); return dest;
+      try { // (V25.2) si algo falla (el iPhone cerró el sonido), se conecta normal y no se rompe nada
+        let m = masters.get(dest.context);
+        if (!m) { m = dest.context.createGain(); m.gain.value = muted ? 0 : 1; orig.call(m, dest); masters.set(dest.context, m); }
+        orig.call(this, m, ...r); return dest;
+      } catch (e) { if (muted) return dest; }
     }
     return orig.call(this, dest, ...r);
   };

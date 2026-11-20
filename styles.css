@@ -3189,3 +3189,92 @@ body.full-view .pt-bar { padding: 4px 10px 4px 6px; margin: 4px auto; } body.ful
 /* (V25) dentro de las guías no hace falta el botón flotante del sonido (taparía «Cerrar») */
 body:has(.hg-bar) .snd-fab, body:has(.adm-sub) .snd-fab { display: none !important; }
 .pt-closed { display: inline-block; margin: 4px 0; padding: 3px 14px; border-radius: 99px; background: #fff; color: #a3122c; font-weight: 800; }
+/* (V25.2) Dolç Nadal: pista cuando pasan unos segundos sin mover */
+.cc8-p.hint img { animation: cc8Hint 1s ease-in-out infinite; filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 4px #ffd24a); }
+@keyframes cc8Hint { 50% { transform: scale(1.18) rotate(-6deg); } }
+.pt-hrow b.neg { color: #c0112f; }
+
+/* ===== V25.3 · Día 10 · L’oca de Nadal — tablero luminoso ===== */
+.oca-intro { text-align: center; }
+.oca-intro-pic { width: 130px; height: 130px; margin: 4px auto; filter: drop-shadow(0 6px 10px #0003); animation: bob 3s ease-in-out infinite; }
+.oca-intro-pic.small { width: 90px; height: 90px; }
+@keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }
+.oca-cta { display: inline-flex; align-items: center; gap: 8px; margin: 8px auto 4px; padding: 14px 26px; border-radius: 22px; border: 3px solid #f2c14e; cursor: pointer;
+  background: linear-gradient(180deg, #2f9a5a, #1b6b3d); color: #fff; font: 800 clamp(18px, 5vw, 22px) 'Fredoka', 'Montserrat', sans-serif; box-shadow: 0 6px 0 #0d3f28, 0 12px 24px #1b6b3d66; animation: cc8Wiggle 2.6s ease-in-out infinite; }
+.oca-cta:active { transform: translateY(4px); box-shadow: 0 2px 0 #0d3f28; animation: none; }
+.oca-best { margin-top: 6px; }
+.oca-wrap { position: fixed; inset: 0; z-index: 2600; display: flex; flex-direction: column; align-items: center; gap: 6px; overflow: hidden; touch-action: manipulation;
+  padding: max(10px, env(safe-area-inset-top)) 8px max(10px, env(safe-area-inset-bottom)); color: #fff; -webkit-user-select: none; user-select: none;
+  background: radial-gradient(ellipse at 50% 0%, #8a1c2b 0%, #4a0d16 50%, #1e0509 100%); animation: fadeIn .3s; }
+.oca-wrap.out { opacity: 0; transition: opacity .3s; }
+.oca-snow { position: absolute; inset: -20px; pointer-events: none; opacity: .5; background-image: radial-gradient(2px 2px at 20px 30px, #fff 50%, transparent 51%), radial-gradient(3px 3px at 90px 120px, #fff 50%, transparent 51%), radial-gradient(2px 2px at 160px 60px, #fff 50%, transparent 51%);
+  background-size: 200px 200px; animation: cc8Snow 10s linear infinite; }
+.oca-head { position: relative; width: 100%; max-width: 640px; display: flex; justify-content: center; align-items: center; min-height: 44px; }
+.oca-head .cc8-x { position: absolute; left: 0; top: 0; }
+.oca-title { font-family: 'Mountains of Christmas', cursive; font-weight: 700; font-size: clamp(30px, 8.5vw, 44px); color: #ffe08a; text-shadow: 0 3px 0 #2a0508, 0 0 18px #ffd24a99; line-height: 1; }
+.oca-top { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; width: min(96vw, 520px); }
+.oca-side { justify-self: center; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 84px; padding: 6px 10px; border-radius: 16px; background: #fffaf0; color: #7a1020; border: 2px solid #f2c14e; box-shadow: 0 3px 0 #b8862b; font-weight: 800; cursor: pointer; }
+.oca-side span { font-size: 22px; line-height: 1; } .oca-side b { font: 800 20px 'Fredoka', 'Montserrat', sans-serif; } .oca-side small { font-size: 11px; }
+.oca-timer { cursor: default; }
+.oca-diebox { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* el hueco donde está el dado */
+.oca-hole { width: 96px; height: 96px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; cursor: pointer;
+  background: radial-gradient(circle at 50% 40%, #0b0204 0%, #2a0a10 55%, #5a1420 70%, #f2c14e 72%, #b8862b 78%, #6d0a1c 82%);
+  box-shadow: inset 0 10px 18px #000c, 0 0 0 3px #ffe08a55, 0 8px 18px #0008; }
+.oca-hole.ready { animation: ocaReady 1.2s ease-in-out infinite; }
+@keyframes ocaReady { 50% { box-shadow: inset 0 10px 18px #000c, 0 0 0 6px #ffe08a, 0 0 26px #ffd24a; } }
+.oca-die { width: 54px; height: 54px; border-radius: 12px; background: linear-gradient(145deg, #fff, #f0e6d6); box-shadow: inset 0 -4px 0 #d9c9ae, 0 6px 10px #0009;
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 7px; gap: 2px; transition: transform .1s; }
+.oca-die i { border-radius: 50%; }
+.oca-die i.on { background: radial-gradient(circle at 35% 35%, #e0435a, #8a1020); box-shadow: 0 0 2px #0004 inset; }
+.oca-hole.spin .oca-die { animation: ocaSpin .35s linear infinite; }
+@keyframes ocaSpin { 0% { transform: rotate(0) scale(.92); } 50% { transform: rotate(180deg) scale(1.04); } 100% { transform: rotate(360deg) scale(.92); } }
+.oca-hole.land .oca-die { animation: ocaLand .45s cubic-bezier(.3,1.6,.5,1); }
+@keyframes ocaLand { 0% { transform: scale(1.35) rotate(-12deg); } 100% { transform: scale(1); } }
+.oca-diehint { min-height: 16px; font: 800 13px 'Montserrat', sans-serif; color: #ffe08a; text-shadow: 0 1px 2px #000; }
+.oca-turn { position: relative; display: flex; gap: 8px; justify-content: center; }
+.oca-pl { display: flex; align-items: center; gap: 6px; padding: 4px 12px 4px 4px; border-radius: 99px; background: #ffffff22; border: 2px solid transparent; color: #fff; font-size: 13px; }
+.oca-pl img { width: 30px; height: 32px; object-fit: contain; } .oca-pl b { font-weight: 800; } .oca-pl small { opacity: .85; } .oca-pl em { font-style: normal; color: #ffe08a; }
+.oca-pl.now { background: #fffaf0; color: #7a1020; border-color: #f2c14e; box-shadow: 0 0 14px #ffd24a; }
+.oca-stage { position: relative; }
+/* tablero luminoso: blanco que brilla, bombillas alrededor */
+.oca-board { position: relative; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); gap: 3px; padding: 10px; border-radius: 22px;
+  background: radial-gradient(circle at 50% 50%, #fffef8, #fff4d6 70%, #ffe7a8); box-shadow: 0 0 0 5px #f2c14e, 0 0 0 10px #a3122c, 0 0 40px 8px #fff6c8aa, 0 18px 40px #000a; }
+.oca-board::before { content: ''; position: absolute; inset: -9px; border-radius: 28px; pointer-events: none;
+  background: radial-gradient(circle, #fff7b0 0 3px, transparent 4px) 0 0/22px 22px, radial-gradient(circle, #ff6b81 0 3px, transparent 4px) 11px 11px/22px 22px;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; padding: 4px; animation: ocaBulbs 1.6s steps(2) infinite; }
+@keyframes ocaBulbs { 50% { filter: hue-rotate(120deg) brightness(1.3); } }
+.oca-cell { position: relative; border-radius: 9px; background: linear-gradient(160deg, #ffffff, #fff8ea); border: 1.5px solid #f0d6b0; box-shadow: 0 0 8px #fff inset, 0 1px 3px #0001; overflow: hidden; display: grid; place-items: center; }
+.oca-cell:nth-child(odd) { background: linear-gradient(160deg, #ffffff, #f4fbff); }
+.oca-n { position: absolute; left: 3px; top: 1px; font: 800 clamp(8px, 2.2vw, 12px) 'Montserrat', sans-serif; color: #a3122c; z-index: 1; text-shadow: 0 0 3px #fff; }
+.oca-pic { width: 86%; height: 86%; object-fit: contain; }
+.oca-pic svg { width: 100%; height: 100%; display: block; }
+.oca-pic.deco { opacity: .32; width: 70%; height: 70%; }
+.oca-cell.goose { background: radial-gradient(circle, #ffffff 40%, #dff1ff); border-color: #7cc0f0; box-shadow: 0 0 10px #bfe6ff inset, 0 0 6px #9fd6ff; }
+.oca-cell.sp { background: radial-gradient(circle, #fffdf2 40%, #ffe6a8); border-color: #e0a800; box-shadow: 0 0 10px #fff3c0 inset, 0 0 6px #ffd24a; }
+.oca-cell.sp-death { background: radial-gradient(circle, #ffffff 40%, #e3e8f0); border-color: #8a96a8; }
+.oca-cell.sp-garden { background: radial-gradient(circle, #fffef0 30%, #c9f2d4); border: 3px solid #1f7a3a; box-shadow: 0 0 18px #9ff0b5, 0 0 12px #fff inset; }
+.oca-cell.sp-garden .oca-pic { width: 92%; height: 92%; }
+.oca-glabel { position: absolute; right: 4px; bottom: 2px; font-size: 16px; }
+.oca-cell.flash { animation: ocaFlash 1.2s ease-out; z-index: 2; }
+@keyframes ocaFlash { 0%, 60% { box-shadow: 0 0 0 4px #ffd24a, 0 0 24px #ffd24a; transform: scale(1.12); } }
+.oca-cell.win { animation: ocaFlash 1.2s ease-out 3; }
+.oca-tok { position: absolute; left: 0; top: 0; width: 9%; aspect-ratio: 1; z-index: 5; pointer-events: none; transition: transform .16s ease-out; }
+.oca-tok img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 3px 3px #0008) drop-shadow(0 0 4px #fff); }
+.oca-tok.cpu img { filter: drop-shadow(0 3px 3px #0008) drop-shadow(0 0 4px #ffd24a); }
+.oca-tok.fly { transition: transform .6s cubic-bezier(.3,1.4,.5,1); }
+.oca-tok.fly img { animation: ocaFly .6s ease-in-out; }
+@keyframes ocaFly { 50% { transform: translateY(-40%) scale(1.4) rotate(-10deg); } }
+.oca-msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.6); z-index: 8; pointer-events: none; opacity: 0; width: max-content; max-width: 86%;
+  padding: 10px 16px; border-radius: 18px; background: #fffaf0; color: #7a1020; border: 3px solid #f2c14e; box-shadow: 0 10px 24px #0007; text-align: center; font: 800 clamp(15px, 4.4vw, 20px) 'Montserrat', sans-serif; transition: all .25s; }
+.oca-msg.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.oca-msg.goose { background: linear-gradient(180deg, #fffaf0, #e6f6ff); border-color: #7cc0f0; color: #0f4a7a; }
+.oca-msg.warn { border-color: #e0a800; } .oca-msg.bad { border-color: #8a96a8; color: #3b4656; }
+.oca-help { max-height: 82vh; overflow: auto; text-align: left; }
+.oca-help h2 { text-align: center; }
+.oca-rule { display: flex; gap: 10px; align-items: center; padding: 6px 8px; margin: 6px 0; border-radius: 12px; background: #fff; border: 1.5px solid #f0d6b0; }
+.oca-rule .oca-rpic { width: 44px; height: 44px; object-fit: contain; flex: 0 0 auto; }
+.oca-rule div { display: flex; flex-direction: column; } .oca-rule small { color: #6b4a30; }
+.oca-pts { margin: 10px 0; padding: 8px 10px; border-radius: 12px; background: #fff6d6; border: 2px dashed #e0a800; display: flex; flex-direction: column; gap: 2px; }
+.oca-vs { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(180deg, #e0435a, #a3122c) !important; }
+.oca-vs img { width: 34px; height: 34px; object-fit: contain; }

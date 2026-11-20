@@ -23,6 +23,7 @@ const LV = [
 const goalOf = (lv, p) => Math.round(LV[lv].goal * (1 + (p - 1) * .008) / 10) * 10;
 const POOL = ['ilu-gorro.webp', 'bola8-3.webp', 'galleta.png', 'ilu-12.webp', 'ilu-5.webp', 'ilu-3.webp', 'ilu-11.webp', 'ilu-9.webp', 'ilu-14.webp', 'ilu-17.webp', 'bola8-1.webp', 'ilu-10.webp'];
 const STAR = 'estrella8.webp';
+const STAR_T = 99; // (V25.2) todas las estrellas mágicas son «iguales»: 3 estrellas en fila también cuentan
 const THEMES = ['#2f6b4a,#123b2a,#0a2018', '#8a1c2b,#4a0d16,#22060b', '#1f4f8a,#0f2a4d,#07162a', '#5a3a8a,#2e1d4d,#150c26', '#7a5418,#3f2a0b,#1f1505', '#1d6b6b,#0e3a3a,#061e1e'];
 const CHEERS = () => [L('¡Dulce!', 'Dolç!', 'Sweet!'), L('¡Ho, ho, ho!', 'Ho, ho, ho!', 'Ho, ho, ho!'), L('¡Genial!', 'Genial!', 'Great!'),
   L('¡Navideño!', 'Nadalenc!', 'Festive!'), L('¡Mágico!', 'Màgic!', 'Magical!'), L('¡Increíble!', 'Increïble!', 'Amazing!')];
@@ -141,6 +142,7 @@ export async function openCandy(ctx = {}) {
   }
   const same = (a, b) => a && b && a.t === b.t;
   function hasMove() {
+    if (grid.flat().some(p => p?.star)) return true; // una estrella siempre se puede mover
     const tryS = (x1, y1, x2, y2) => { swapG(x1, y1, x2, y2); const ok = findRuns().length > 0; swapG(x1, y1, x2, y2); return ok; };
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { if (x + 1 < N && tryS(x, y, x + 1, y)) return true; if (y + 1 < N && tryS(x, y, x, y + 1)) return true; }
     return false;
@@ -153,27 +155,51 @@ export async function openCandy(ctx = {}) {
     const x2 = a.x + dx, y2 = a.y + dy; if (x2 < 0 || y2 < 0 || x2 >= N || y2 >= N) return;
     const b = grid[y2][x2]; busy = true; clearSel();
     swapG(a.x, a.y, x2, y2); place(a); place(b); clickSound(); await sleep(200);
-    if (!findRuns().length) {
+    const forced = [a, b].filter(p => p?.star); // (V25.2) mover una estrella siempre vale
+    if (!findRuns().length && !forced.length) {
       swapG(a.x, a.y, b.x, b.y); place(a); place(b); try { oops(); } catch {} a.el.classList.add('no'); b.el.classList.add('no');
       await sleep(260); a.el.classList.remove('no'); b.el.classList.remove('no'); busy = false; return;
     }
     moves--; movesEl.textContent = moves;
-    await resolve([a, b]);
-    if (!alive) return;
-    if (score >= goalOf(lv, partida)) return levelDone(true);
-    if (moves <= 0) return levelDone(false);
-    if (!hasMove()) { showCheer(L('¡Mezclamos!', 'Barregem!', 'Shuffle!')); await sleep(500); fresh(); await sleep(700); }
-    busy = false;
+    try {
+      await resolve([a, b], forced);
+      if (!alive) return;
+      if (score >= goalOf(lv, partida)) return levelDone(true);
+      if (moves <= 0) return levelDone(false);
+      if (!hasMove()) { showCheer(L('¡Mezclamos!', 'Barregem!', 'Shuffle!')); await sleep(500); fresh(); await sleep(700); }
+    } catch (e) { console.warn(e); repair(); }
+    busy = false; armHint();
   }
-  async function resolve(moved) {
+  // (V25.2) por si algo se descoloca: rehace el tablero con las piezas que quedan (nunca se queda bloqueado)
+  function repair() {
+    const keep = new Set(grid.flat().filter(Boolean).map(p => p.el));
+    [...board.querySelectorAll('.cc8-p')].forEach(e => { if (!keep.has(e)) e.remove(); });
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!grid[y][x]) { grid[y][x] = make(rnd(), x, y); }
+    grid.flat().forEach(p => place(p, false));
+  }
+  // (V25.2) pista: si pasan 8 segundos sin mover, dos piezas se mueven un poco para ayudar
+  let hintT = 0;
+  function findMove() {
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      for (const [dx, dy] of [[1, 0], [0, 1]]) { const x2 = x + dx, y2 = y + dy; if (x2 >= N || y2 >= N) continue;
+        if (grid[y][x]?.star || grid[y2][x2]?.star) return [grid[y][x], grid[y2][x2]];
+        swapG(x, y, x2, y2); const ok = findRuns().length > 0; swapG(x, y, x2, y2); if (ok) return [grid[y][x], grid[y2][x2]]; }
+    }
+    return null;
+  }
+  function armHint() {
+    clearTimeout(hintT); board.querySelectorAll('.hint').forEach(e => e.classList.remove('hint'));
+    hintT = setTimeout(() => { if (!alive || busy || over) return; const m = findMove(); m?.forEach(p => p?.el.classList.add('hint')); }, 8000);
+  }
+  async function resolve(moved, forced = []) {
     let combo = 0;
     for (;;) {
-      const runs = findRuns(); if (!runs.length) break;
+      const runs = findRuns(); if (!runs.length && !forced.length) break;
       combo++;
-      const kill = new Set(), born = [];
+      const kill = new Set(forced), born = []; forced = [];
       runs.forEach(r => {
         r.forEach(p => kill.add(p));
-        if (r.length >= 4) { const at = r.find(p => moved?.includes(p)) || r[Math.floor(r.length / 2)]; born.push({ x: at.x, y: at.y, t: at.t }); }
+        if (r.length >= 4 && !r.every(p => p.star)) { const at = r.find(p => moved?.includes(p)) || r[Math.floor(r.length / 2)]; if (!born.some(b => b.x === at.x && b.y === at.y)) born.push({ x: at.x, y: at.y, t: STAR_T }); }
       });
       let more = true; while (more) { more = false; [...kill].forEach(p => { if (p.star && !p.boom) { p.boom = true; starBlast(p);
         for (let i = 0; i < N; i++) [grid[p.y][i], grid[i][p.x]].forEach(q => { if (q && !kill.has(q)) { kill.add(q); more = true; } }); } }); }
@@ -271,7 +297,7 @@ export async function openCandy(ctx = {}) {
     const c = LV[lv]; T = c.types; score = 0; moves = c.moves; over = false; busy = false;
     movesEl.textContent = moves; paintScore(); paintSub(); clearSel();
     showCheer(`${L('Nivel', 'Nivell', 'Level')} ${lv + 1}`);
-    fresh();
+    fresh(); armHint();
   }
   async function newPartida() {
     if (save.partida >= PARTIDAS) return allDone();
