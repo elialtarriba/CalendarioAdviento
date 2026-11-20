@@ -243,7 +243,7 @@ export function render(body, ctx) {
   ctx.cleanup = () => { clearInterval(iv); try { music?.stop(1); } catch {} music = null; };
   async function win() {
     done = true; paintTubes(); board.classList.add('solved');
-    if (!ctx.prev && !win.sent) { win.sent = true; ctx.submit({ answer: '🎄 ' + L(`Bolas ordenadas en ${count} movimientos`, `Boles ordenades en ${count} moviments`, `Baubles sorted in ${count} moves`), status: 'correct' }); }
+    ctx.won?.(); if (!ctx.prev && !win.sent) { win.sent = true; ctx.submit({ answer: '🎄 ' + L(`Bolas ordenadas en ${count} movimientos`, `Boles ordenades en ${count} moviments`, `Baubles sorted in ${count} moves`), status: 'correct' }); }
     snow.replaceChildren(...Array.from({ length: 26 }, () => el('i', { style: `left:${Math.random() * 100}%;--d:${4 + Math.random() * 5}s;--dl:${-Math.random() * 8}s;--s:${8 + Math.random() * 10}px;--x:${(Math.random() - .5) * 60}px` }, '❄')));
     state.forEach((t, j) => t.length && setTimeout(() => sparkleTube(j), j * 180));
     fanfare(); confetti(240); setTimeout(() => confetti(160), 900);

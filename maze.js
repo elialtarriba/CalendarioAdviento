@@ -295,7 +295,7 @@ export function render(body, ctx, levelId = null) {
   async function win() {
     done = true; stopClock();
     const res = { time: Math.round(elapsed), level: levelId, tries: nTries, at: Date.now(), ...(moneyShown ? { prizes: giftPrize.slice() } : {}) };
-    const counts = !ctx.prev && !ctx._mzFirst; // solo la primera partida (la que se guarda como respuesta del día)
+    ctx.won?.(); const counts = !ctx.prev && !ctx._mzFirst; // solo la primera partida (la que se guarda como respuesta del día)
     if (counts) {
       ctx._mzFirst = res;
       ctx.submit({ answer: '🛷 ' + L(`Laberinto ${lv.name()} en ${fmt(res.time)} (${nTries} intentos)`, `Laberint ${lv.name()} en ${fmt(res.time)} (${nTries} intents)`, `Maze ${lv.name()} in ${fmt(res.time)} (${nTries} tries)`), status: 'correct', extra: { mz: res } });

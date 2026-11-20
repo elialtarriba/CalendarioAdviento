@@ -2,7 +2,7 @@ import { clearLocalGames } from './games25.js';
 import { initStore, store, DEMO, nameKey, isPlayerEmail, famKey } from './store.js';
 import { t, tx, setLang, getLang } from './i18n.js';
 import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js';
-import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState } from './sound.js';
+import { creak, speak, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState, toggleMuted } from './sound.js';
 import { typeRich, gallery, lightbox } from './richact.js';
 import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js';
 import { APP_VERSION, CONTACT_EMAIL, isOwnerEmail } from './version.js';
@@ -746,16 +746,28 @@ function marqueeGeneral(mq) {
   if (!txt || /en grande|en gran|full screen/i.test(txt)) return t('marqueeDefault', S.config.year || new Date().getFullYear());
   return txt;
 }
-// botón de sonido: verde si suena; rojo si el móvil lo ha cortado (un toque y vuelve)
-function sndBtn() {
+// (V24.1) botón de sonido = interruptor: un toque lo quita (rojo 🔇) y otro toque lo vuelve a poner (🔊). Se recuerda en este aparato.
+function sndBtn(extra = '') {
   const on = audioOn();
-  return el('button', { class: 'icon-btn snd-btn no-delay' + (on ? '' : ' off'), title: t(on ? 'soundOn' : 'soundOff'),
-    onclick: () => { unlockAudio(true); setTimeout(() => { chime(); paintSnd(); }, 200); toast(audioOn() ? '🔊 ' + t('soundOn') : '🔊 ' + t('soundBack')); } }, on ? '🔊' : '🔇');
+  return el('button', { type: 'button', class: 'icon-btn snd-btn no-delay' + extra + (on ? '' : ' off'), title: t(on ? 'soundOn' : 'soundOff'), 'aria-pressed': String(on),
+    onclick: e => { e.stopPropagation(); const now = toggleMuted(); paintSnd(now); toast(now ? '🔊 ' + t('soundOn') : '🔇 ' + t('soundOff')); } }, on ? '🔊' : '🔇');
 }
 function paintSnd(on = audioOn()) {
-  document.querySelectorAll('.snd-btn').forEach(b => { b.classList.toggle('off', !on); b.textContent = on ? '🔊' : '🔇'; b.title = t(on ? 'soundOn' : 'soundOff'); });
+  document.querySelectorAll('.snd-btn').forEach(b => { b.classList.toggle('off', !on); b.textContent = on ? '🔊' : '🔇'; b.title = t(on ? 'soundOn' : 'soundOff'); b.setAttribute('aria-pressed', String(on)); });
 }
 onAudioState(paintSnd);
+// el mismo botón, flotando arriba a la derecha, en todas las pantallas con sonido (nieve, casillas, actividades, juegos, resumen…)
+(function sndFab() {
+  const fab = sndBtn(' snd-fab'); fab.style.display = 'none';
+  const SEL = '.splash, .note-layer, .sum-wrap, .cd-boom, .gm-wrap.gm-on, .mm-stage, .cine-wrap, .ttt-fx, .cc8-wrap';
+  const check = () => {
+    if (!fab.isConnected) document.body.append(fab);
+    fab.style.display = document.querySelector(SEL) ? '' : 'none';
+  };
+  const go = () => { check(); new MutationObserver(() => { clearTimeout(go.t); go.t = setTimeout(check, 60); }).observe(document.body, { childList: true, subtree: false, attributes: false });
+    setInterval(check, 1500); };
+  if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
+})();
 export const goStart = () => { try { sessionStorage.removeItem('adv_splash_seen'); } catch {} location.reload(); }; // volver a la pantalla de nieve
 // ---- cuenta atrás hasta el 1 de diciembre (en la portada, hasta que empieza el calendario)
 let cdTimer = null;
@@ -870,7 +882,8 @@ export function renderHome() {
           el('button', { class: 'icon-btn', title: L3('Inicio', 'Inici', 'Start'), onclick: goStart }, '❄️'),
           sndBtn(),
           el('button', { class: 'icon-btn', title: t('settings'), onclick: openUserSettings }, '⚙️'),
-          el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js')).openAdmin() }, '🔒')))));
+          // (V24.1) el candado de Configuración solo lo ve la administradora
+          S.ownerAcct ? el('button', { class: 'icon-btn', title: t('admin'), onclick: async () => (await import('./admin.js')).openAdmin() }, '🔒') : null))));
 
   let strip = null;
   if (S.settings.showProgress !== false) {
@@ -906,6 +919,8 @@ export function renderHome() {
   if (testMode()) bars.push(el('div', { class: 'demo-bar test' }, '🔓 ' + L3('Modo prueba: todas las casillas abiertas', 'Mode prova: totes les caselles obertes', 'Test mode: all boxes open')));
   // con la casilla 25 hecha: botón para ver el resumen de la Navidad (para todos)
   if (!fullView && S.answers?.[25]) bars.push(el('button', { class: 'sum-bar', onclick: () => day25Menu() }, '📜 ' + L3('Ver el resumen de mi Navidad', 'Veure el resum del meu Nadal', 'See my Christmas summary')));
+  // (V24.2) ⭐ Marcador de Navidad: botón dorado con el nombre de cada uno (para todos)
+  if (S.user) { const slot = el('div', { class: 'pt-bar-slot' }); bars.push(slot); import('./points.js').then(m => slot.replaceWith(m.ptsBar())).catch(e => console.warn(e)); }
   if (!fullView) bars.push(el('button', { class: 'zoom-bar no-delay', onclick: () => { fullView = true; renderHome(); } }, '🔍 ' + t('zoomBar')));
   const exitBtn = fullView ? el('button', { class: 'exit-full', onclick: () => { fullView = false; renderHome(); } }, '✕ ' + t('exitFull')) : null;
   document.body.classList.toggle('full-view', fullView);
@@ -1037,7 +1052,12 @@ async function openDoor(n, door, mode = null) {
       if (rec.status === 'correct') { fanfare(); checkPrize(); }
     },
     finish: (later = false) => { if (!closed) { closed = true; closeDay(n, layer, note, door, later); } },
+    // (V24.2) ⭐ Marcador de Navidad: el juego avisa cada vez que se ACABA (también al repetirlo).
+    // No cuenta lo que se pinta «ya hecho» al abrir (los primeros segundos) ni dos avisos seguidos.
+    won: () => { const t = performance.now(); if (t - openedAt < 1500 || t - wonAt < 3000) return; wonAt = t;
+      import('./points.js').then(m => m.awardGame('d' + n)).catch(e => console.warn(e)); },
   };
+  const openedAt = performance.now(); let wonAt = 0;
   // Finalizar sin haber hecho el reto: avisar (si no, no sale la actividad y parece que falla)
   finishBtn.onclick = async () => {
     if (!S.answers[n] && figure() !== 'galleta' && !closed) {

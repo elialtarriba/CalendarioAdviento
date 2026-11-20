@@ -4,6 +4,7 @@
 import { t, getLang } from './i18n.js';
 import { el, svgEl, confetti } from './fx.js';
 import { chime, pop, snapSound, clickSound, fanfare, christmasSong, unlockAudio } from './sound.js';
+import { candyButton } from './candy8.js'; // (V24.1) mini juego «Dulce Navidad»
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const ns = 'http://www.w3.org/2000/svg';
@@ -73,7 +74,7 @@ export function render(body, ctx) {
   const layer = svg.querySelector('#items'), fxl = svg.querySelector('#fx');
   const counter = el('span', {}, t('d8count', 0));
   const doneMsg = el('div', { class: 't8-done' });
-  body.append(el('h2', { class: 'q-title cw-title' }, '🎄 ' + t('d8title') + ' 🎄'), el('p', { class: 'game-help' }, t('d8help')),
+  body.append(el('h2', { class: 'q-title cw-title' }, '🎄 ' + t('d8title') + ' 🎄'), candyButton(ctx), el('p', { class: 'game-help' }, t('d8help')),
     el('div', { class: 'game-stats' }, counter), el('div', { class: 'tree-game t8-game' }, svg), doneMsg);
 
   let placed = 0, finished = false, music = null, iv = null;
@@ -121,13 +122,14 @@ export function render(body, ctx) {
 
   // ---- ¡el árbol cobra vida!
   ctx.cleanup = () => { clearInterval(iv); try { music?.stop(1); } catch {} music = null; };
+  body.addEventListener('click', e => { if (e.target.closest('.cc8-cta')) { try { music?.stop(.5); } catch {} music = null; } });
   function alive(quiet) {
     finished = true; svg.classList.add('t8-alive');
     const again = el('button', { class: 'btn btn-big no-delay' }, '🔄 ' + L('Volver a jugar', 'Tornar a jugar', 'Play again'));
     const out = el('button', { class: 'btn btn-ghost btn-big no-delay' }, '🎁 ' + L('Continuar', 'Continuar', 'Continue'));
     doneMsg.replaceChildren(el('div', { class: 'sp-msg-title t8-title' }, L('¡Qué árbol más bonito!', 'Quin arbre més bonic!', 'What a lovely tree!')),
       el('p', {}, L('Lo has decorado tú y ahora brilla con todos sus colores ✨', 'L’has decorat tu i ara brilla amb tots els colors ✨', 'You decorated it and now it shines in every colour ✨')),
-      el('div', { class: 'ttt-fx-btns' }, again, out));
+      el('div', { class: 'ttt-fx-btns' }, again, out), candyButton(ctx));
     doneMsg.classList.add('on');
     again.onclick = () => { ctx.cleanup(); body.replaceChildren(); render(body, { ...ctx, prev: null }); };
     out.onclick = () => { ctx.cleanup(); ctx.finish(); };
@@ -138,7 +140,7 @@ export function render(body, ctx) {
     setTimeout(() => doneMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 1200);
   }
   function win() {
-    if (!ctx.prev) ctx.submit({ answer: '25/25', status: 'correct' });
+    ctx.won?.(); if (!ctx.prev) ctx.submit({ answer: '25/25', status: 'correct' });
     alive(false);
   }
   if (ctx.prev) { items.forEach(it => place(it, SLOTS.find(s => !s.used && s.type === it.type), true)); alive(true); }

@@ -60,7 +60,7 @@ export function render(body, ctx) {
   async function finish() {
     fanfare(); confetti(220);
     info.textContent = L('¡Todas las parejas! Mira la bola… 🎄', 'Totes les parelles! Mira la bola… 🎄', 'All the pairs! Look at the globe… 🎄');
-    ctx.submit({ answer: `14/14 (${tries})`, status: 'correct' });
+    ctx.won?.(); ctx.submit({ answer: `14/14 (${tries})`, status: 'correct' });
     await sleep(1200);
     grid.classList.add('gone');
     comeAlive(false);

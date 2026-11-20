@@ -141,6 +141,7 @@ function showPanel() {
       el('span', { class: 'adm-btn-ico' }, '📖'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Guía de la app'), el('small', {}, 'Todo lo que tiene y cómo configurarlo, con dibujos'))),
     el('button', { class: 'adm-btn', onclick: () => { document.querySelectorAll('.popup-back').forEach(x => x.remove()); celebrateStart(true); } },
       el('span', { class: 'adm-btn-ico' }, '🎆'), el('span', { class: 'adm-btn-txt' }, el('b', {}, 'Probar la explosión del día 1'), el('small', {}, 'Cómo lo verán todos al entrar el 1 de diciembre (fuegos artificiales y «¡A empezar!»)'))),
+    B('⭐', 'Marcador de Navidad', 'Puntos para TODOS al acabar juegos: qué juegos cuentan y la clasificación', root => import('./points.js').then(m => m.pointsAdmin(root))),
     B('🍄', 'Juego de los gnomos', 'Preguntas en carrera, puntos, marcador, regalos con foto y el Gran premio (solo gnomos)', root => import('./gnomes.js').then(m => m.gnomesAdmin(root))),
     B('🧝', 'Casilla 11 · Gnomos', 'Los 3 premios del laberinto (solo para los gnomos)', root => VIEWS.maze11(root)),
   ];

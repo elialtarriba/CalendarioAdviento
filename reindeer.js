@@ -263,7 +263,7 @@ export function render(body, ctx) {
       if (hit === hintDeer) { hintDeer = null; hintLevel = 0; }
       marks.innerHTML = ''; draw(); hintLabel(); showHelp();
       if (found === 5) {
-        finished = true; showHelp(); chime();
+        finished = true; showHelp(); chime(); ctx.won?.();
         ctx.submit({ answer: '5/5', status: 'correct' });
         setTimeout(async () => { await popup(ctx.replay ? `<h2>🦌✨</h2><p class="prize-text">${L3('¡Los has vuelto a encontrar todos!', 'Els has tornat a trobar tots!', 'You found them all again!')}</p>` : `<h2>🏆</h2><p class="prize-text">${t('prizeGot')[figure()]}</p>`); ctx.finish(); }, 900);
       }

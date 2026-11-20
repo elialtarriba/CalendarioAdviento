@@ -153,7 +153,7 @@ export function render(body, ctx) {
     // destapar el código
     const sec = board.secret; [...sec.children].forEach((gft, i) => setTimeout(() => { gft.replaceWith(ball(code[i], 'reveal')); pop(); }, 250 * i));
     await sleep(250 * code.length + 500);
-    if (solved) { fanfare(); confetti(220); } else sadTrombone();
+    if (solved) { fanfare(); confetti(220); ctx.won?.(); } else sadTrombone();
     const res = { level: lv.id, solved, tries: Math.min(cur + 1, TRIES), time, game: gameNo + 1, code: code.slice(), at: Date.now() };
     const counts = !first;
     if (counts) {

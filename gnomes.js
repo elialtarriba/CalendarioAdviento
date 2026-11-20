@@ -46,11 +46,13 @@ const ls = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?
 const decStartMs = () => Date.UTC(S.config?.year || new Date().getFullYear(), 11, 1, -1);
 export function msOf(cfg) { const m = (cfg?.ms || [10, 20, 30]).map(Number).filter(x => x > 0).sort((a, b) => a - b); return m.length ? m.slice(0, 5) : [10, 20, 30]; }
 function sinceOf(cfg) { let s = +(cfg?.since || 0); if (Date.now() >= decStartMs()) s = Math.max(s, decStartMs()); return s; }
-export function endOf(cfg) { return +(cfg?.endAt || Date.UTC(S.config?.year || new Date().getFullYear(), 11, 25, -1)); }
+// (V25.1) por defecto, todo se cierra el 24 de diciembre a las 23:59 (hora de España)
+export function endOf(cfg) { return +(cfg?.endAt || Date.UTC(S.config?.year || new Date().getFullYear(), 11, 24, 22, 59)); }
 
 export async function loadAll({ answers = true } = {}) {
   const [cfg, pl, sc, adj] = await Promise.all(['cfg', 'players', 'sched', 'adj'].map(k => store.gDoc('gnome', k).catch(() => null)));
   const st = { cfg: ok(cfg) ? cfg : {}, players: ok(pl) ? pl.list || [] : [], sched: ok(sc) ? sc.list || [] : [], adj: ok(adj) ? adj.list || [] : [], ga: {}, now: Date.now(), denied: !!cfg?.__denied };
+  st.gb = await store.gList('gb').catch(() => []); // (V24.1) puntos ganados en los juegos (Dulce Navidad…)
   st.since = sinceOf(st.cfg); st.endAt = endOf(st.cfg); st.ms = msOf(st.cfg);
   if (answers) {
     const qs = st.sched.filter(q => q.at <= st.now && (q.tie || (q.at >= st.since && q.at < st.endAt)));
@@ -89,6 +91,9 @@ function compute(st) {
     const r = scoreQuestion(st, q, R); st.res[q.id] = r; ev.push(...r.ev);
   });
   st.adj.filter(a => a.at >= st.since && a.at < st.endAt).forEach(a => ev.push({ uid: a.uid, pts: +a.pts || 0, at: a.at, k: 'adj', why: a.why, id: a.id }));
+  // (V24.1) puntos de los juegos: cuentan si se cobraron dentro del juego de los gnomos
+  (st.gb || []).filter(b => (+b.pts || 0) > 0 && b.at >= st.since && b.at < st.endAt && b.start >= st.since)
+    .forEach(b => ev.push({ uid: b.uid, pts: +b.pts || 0, at: b.at, k: 'game', why: gameName(b.game), id: b.id }));
   ev.sort((a, b) => a.at - b.at);
   st.score = {}; st.max = {}; st.hist = {};
   st.players.forEach(p => { st.score[p.uid] = 0; st.max[p.uid] = 0; st.hist[p.uid] = []; });
@@ -276,6 +281,7 @@ async function news(st) {
     if (first) continue;
     if (e.k === 'steal') toast(`😈 ${nameOf(st, e.by)} ${L('te ha quitado 1 punto', 't’ha tret 1 punt', 'took 1 point from you')}`, 4500);
     if (e.k === 'adj') toast(`✨ ${e.pts > 0 ? '+' : ''}${e.pts} ${L('de Mamá Noel', 'de la Mare Noel', 'from Mrs Claus')}${e.why ? ': ' + e.why : ''}`, 5000);
+    if (e.k === 'game') toast(`🎮 +${e.pts} ${L('por', 'per', 'for')} ${e.why}`, 4500);
     if (e.k === 'none') toast('⏰ ' + L('Se te pasó una pregunta: −1', 'Se’t va passar una pregunta: −1', 'You missed a question: −1'), 4000);
   }
   if (st.ended && st.winner) {
@@ -306,7 +312,8 @@ export async function openBoard() {
   const wrap = el('div', { class: 'gn-wrap' },
     el('div', { class: 'gn-snow', 'aria-hidden': 'true' }, ...Array.from({ length: 26 }, (_, i) => el('i', { style: `--x:${(i * 37) % 100};--d:${6 + (i % 7)}s;--dl:${-(i % 9)}s;--s:${6 + (i % 4) * 3}px` }))),
     el('header', { class: 'gn-head' },
-      el('h1', {}, el('span', {}, '🍄'), ' ' + L('El juego de los gnomos', 'El joc dels gnoms', 'The gnome game')),
+      el('h1', {}, el('span', {}, '🍄'), ' ' + L('El juego de los gnomos', 'El joc dels gnoms', 'The gnome game'),
+        el('small', { class: 'gn-sub' }, L('Solo gnomos · no es el ⭐ Marcador de Navidad', 'Només gnoms · no és el ⭐ Marcador de Nadal', 'Gnomes only · not the ⭐ Christmas scoreboard'))),
       el('button', { class: 'gn-x no-delay', onclick: () => { wrap.remove(); later = {}; setTimeout(check, 600); } }, '✕')),
     body);
   document.body.append(wrap);
@@ -404,7 +411,7 @@ async function prizePopup(st, p, k, label, won, grand = false) {
     { cls: 'small gn-prizepop', outside: true, buttons: [{ label: '🎄 OK', value: true }] });
 }
 
-const KTXT = () => ({ first: '🥇 ' + L('El más rápido', 'El més ràpid', 'Fastest'), wrong: '❌ ' + L('Respuesta equivocada', 'Resposta equivocada', 'Wrong answer'), last: '🐢 ' + L('El último en acertar', 'L’últim a encertar', 'Last right answer'), none: '⏰ ' + L('No contestó', 'No va contestar', 'No answer'), steal: '😈 ' + L('Le quitó 1 punto', 'Li va treure 1 punt', 'Point taken by'), adj: '✨ ' + L('Mamá Noel', 'Mare Noel', 'Mrs Claus') });
+const KTXT = () => ({ first: '🥇 ' + L('El más rápido', 'El més ràpid', 'Fastest'), wrong: '❌ ' + L('Respuesta equivocada', 'Resposta equivocada', 'Wrong answer'), last: '🐢 ' + L('El último en acertar', 'L’últim a encertar', 'Last right answer'), none: '⏰ ' + L('No contestó', 'No va contestar', 'No answer'), steal: '😈 ' + L('Le quitó 1 punto', 'Li va treure 1 punt', 'Point taken by'), adj: '✨ ' + L('Mamá Noel', 'Mare Noel', 'Mrs Claus'), game: '🎮 ' + L('Juego', 'Joc', 'Game') });
 function historyPopup(st, r) {
   const h = (st.hist[r.uid] || []).slice().reverse();
   const T = KTXT();
@@ -505,6 +512,7 @@ export async function gnomesAdmin(root) {
       BTN('➕', 'Sumar o restar puntos', 'Por las actividades, con el motivo', () => pointsView(root)),
       BTN('🎁', 'Premios y metas', 'Las metas (10, 20, 30…) y los regalos de cada uno, con foto', () => prizesView(root)),
       BTN('🏆', 'Ver el marcador', 'Tal y como lo ven ellos', () => openBoard()),
+      BTN('🎮', 'Puntos en los juegos', 'Elige en qué juegos ganan puntos de gnomo (Dulce Navidad del día 8…)', () => gamesView(root)),
       BTN('⚙️', 'Ajustes del juego', 'Final del juego, desempate y poner a 0', () => settingsView(root))));
 }
 
@@ -813,4 +821,90 @@ async function settingsView(root) {
       el('div', { class: 'gn-row' },
         el('button', { class: 'btn btn-ghost small-btn no-delay', onclick: () => { const p = st.players[0]; if (!p) return toast('No hay gnomos'); document.querySelectorAll('.popup-back').forEach(x => x.style.display = 'none'); showUnlock(st, p.uid, 'm0', 0).then(() => document.querySelectorAll('.popup-back').forEach(x => x.style.display = '')); } }, '🎁 Regalo conseguido'),
         el('button', { class: 'btn btn-ghost small-btn no-delay', onclick: () => { const p = st.rank[0]; if (!p) return toast('No hay gnomos'); document.querySelectorAll('.popup-back').forEach(x => x.style.display = 'none'); showFinal({ ...st, winner: p.uid }).then(() => { const iv = setInterval(() => { if (!document.querySelector('.gn-final')) { clearInterval(iv); document.querySelectorAll('.popup-back').forEach(x => x.style.display = ''); } }, 400); }); } }, '⭐ Final del día 25'))));
+}
+
+
+// ================================================================ (V24.1) PUNTOS DE GNOMO EN LOS JUEGOS
+// La administradora elige en qué juegos se ganan puntos (gnome/cfg.games). Cada gnomo guarda lo suyo en gb/{uid}_{juego}:
+//   { uid, game, start (cuándo empezó su partida de puntos), lv (niveles pasados en esa partida), pts (puntos ya cobrados), at }
+// Solo cuenta la PRIMERA partida de cada gnomo (desde que empieza el juego de los gnomos).
+export const GAMES = [
+  { id: 'candy8', day: 8, name: () => L('Dulce Navidad', 'Dolç Nadal', 'Sweet Christmas'), adm: 'Dulce Navidad (día 8)',
+    help: 'En su PRIMERA partida: si pasan el nivel 2 ganan unos puntos; si pasan los 5 niveles, más.', def: { on: true, p2: 1, p5: 3 } },
+];
+export const gameName = id => GAMES.find(g => g.id === id)?.name() || id;
+const gameRules = (cfg, id) => { const g = GAMES.find(x => x.id === id); return { ...(g?.def || {}), ...(cfg?.games?.[id] || {}) }; };
+
+// estado del gnomo en ese juego: null si no es gnomo o el juego no da puntos
+export async function gameBonusState(id) {
+  if (!isGnome() || !S.user) return null;
+  let cfg = await store.gDoc('gnome', 'cfg').catch(() => ({ __denied: true })); if (cfg?.__denied) return null; cfg = cfg || {};
+  const r = gameRules(cfg, id); if (!r.on) return null;
+  const since = sinceOf(cfg), end = endOf(cfg), now = Date.now();
+  if (now >= end) return null;
+  let doc = await store.gDoc('gb', S.user.uid + '_' + id).catch(() => null);
+  if (!ok(doc) || !(doc.start >= since)) doc = null; // de antes de empezar (pruebas): no cuenta
+  return { id, rules: r, doc, since };
+}
+// empieza la partida de puntos (la primera); devuelve true si esta partida es la que cuenta
+export async function gameBonusStart(bs) {
+  if (!bs || bs.doc) return false;
+  const now = Date.now(); bs.doc = { uid: S.user.uid, game: bs.id, start: now, lv: 0, pts: 0, at: now };
+  try { await store.gPut('gb', S.user.uid + '_' + bs.id, bs.doc); return true; } catch (e) { console.warn(e); bs.doc = null; return false; }
+}
+// puntos que le tocan según los niveles pasados en su primera partida
+export const gameBonusOwed = bs => { if (!bs?.doc) return 0; const lv = bs.doc.lv || 0, r = bs.rules; return lv >= 5 ? +r.p5 || 0 : lv >= 2 ? +r.p2 || 0 : 0; };
+export async function gameBonusLevel(bs, lv) {
+  if (!bs?.doc || lv <= (bs.doc.lv || 0)) return;
+  bs.doc = { ...bs.doc, lv }; try { await store.gPut('gb', S.user.uid + '_' + bs.id, bs.doc); } catch (e) { console.warn(e); }
+}
+// cobrar: el marcador de los gnomos suma la diferencia
+export async function gameBonusClaim(bs) {
+  const owed = gameBonusOwed(bs), add = owed - (bs.doc?.pts || 0); if (add <= 0) return 0;
+  bs.doc = { ...bs.doc, pts: owed, at: Date.now() };
+  await store.gPut('gb', S.user.uid + '_' + bs.id, bs.doc);
+  LAST = null; try { reloadFab(); } catch {}
+  return add;
+}
+
+async function gamesView(root) {
+  put(root, loading());
+  const st = await loadAll();
+  const cfg = st.cfg;
+  const rows = GAMES.map(g => {
+    const r = gameRules(cfg, g.id);
+    const on = el('input', { type: 'checkbox' }); on.checked = !!r.on;
+    const p2 = el('input', { type: 'number', min: 0, max: 5, value: r.p2, class: 'gn-msin' });
+    const p5 = el('input', { type: 'number', min: 0, max: 5, value: r.p5, class: 'gn-msin' });
+    const got = (st.gb || []).filter(b => b.game === g.id && b.start >= st.since);
+    return { g, on, p2, p5, node: el('div', { class: 'card gn-gamecard' },
+      el('label', { class: 'gn-gameon' }, on, el('b', {}, '🎮 ' + g.adm)),
+      el('p', { class: 'muted' }, g.help),
+      el('div', { class: 'gn-gamepts' }, el('label', {}, 'Si pasan 2 niveles', p2), el('label', {}, 'Si pasan los 5 niveles (en total)', p5)),
+      got.length ? el('div', { class: 'gn-hist' }, ...got.map(b => el('div', { class: 'gn-hrow ' + (b.pts > 0 ? 'plus' : '') },
+        el('b', {}, '+' + (b.pts || 0)), el('span', {}, `${nameOf(st, b.uid)} · ${b.lv || 0}/5 niveles` + ((b.pts || 0) < gameBonusOwed({ doc: b, rules: r }) ? ' · aún no lo ha cobrado' : '')), el('small', {}, when(b.start)),
+        el('button', { class: 'ed-del no-delay', title: 'Borrar (podrá volver a jugar su partida de puntos)', onclick: async () => {
+          if (!await popup(`<h2>🗑️</h2><p>¿Borrar la partida de puntos de ${esc(nameOf(st, b.uid))}? Pierde estos puntos y podrá jugarla otra vez.</p>`, { cls: 'small', buttons: [{ label: 'No', value: false, cls: 'btn-ghost' }, { label: 'Sí', value: true }] })) return;
+          try { await store.gDel('gb', b.id); gamesView(root); } catch (e) { toast(errTxt(e), 6000); }
+        } }, '✕'))))
+        : el('p', { class: 'muted' }, 'Ningún gnomo ha jugado todavía su partida de puntos.')) };
+  });
+  const save = el('button', { class: 'btn btn-big no-delay', onclick: async () => {
+    const games = { ...(cfg.games || {}) };
+    rows.forEach(({ g, on, p2, p5 }) => { games[g.id] = { on: on.checked, p2: Math.max(0, Math.min(5, +p2.value || 0)), p5: Math.max(0, Math.min(5, +p5.value || 0)) }; });
+    try { await store.gPut('gnome', 'cfg', { games }, true); toast('💾 Guardado'); gamesView(root); } catch (e) { toast(errTxt(e), 6000); }
+  } }, '💾 Guardar');
+  // meta del contador de «4 en raya» de Dulce Navidad (para TODOS los jugadores, no solo gnomos)
+  const goalIn = el('input', { type: 'number', min: 5, max: 999, value: +(S.config?.candyGoal) || 100, class: 'gn-msin' });
+  const goalCard = el('div', { class: 'card gn-gamecard' }, el('b', {}, '⭐ Dulce Navidad · meta del contador (para todos)'),
+    el('p', { class: 'muted' }, 'Cada vez que alguien junta 4 o más iguales (sale la estrella mágica) suma 1 en su contador. Al llegar a esta meta, ¡celebración!'),
+    el('div', { class: 'gn-gamepts' }, el('label', {}, 'Meta', goalIn),
+      el('button', { class: 'btn small-btn no-delay', onclick: async () => {
+        const v = Math.max(5, Math.min(999, Math.round(+goalIn.value || 100)));
+        try { await store.saveConfig({ candyGoal: v }); S.config.candyGoal = v; toast('💾 Meta: ' + v); } catch (e) { toast(errTxt(e), 6000); }
+      } }, '💾 Guardar meta')));
+  put(root, back(root), goalCard,
+    el('p', { class: 'muted' }, 'Marca los juegos en los que los gnomos pueden ganar puntos para su marcador. Solo cuenta su PRIMERA partida. Al conseguirlo les sale un botón 🍄 para cobrar los puntos (y aparecen en su historial como «🎮 Juego»).'),
+    ...rows.map(r => r.node), save,
+    el('p', { class: 'muted', style: 'margin-top:12px' }, 'Más juegos: se pueden ir añadiendo a esta lista.'));
 }

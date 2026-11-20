@@ -4,13 +4,47 @@ let ctx;
 // así suena aunque el botón de silencio esté puesto. Tiene que ser ANTES de crear el sonido:
 // si se cambia después, el iPhone corta el sonido de golpe.
 try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch {}
-// --- estado del sonido (para el botón 🔊 de la portada)
+// --- estado del sonido (para el botón 🔊)
 const listeners = new Set();
-// el iPhone a veces deja el sonido «encendido» pero mudo (el reloj del sonido se para): eso cuenta como apagado
+// el iPhone a veces deja el sonido «encendido» pero mudo (el reloj del sonido se para)
 let stuck = false, lastT = -1, lastCheck = 0;
-export const audioOn = () => !!ctx && ctx.state === 'running' && !stuck;
+// (V24.1) el botón 🔊 es un interruptor: un toque lo quita (rojo 🔇), otro toque lo pone (verde 🔊). Se recuerda en este aparato.
+let muted = false; try { muted = localStorage.getItem('adv_muted') === '1'; } catch {}
+export const isMuted = () => muted;
+export const audioOn = () => !muted;
 export const onAudioState = cb => { listeners.add(cb); cb(audioOn()); return () => listeners.delete(cb); };
 const notify = () => listeners.forEach(cb => { try { cb(audioOn()); } catch {} });
+// Todos los sonidos (también los de los juegos que tienen su propio sonido) pasan por un «volumen general»
+const masters = new Map();
+try {
+  const AN = window.AudioNode && AudioNode.prototype, orig = AN && AN.connect;
+  if (orig) AN.connect = function (dest, ...r) {
+    if (window.AudioDestinationNode && dest instanceof AudioDestinationNode) {
+      let m = masters.get(dest.context);
+      if (!m) { m = dest.context.createGain(); m.gain.value = muted ? 0 : 1; orig.call(m, dest); masters.set(dest.context, m); }
+      orig.call(this, m, ...r); return dest;
+    }
+    return orig.call(this, dest, ...r);
+  };
+} catch {}
+// vídeos y audios (ho, ho, ho, vídeos de los puzles, baile…)
+try {
+  const op = HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play = function (...a) { if (muted && this !== silentEl && !this.muted) { this.muted = true; this._advM = true; } return op.apply(this, a); };
+} catch {}
+export function setMuted(on) {
+  muted = !!on; try { localStorage.setItem('adv_muted', muted ? '1' : '0'); } catch {}
+  masters.forEach((m, c) => { if (c.state === 'closed') { masters.delete(c); return; } try { m.gain.setValueAtTime(muted ? 0 : 1, c.currentTime); } catch { m.gain.value = muted ? 0 : 1; } });
+  document.querySelectorAll('video, audio').forEach(v => { if (v === silentEl) return;
+    if (muted && !v.muted) { v.muted = true; v._advM = true; } else if (!muted && v._advM) { v.muted = false; v._advM = false; } });
+  if (muted) { try { speechSynthesis.cancel(); } catch {} }
+  notify();
+}
+export function toggleMuted() {
+  setMuted(!muted);
+  if (!muted) { unlockAudio(true); setTimeout(() => { try { chime(); } catch {} }, 200); }
+  return !muted;
+}
 function health() {
   if (ctx && ctx.state === 'running') {
     const now = performance.now();
@@ -182,7 +216,7 @@ function pickVoice(lang) {
 export function speak(text, lang = 'es', { hoho = false } = {}) {
   return new Promise(res => {
     try {
-      if (!('speechSynthesis' in window)) return res();
+      if (!('speechSynthesis' in window) || muted) return res();
       speechSynthesis.cancel();
       const say = (t, pitch, rate) => {
         const u = new SpeechSynthesisUtterance(t);

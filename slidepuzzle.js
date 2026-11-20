@@ -153,7 +153,7 @@ export function render(body, ctx) {
   const paintHint = () => { aliveHint.textContent = alive.paused ? '▶️ ' + L('Toca el vídeo para volver a ponerlo en marcha', 'Toca el vídeo per tornar-lo a posar en marxa', 'Tap the video to play it again') : '⏸ ' + L('Toca el vídeo para pararlo', 'Toca el vídeo per aturar-lo', 'Tap the video to stop it'); };
   alive.addEventListener('click', () => { if (!done) return; unlockAudio(); if (alive.paused) { alive.play().catch(() => {}); playMusic(); } else stopAll(); setTimeout(paintHint, 50); });
   async function win(instant = false) {
-    done = true; layout(!instant);
+    done = true; layout(!instant); if (!instant) ctx.won?.();
     if (!ctx.prev && !win.sent) { win.sent = true; ctx.submit({ answer: '🧩 ' + L(`Puzle completado en ${count} movimientos`, `Puzle completat en ${count} moviments`, `Puzzle completed in ${count} moves`), status: 'correct' }); }
     if (!instant) await sleep(350);
     grid.classList.add('solved'); last.classList.add('in');

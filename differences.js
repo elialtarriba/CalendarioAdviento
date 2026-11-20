@@ -62,7 +62,7 @@ export function render(body, ctx) {
     const hit = pool.find(d => !d.found && Math.hypot(d.c[0] - x, d.c[1] - y) < d.c[2] + 8);
     if (hit) { hit.found = true; found++; mark(hit); pop(); } else { wrong(); if (attempts < 8) toast(t('d6tries', 8 - attempts)); }
     foundEl.textContent = t('d6found', found); tries.textContent = t('d6tries', 8 - attempts);
-    if (found === 5) { over = true; chime(); confetti(160); toast(t('d6win')); ctx.submit({ answer: `5/5 (${attempts})`, status: 'correct' }); return; }
+    if (found === 5) { over = true; ctx.won?.(); chime(); confetti(160); toast(t('d6win')); ctx.submit({ answer: `5/5 (${attempts})`, status: 'correct' }); return; }
     if (attempts >= 8) { over = true; pool.filter(d => !d.found).forEach(d => mark(d, '#999')); toast(t('d6lost'), 3500); ctx.submit({ answer: `${found}/5`, status: 'incorrect' }); return; }
     if (attempts === 5 && !scared) {
       scared = true;

@@ -179,7 +179,7 @@ async function renderInto(body, body0, ctx) {
     info.textContent = L('¡Lo has conseguido! Mira cómo cobra vida 🎄', 'Ho has aconseguit! Mira com cobra vida 🎄', 'You did it! Watch it come to life 🎄');
     if (ctx.practice) setTimeout(() => { const again = el('button', { class: 'btn btn-ghost no-delay pz3-again' }, '🔁 ' + L('Volver a hacer el puzle', 'Tornar a fer el puzle', 'Do the puzzle again')); again.onclick = () => { try { video.pause(); } catch {} replay(body, body0, ctx); }; body.append(el('div', { class: 'pz3-btns' }, again)); }, 1000);
     setTimeout(() => { pieces.forEach(p => p.el.classList.add('gone')); pileBg.remove(); thumb.remove(); stage.style.height = (by + BH + 16) + 'px'; }, 900);
-    ctx.submit({ answer: '🧩', status: 'correct' });
+    ctx.won?.(); ctx.submit({ answer: '🧩', status: 'correct' });
     const fin = ctx.finishBtn.onclick; ctx.finishBtn.onclick = () => { try { video.pause(); } catch {} fin(); };
   }
 }

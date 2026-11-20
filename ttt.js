@@ -196,7 +196,7 @@ export function render(body, ctx) {
   function show(kind, who) {
     const winnerWho = kind === 'win2' ? who : kind === 'win' ? 'g' : kind === 'lose' ? 'r' : null;
     const info = { mode: ai ? 'ai' : 'two', winner: winnerWho, movesG: limit.g - left.g, movesR: limit.r - left.r, time: t0 ? Date.now() - t0 : 0, at: Date.now() };
-    const counts = !submitted && !ctx.prev && !firstRes;
+    ctx.won?.(); const counts = !submitted && !ctx.prev && !firstRes;
     if (counts) {
       submitted = true; firstRes = info;
       ctx.submit({ answer: kind === 'draw' ? '🤝 ' + L('Empate', 'Empat', 'Draw') : '🏆 ' + P[winnerWho].name(), status: 'correct', extra: { ttt: info } });

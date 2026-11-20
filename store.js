@@ -214,6 +214,8 @@ async function firebaseApi() {
     },
     gPut: (col, id, data, merge = false) => F.setDoc(d(col, id), msToTs(data, F), { merge }),
     gDel: (col, id) => F.deleteDoc(d(col, id)),
+    // (V24.1) todos los documentos de una colección (puntos de gnomo ganados en los juegos: gb)
+    gList: async col => { try { const qs = await F.getDocs(F.collection(db, col)); const out = []; qs.forEach(x => out.push({ id: x.id, ...tsToMs(x.data()) })); return out; } catch (e) { if (e.code === 'permission-denied') return []; throw e; } },
     // la hora de la respuesta la pone el servidor de Firebase (así nadie hace trampas con el reloj del móvil)
     gAnswer: (q, uid, a) => F.setDoc(d('ga', q), { [uid]: { ...a, at: F.serverTimestamp() } }, { merge: true }),
     gSteal: (q, by, to) => F.setDoc(d('ga', q), { steal: { by, to, at: Date.now() } }, { merge: true }),
@@ -359,6 +361,7 @@ function demoApi() {
     // (V24) juego de los gnomos (modo demo: todo en este navegador)
     gDoc: async (col, id) => ld('g_' + col, {})[id] ?? null,
     gPut: async (col, id, data, merge = false) => { const c = ld('g_' + col, {}); c[id] = merge ? deepMerge(c[id] || {}, data) : data; sv('g_' + col, c); },
+    gList: async col => Object.entries(ld('g_' + col, {})).map(([id, v]) => ({ id, ...v })),
     gDel: async (col, id) => { const c = ld('g_' + col, {}); delete c[id]; sv('g_' + col, c); },
     gAnswer: async (q, uid, a) => { const c = ld('g_ga', {}); c[q] = { ...(c[q] || {}) }; if (c[q][uid]) throw err('permission-denied'); c[q][uid] = { ...a, at: Date.now() }; sv('g_ga', c); },
     gSteal: async (q, by, to) => { const c = ld('g_ga', {}); c[q] = { ...(c[q] || {}) }; if (c[q].steal) throw err('permission-denied'); c[q].steal = { by, to, at: Date.now() }; sv('g_ga', c); },

@@ -212,7 +212,7 @@ export function render(body, ctx) {
   ctx.cleanup = stopFx;
   async function finale() {
     if (fx) return;
-    if (!ctx.prev && !finale.sent) { finale.sent = true; ctx.submit({ answer: '🐾 ' + L('Sopa de letras completada', 'Sopa de lletres completada', 'Word search completed'), status: 'correct' }); }
+    ctx.won?.(); if (!ctx.prev && !finale.sent) { finale.sent = true; ctx.submit({ answer: '🐾 ' + L('Sopa de letras completada', 'Sopa de lletres completada', 'Word search completed'), status: 'correct' }); }
     fx = el('div', { class: 'cw-fx ws-fx' },
       el('div', { class: 'cw-snow' }, ...Array.from({ length: 40 }, () => el('i', { style: `left:${Math.random() * 100}%;--d:${4 + Math.random() * 6}s;--dl:${-Math.random() * 8}s;--s:${10 + Math.random() * 18}px;--x:${(Math.random() - .5) * 120}px` }, '❄'))),
       el('div', { class: 'ws-fx-box' },

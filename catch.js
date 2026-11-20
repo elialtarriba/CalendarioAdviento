@@ -167,7 +167,7 @@ export function render(body, ctx) {
   async function win() {
     if (over) return; over = true; running = false; cancelAnimationFrame(raf);
     objs.slice().forEach(remove); held = null;
-    if (!ctx.prev && !win.sent) { win.sent = true; ctx.submit({ answer: `🎁 ${GOAL} ${L('puntos', 'punts', 'points')}`, status: 'correct' }); }
+    ctx.won?.(); if (!ctx.prev && !win.sent) { win.sent = true; ctx.submit({ answer: `🎁 ${GOAL} ${L('puntos', 'punts', 'points')}`, status: 'correct' }); }
     sack.classList.add('full');
     ITEMS.slice().reverse().forEach((it, k) => setTimeout(() => {
       const g = el('img', { class: 'ct-burst', src: it[0], alt: '', style: `--dx:${(Math.random() - .5) * W() * .9}px;--dy:${-H() * (.35 + Math.random() * .3)}px;--r:${(Math.random() - .5) * 720}deg` });

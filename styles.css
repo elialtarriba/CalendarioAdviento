@@ -3015,3 +3015,177 @@ body.full-view .gn-fab { bottom: calc(var(--fv-strip, 0px) + 10px); z-index: 32;
 .gn-pedit { margin: 10px 0; padding: 10px; border-radius: 14px; background: #fffaf0; border: 2px dashed #e8b64c; }
 .gn-pedit.grand { border: 2px solid #ffd86a; background: #fff6d6; }
 .gn-tiebox { margin-top: 6px; }
+
+/* ===== V24.1 · botón de sonido = interruptor (verde 🔊 / rojo 🔇) y flotante en las pantallas con sonido ===== */
+.snd-btn { transition: background .3s, box-shadow .3s, transform .15s; }
+.snd-btn:active { transform: scale(.92); }
+.top .snd-btn:not(.off), .snd-fab:not(.off) { background: #e8f9ee !important; border-color: #86d6a0 !important; }
+.snd-btn.off { background: #e11d48 !important; border-color: #9f1239 !important; color: #fff; box-shadow: 0 0 0 3px #e11d4855; animation: none; }
+.snd-fab { position: fixed; z-index: 2700; top: max(10px, calc(env(safe-area-inset-top) + 6px)); right: 10px; width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center; padding: 0; font-size: 21px; background: #fff; border: 2px solid #f2c14e; box-shadow: 0 3px 0 #b8862b, 0 6px 14px #0004; cursor: pointer; }
+.snd-fab.off { box-shadow: 0 3px 0 #7f1028, 0 0 0 3px #e11d4855, 0 6px 14px #0004; }
+body:has(.splash) .snd-fab { right: 66px; top: max(13px, env(safe-area-inset-top)); }
+body:has(.gm-wrap.gm-on) .snd-fab { top: auto; bottom: max(12px, calc(env(safe-area-inset-bottom) + 6px)); }
+
+/* ===== V24.1 · Día 8 · mini juego «Dulce Navidad» ===== */
+body:has(.cc8-wrap) .fx-canvas { z-index: 2650; }
+.cc8-cta-box { display: flex; justify-content: center; margin: 4px 0 14px; }
+.cc8-cta { display: flex; align-items: center; gap: 12px; padding: 12px 20px 12px 14px; border-radius: 22px; border: 3px solid #f2c14e; cursor: pointer;
+  background: linear-gradient(180deg, #e0435a, #a3122c); color: #fff; box-shadow: 0 6px 0 #6d0a1c, 0 12px 22px #a3122c55; text-align: left;
+  animation: cc8Wiggle 2.6s ease-in-out infinite; max-width: 100%; }
+.cc8-cta:active { transform: translateY(4px); box-shadow: 0 2px 0 #6d0a1c; animation: none; }
+.cc8-cta-pics { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; flex: 0 0 auto; background: #fff7e6; border-radius: 12px; padding: 4px; }
+.cc8-cta-pics img { width: 26px; height: 26px; object-fit: contain; }
+.cc8-cta-txt { display: flex; flex-direction: column; }
+.cc8-cta-txt b { font: 800 clamp(17px, 4.6vw, 22px) 'Fredoka', 'Montserrat', sans-serif; text-shadow: 0 2px 0 #0003; }
+.cc8-cta-txt small { font-size: 13px; opacity: .95; }
+@keyframes cc8Wiggle { 0%, 80%, 100% { transform: rotate(0) scale(1); } 84% { transform: rotate(-2deg) scale(1.04); } 88% { transform: rotate(2deg) scale(1.04); } 92% { transform: rotate(-1deg); } }
+
+.cc8-wrap { position: fixed; inset: 0; z-index: 2600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; overflow: hidden; touch-action: none;
+  padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+  background: radial-gradient(ellipse at 50% 0%, #2f6b4a 0%, #123b2a 45%, #0a2018 100%); animation: fadeIn .3s; color: #fff; -webkit-user-select: none; user-select: none; }
+.cc8-wrap.out { opacity: 0; transition: opacity .3s; }
+.cc8-snow { position: absolute; inset: -20px; pointer-events: none; opacity: .55;
+  background-image: radial-gradient(2px 2px at 20px 30px, #fff 50%, transparent 51%), radial-gradient(3px 3px at 90px 120px, #fff 50%, transparent 51%), radial-gradient(2px 2px at 160px 60px, #fff 50%, transparent 51%), radial-gradient(1.5px 1.5px at 60px 170px, #fff 50%, transparent 51%);
+  background-size: 200px 200px; animation: cc8Snow 9s linear infinite; }
+@keyframes cc8Snow { to { background-position: 30px 200px, -20px 200px, 10px 200px, 0 200px; } }
+.cc8-head { position: relative; width: 100%; max-width: 540px; display: flex; justify-content: center; align-items: center; min-height: 46px; }
+.cc8-x { position: absolute; left: 0; top: 0; width: 44px; height: 44px; border-radius: 50%; border: 2px solid #f2c14e; background: #fffaf0; color: #7a1020; font-size: 20px; font-weight: 800; box-shadow: 0 3px 0 #b8862b; }
+.cc8-title { font-family: 'Mountains of Christmas', cursive; font-weight: 700; font-size: clamp(32px, 9vw, 46px); color: #ffe08a; text-shadow: 0 3px 0 #8a1020, 0 0 18px #ffd24a88; line-height: 1; }
+.cc8-stats { position: relative; display: flex; gap: 8px; }
+.cc8-chip { display: flex; flex-direction: column; align-items: center; min-width: 86px; padding: 5px 10px; border-radius: 14px; background: #fffaf0; color: #7a1020; border: 2px solid #f2c14e; box-shadow: 0 3px 0 #b8862b; }
+.cc8-chip small { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: #8a5a20; }
+.cc8-chip b { font: 800 22px 'Fredoka', 'Montserrat', sans-serif; line-height: 1.1; }
+.cc8-bar { position: relative; width: min(92vw, 480px); height: 16px; border-radius: 99px; background: #0006; border: 2px solid #f2c14e; margin: 8px 0 4px; }
+.cc8-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 99px; background: linear-gradient(90deg, #ffd24a, #ff7a59, #e0435a); transition: width .4s; }
+.cc8-star { position: absolute; top: 50%; transform: translate(-50%, -50%); font-size: 26px; color: #6b5a3a; text-shadow: 0 2px 0 #0007; transition: color .3s, transform .3s; }
+.cc8-star:last-child { transform: translate(-90%, -50%); }
+.cc8-star.on { color: #ffd24a; text-shadow: 0 0 10px #ffd24a, 0 2px 0 #8a5a10; animation: cc8StarOn .6s; }
+@keyframes cc8StarOn { 50% { font-size: 38px; } }
+.cc8-stage { position: relative; }
+.cc8-board { position: relative; overflow: hidden; border-radius: 18px; padding: 0; box-sizing: content-box; border: 4px solid #f2c14e; box-shadow: 0 0 0 4px #8a1020, 0 14px 30px #0008;
+  background-color: #fff6e3; background-image: conic-gradient(#fbe6c4 25%, transparent 0 50%, #fbe6c4 0 75%, transparent 0); background-size: calc(var(--s) * 2) calc(var(--s) * 2); touch-action: none; }
+.cc8-p { position: absolute; left: 0; top: 0; width: var(--s); height: var(--s); display: grid; place-items: center; transition: transform .2s ease; touch-action: none; cursor: pointer; }
+.cc8-p img { width: 84%; height: 84%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 2px 2px #0004); transition: transform .15s; }
+.cc8-p.sel img { transform: scale(1.18); filter: drop-shadow(0 0 6px #ffd24a) drop-shadow(0 0 3px #fff); animation: cc8Bob .7s ease-in-out infinite; }
+@keyframes cc8Bob { 50% { transform: scale(1.1) rotate(6deg); } }
+.cc8-p.no img { animation: cc8No .25s; }
+@keyframes cc8No { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.cc8-p.pop img { animation: cc8Pop .26s forwards; }
+@keyframes cc8Pop { 40% { transform: scale(1.35); } 100% { transform: scale(0); opacity: 0; } }
+.cc8-p.star img { width: 94%; height: 94%; animation: cc8Shine 1.4s ease-in-out infinite; }
+@keyframes cc8Shine { 50% { filter: drop-shadow(0 0 8px #ffd24a) drop-shadow(0 0 2px #fff); transform: scale(1.06); } }
+.cc8-p.born img { animation: cc8Born .45s; }
+@keyframes cc8Born { 0% { transform: scale(0) rotate(-90deg); } 70% { transform: scale(1.3); } }
+.cc8-spk { position: absolute; width: 10px; height: 10px; margin: -5px; pointer-events: none; border-radius: 50%; background: radial-gradient(#fff, #ffd24a 60%, transparent 70%); animation: cc8Spk .7s ease-out forwards; }
+@keyframes cc8Spk { to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
+.cc8-pts { position: absolute; transform: translate(-50%, -50%); pointer-events: none; font: 800 24px 'Fredoka', 'Montserrat', sans-serif; color: #fff; text-shadow: 0 2px 0 #a3122c, 0 0 8px #ffd24a; animation: cc8Pts .9s ease-out forwards; z-index: 3; }
+@keyframes cc8Pts { to { transform: translate(-50%, -160%); opacity: 0; } }
+.cc8-beam { position: absolute; pointer-events: none; z-index: 2; background: linear-gradient(90deg, transparent, #fff8c0, #ffd24a, #fff8c0, transparent); animation: cc8Beam .6s ease-out forwards; }
+.cc8-beam.h { left: 0; right: 0; height: var(--s); }
+.cc8-beam.v { top: 0; bottom: 0; width: var(--s); background: linear-gradient(180deg, transparent, #fff8c0, #ffd24a, #fff8c0, transparent); }
+@keyframes cc8Beam { from { opacity: 1; } to { opacity: 0; } }
+.cc8-cheer { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(0); pointer-events: none; z-index: 4; white-space: nowrap;
+  font-family: 'Mountains of Christmas', cursive; font-weight: 700; font-size: clamp(40px, 12vw, 64px); color: #ffe08a; text-shadow: 0 4px 0 #a3122c, 0 0 20px #ffd24a; opacity: 0; }
+.cc8-cheer.on { animation: cc8Cheer 1.1s ease-out; }
+@keyframes cc8Cheer { 0% { transform: translate(-50%, -50%) scale(.2) rotate(-8deg); opacity: 0; } 25% { transform: translate(-50%, -50%) scale(1.15) rotate(3deg); opacity: 1; } 70% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -80%) scale(1); opacity: 0; } }
+.cc8-help { position: relative; margin: 4px 0 0; max-width: 480px; text-align: center; font-size: 13px; opacity: .9; }
+.cc8-end { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; background: #0009; animation: fadeIn .3s; padding: 16px; }
+.cc8-endcard { width: min(92vw, 380px); text-align: center; padding: 18px 16px 20px; border-radius: 24px; background: #fffaf0; color: #7a1020; border: 4px solid #f2c14e; box-shadow: 0 8px 0 #b8862b, 0 20px 40px #0008; animation: cc8Born .5s; }
+.cc8-endcard h2 { font-family: 'Mountains of Christmas', cursive; font-size: 34px; margin: 4px 0; }
+.cc8-endstars span { display: inline-block; font-size: 52px; color: #d9cdb4; margin: 0 2px; }
+.cc8-endstars span.on { color: #ffd24a; text-shadow: 0 0 14px #ffd24a, 0 3px 0 #b8862b; animation: cc8Born .5s backwards calc(var(--i) * .3s + .2s); }
+.cc8-endpts { font-size: 18px; margin: 4px 0; } .cc8-endpts b { font-size: 26px; }
+.cc8-rec { font-weight: 800; color: #1f7a3a; margin: 4px 0; }
+.cc8-endbtns { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+@media (max-height: 640px) { .cc8-help { display: none; } .cc8-title { font-size: 30px; } }
+/* V24.1 · Dulce Navidad: partidas, niveles, contador de 4 en raya y botón de los gnomos */
+.cc8-sub { position: relative; display: flex; align-items: center; gap: 8px; font: 700 14px 'Montserrat', sans-serif; color: #fff3c4; }
+.cc8-sep { opacity: .6; }
+.cc8-dots { display: inline-flex; gap: 4px; }
+.cc8-dots i { width: 11px; height: 11px; border-radius: 50%; background: #ffffff33; border: 1.5px solid #ffe08a88; }
+.cc8-dots i.ok { background: #ffd24a; border-color: #ffd24a; box-shadow: 0 0 6px #ffd24a; }
+.cc8-dots i.now { background: #fff; border-color: #fff; animation: cc8Bob .9s ease-in-out infinite; }
+.cc8-chip { min-width: 0; flex: 1 1 0; }
+.cc8-stats { width: min(94vw, 480px); }
+.cc8-chip b { font-size: 19px; white-space: nowrap; }
+.cc8-fours { background: linear-gradient(180deg, #fff6c8, #ffe58a); }
+.cc8-fours.full { background: linear-gradient(180deg, #ffe58a, #ffc93a); box-shadow: 0 3px 0 #b8862b, 0 0 14px #ffd24a; }
+.cc8-fours.bump { animation: cc8Bump .5s; }
+@keyframes cc8Bump { 40% { transform: scale(1.15) rotate(-3deg); } }
+.cc8-bar { margin-top: 4px; }
+.cc8-bar.done .cc8-fill { background: linear-gradient(90deg, #4ade80, #22c55e); }
+.cc8-flag { position: absolute; right: -6px; top: 50%; transform: translateY(-50%); font-size: 20px; }
+.cc8-gn { position: relative; display: flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; border-radius: 999px; border: 2px solid #c9a54e; background: #fffaf0; color: #3c5a1e; text-align: left; box-shadow: 0 3px 0 #8a6d2a; max-width: min(94vw, 480px); }
+.cc8-gn img { width: 34px; height: 34px; object-fit: contain; }
+.cc8-gn span { display: flex; flex-direction: column; } .cc8-gn b { font-size: 14px; } .cc8-gn small { font-size: 11px; color: #6b5a3a; }
+.cc8-gn:disabled { opacity: .95; cursor: default; }
+.cc8-gn.ready { background: linear-gradient(180deg, #5fbf5a, #2f8a3a); color: #fff; border-color: #ffd24a; box-shadow: 0 4px 0 #1d5a25, 0 0 18px #ffd24a; animation: cc8Wiggle 1.6s ease-in-out infinite; cursor: pointer; }
+.cc8-gn.ready small { color: #eaffea; }
+.cc8-endcard .cc8-gn { margin: 10px auto 0; }
+.cc8-endstars span { font-size: 40px; }
+.cc8-bigstar { font-size: 64px; line-height: 1; animation: cc8Born .6s; }
+.cc8-bigstar.sad { filter: saturate(.6); }
+.gn-gamecard { display: flex; flex-direction: column; gap: 6px; }
+.gn-gameon { display: flex; align-items: center; gap: 10px; font-size: 17px; }
+.gn-gameon input { width: 24px; height: 24px; }
+.gn-gamepts { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.gn-gamepts label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+
+/* ===== V24.2 · ⭐ Marcador de Navidad (para todos) — dorado y rojo, muy distinto del 🍄 verde de los gnomos ===== */
+.gn-head h1 .gn-sub { display: block; font: 600 12px 'Montserrat', sans-serif; opacity: .85; margin-top: 2px; }
+.pt-bar { display: flex; align-items: center; gap: 10px; width: calc(100% - 20px); max-width: 720px; margin: 6px auto; padding: 7px 12px 7px 8px; border-radius: 18px; cursor: pointer;
+  border: 2.5px solid #f2c14e; background: linear-gradient(135deg, #fff6d6 0%, #ffe6a3 50%, #ffd36b 100%); color: #7a1020; text-align: left;
+  box-shadow: 0 4px 0 #b8862b, 0 8px 16px #b8862b44; position: relative; overflow: hidden; }
+.pt-bar::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 35%, #fff9 50%, transparent 65%); transform: translateX(-100%); animation: ptShine 4.5s ease-in-out infinite; pointer-events: none; }
+@keyframes ptShine { 60%, 100% { transform: translateX(100%); } }
+.pt-bar:active { transform: translateY(3px); box-shadow: 0 1px 0 #b8862b; }
+.pt-bar-star { font-size: 28px; filter: drop-shadow(0 0 6px #ffd24a); animation: ptTwinkle 2.4s ease-in-out infinite; }
+@keyframes ptTwinkle { 50% { transform: scale(1.15) rotate(12deg); } }
+.pt-bar-txt { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.pt-bar-txt small { font: 700 11px 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: .05em; color: #a3122c; }
+.pt-name { font-family: 'Mountains of Christmas', cursive; font-weight: 700; font-size: 24px; line-height: 1.05; color: #8a1020; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt-bar-num { display: flex; flex-direction: column; align-items: center; min-width: 58px; padding: 3px 10px; border-radius: 14px; background: #a3122c; color: #fff; box-shadow: inset 0 -3px 0 #6d0a1c; }
+.pt-bar-num b { font: 800 22px 'Fredoka', 'Montserrat', sans-serif; line-height: 1; } .pt-bar-num small { font-size: 10px; }
+body.full-view .pt-bar { padding: 4px 10px 4px 6px; margin: 4px auto; } body.full-view .pt-name { font-size: 20px; }
+.pt-pop { position: fixed; z-index: 3000; left: 50%; top: 18%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; padding: 14px 26px 16px; border-radius: 26px;
+  background: radial-gradient(circle at 50% 20%, #fff8dc, #ffe08a); border: 4px solid #f2c14e; box-shadow: 0 0 0 4px #a3122c, 0 18px 40px #0007; color: #7a1020; animation: ptIn .6s cubic-bezier(.3,1.5,.5,1); pointer-events: none; text-align: center; }
+.pt-pop.out { opacity: 0; transform: translate(-50%, -30px); transition: all .5s; }
+.pt-pop-star { font-size: 54px; line-height: 1; animation: ptTwinkle 1s ease-in-out infinite; }
+.pt-pop b { font: 800 46px 'Fredoka', 'Montserrat', sans-serif; line-height: 1; color: #a3122c; text-shadow: 0 3px 0 #f2c14e; }
+.pt-pop span { font-family: 'Mountains of Christmas', cursive; font-weight: 700; font-size: 24px; } .pt-pop small { font-size: 13px; }
+@keyframes ptIn { from { transform: translate(-50%, 40px) scale(.3); opacity: 0; } }
+.pt-pop-wrap .popup, .popup.pt-pop-wrap { background: linear-gradient(180deg, #fffaf0, #fff1d0); }
+.pt-box { text-align: center; }
+.pt-head { margin: -6px -6px 8px; padding: 10px 8px 12px; border-radius: 18px; background: repeating-linear-gradient(-45deg, #a3122c 0 14px, #c8263f 14px 28px); color: #fff; box-shadow: inset 0 0 0 3px #f2c14e; }
+.pt-head-star { font-size: 44px; line-height: 1; filter: drop-shadow(0 0 10px #ffd24a); }
+.pt-head h2 { font-family: 'Mountains of Christmas', cursive; font-size: 34px; margin: 2px 0; color: #ffe08a; text-shadow: 0 3px 0 #6d0a1c; }
+.pt-rule { margin: 0; font-size: 13px; } .pt-rule b { color: #ffe08a; }
+.pt-me { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 18px; background: #fff; border: 3px solid #f2c14e; box-shadow: 0 4px 0 #b8862b; text-align: left; }
+.pt-me img, .pt-row img { width: 40px; height: 44px; object-fit: contain; }
+.pt-me > div:nth-child(2) { flex: 1; display: flex; flex-direction: column; min-width: 0; } .pt-me small { color: #8a5a20; font-weight: 700; }
+.pt-me-num { display: flex; flex-direction: column; align-items: center; padding: 4px 12px; border-radius: 14px; background: #a3122c; color: #fff; }
+.pt-me-num b { font: 800 30px 'Fredoka', 'Montserrat', sans-serif; line-height: 1; } .pt-me-num small { color: #ffe9b0; font-size: 11px; }
+.pt-box h3 { margin: 16px 0 8px; color: #7a1020; }
+.pt-list { display: flex; flex-direction: column; gap: 6px; }
+.pt-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 14px; background: #fff; border: 2px solid #f0d6b0; }
+.pt-row .pt-name { flex: 1; font-size: 22px; text-align: left; }
+.pt-row.me { border-color: #a3122c; box-shadow: 0 0 0 2px #a3122c33; }
+.pt-row.p1 { background: linear-gradient(90deg, #fff3b8, #ffd24a); border-color: #e0a800; transform: scale(1.03); }
+.pt-row.p2 { background: linear-gradient(90deg, #f7f7f7, #d9dde3); border-color: #aab2bd; }
+.pt-row.p3 { background: linear-gradient(90deg, #fbe7d6, #e8b48a); border-color: #c98a55; }
+.pt-medal { width: 30px; font-size: 22px; font-weight: 800; color: #7a1020; }
+.pt-num { min-width: 46px; padding: 2px 8px; border-radius: 10px; background: #a3122c; color: #fff; font: 800 18px 'Fredoka', 'Montserrat', sans-serif; }
+.pt-mine small { color: #8a5a20; }
+.pt-hist { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow: auto; text-align: left; }
+.pt-hrow { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 10px; background: #fff; border-left: 4px solid #f2c14e; }
+.pt-hrow b { min-width: 30px; color: #1f7a3a; font-size: 17px; } .pt-hrow span { flex: 1; } .pt-hrow small { color: #8a7a60; font-size: 11px; }
+.pt-empty { color: #8a7a60; font-style: italic; }
+.pt-note { margin-top: 12px; padding: 8px 10px; border-radius: 12px; background: #e8f5e3; color: #2f5a1e; font-size: 13px; }
+.pt-adm-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px; margin-bottom: 10px; }
+.pt-adm-game { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: #fff; border: 1px solid #f0d6b0; }
+.pt-adm-game input { width: 20px; height: 20px; } .pt-adm-game small { color: #8a7a60; }
+.hg-big.hg-red { display: inline-block; padding: 0 10px; border-radius: 14px; background: #e11d48; box-shadow: 0 0 0 3px #e11d4855; }
+/* (V25) dentro de las guías no hace falta el botón flotante del sonido (taparía «Cerrar») */
+body:has(.hg-bar) .snd-fab, body:has(.adm-sub) .snd-fab { display: none !important; }
+.pt-closed { display: inline-block; margin: 4px 0; padding: 3px 14px; border-radius: 99px; background: #fff; color: #a3122c; font-weight: 800; }

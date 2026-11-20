@@ -137,7 +137,7 @@ export function render(body, ctx) {
   async function finish() {
     timeUp = true; listening = false; clearInterval(tick); clock.replaceChildren('⏱️ ', el('b', {}, '0:00')); grid.classList.remove('spin', 'wobble', 'watch');
     setStatus('🔔 ' + L('¡Tiempo!', 'Temps!', 'Time’s up!'));
-    const counts = !first;
+    ctx.won?.(); const counts = !first;
     if (counts) {
       first = { ...st };
       ctx.submit({ answer: '🎨 ' + L(`${st.pts} puntos · serie de ${st.best} · ${st.minutes} min`, `${st.pts} punts · sèrie de ${st.best} · ${st.minutes} min`, `${st.pts} points · series of ${st.best} · ${st.minutes} min`), status: 'correct', extra: { c5: first } });

@@ -41,7 +41,7 @@ export function render(body, ctx) {
     await sleep(350);
     if (caught === 1) await msgAnon(c);
     else if (caught === 2) await msgJoke(c);
-    else { await goodDetector(c, ctx.settings?.figure || 'galleta'); await ctx.submit({ answer: '🎩🎩🎩', status: 'correct' }); cancelAnimationFrame(raf); ctx.finish(); return; }
+    else { await goodDetector(c, ctx.settings?.figure || 'galleta'); ctx.won?.(); await ctx.submit({ answer: '🎩🎩🎩', status: 'correct' }); cancelAnimationFrame(raf); ctx.finish(); return; }
     busy = false;
   }));
 }

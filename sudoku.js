@@ -241,7 +241,7 @@ export function render(body, ctx) {
     // ---- ¡conseguido! las fichas salen volando y se convierten en estrellas
     async function win() {
       done = true; clearInterval(tick); sel = null; paint();
-      if (!ctx.prev && !win.sent) { win.sent = true; const s = (Date.now() - t0) / 1000 | 0; ctx.submit({ answer: `🎄 Sudoku ${n}×${n} · ⏱ ${fmt(s)}`, status: 'correct' }); }
+      ctx.won?.(); if (!ctx.prev && !win.sent) { win.sent = true; const s = (Date.now() - t0) / 1000 | 0; ctx.submit({ answer: `🎄 Sudoku ${n}×${n} · ⏱ ${fmt(s)}`, status: 'correct' }); }
       await sleep(500);
       const sky = el('div', { class: 'sd-sky' }); full.append(sky);
       const W = innerWidth, H = innerHeight, list = cells.map(c => c.getBoundingClientRect());

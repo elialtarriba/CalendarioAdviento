@@ -125,7 +125,7 @@ export function render(body, ctx) {
 
   async function finish() {
     timeUp = true; listening = false; clearInterval(tick); clock.replaceChildren('⏱️ ', el('b', {}, '0:00')); exitFull(wrap);
-    if (!ctx.prev && !finish.sent) { finish.sent = true; ctx.submit({ answer: '🎅 ' + L(`Récord: ronda ${record}`, `Rècord: ronda ${record}`, `Best: round ${record}`), status: 'correct' }); }
+    ctx.won?.(); if (!ctx.prev && !finish.sent) { finish.sent = true; ctx.submit({ answer: '🎅 ' + L(`Récord: ronda ${record}`, `Rècord: ronda ${record}`, `Best: round ${record}`), status: 'correct' }); }
     const fx = el('div', { class: 'sm-timeup' },
       el('div', { class: 'sm-tu-flakes' }, ...Array.from({ length: 34 }, () => el('i', { style: `left:${Math.random() * 100}%;--d:${4 + Math.random() * 5}s;--dl:${-Math.random() * 6}s;--s:${10 + Math.random() * 16}px;--x:${(Math.random() - .5) * 80}px` }, '❄'))),
       el('img', { class: 'sm-tu-clock', src: 'estrella8.webp', alt: '' }),

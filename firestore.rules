@@ -194,6 +194,30 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // (V24.1) puntos de gnomo ganados en los juegos (p. ej. Dulce Navidad del día 8): cada gnomo escribe solo los suyos
+    match /gb/{id} {
+      allow read: if isAdmin() || gnome();
+      allow create, update: if gnome() && request.resource.data.uid == request.auth.uid
+        && id == request.auth.uid + '_' + request.resource.data.game
+        && request.resource.data.keys().hasOnly(['uid', 'game', 'start', 'lv', 'pts', 'at'])
+        && request.resource.data.game is string && request.resource.data.game.matches('[a-z0-9]{1,16}')
+        && request.resource.data.lv is int && request.resource.data.lv >= 0 && request.resource.data.lv <= 5
+        && request.resource.data.pts is int && request.resource.data.pts >= 0 && request.resource.data.pts <= 5;
+      allow delete: if isAdmin();
+    }
+
+    // (V24.2) ⭐ Marcador de Navidad (para todos): cada uno escribe solo el suyo y no puede sumar más de 2 de golpe; todos ven la clasificación
+    match /pts/{uid} {
+      allow read: if signedIn() && (member() || isAdmin());
+      allow create, update: if me(uid) && member() && request.resource.data.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'fig', 'total', 'games', 'hist', 'at'])
+        && request.resource.data.total is int && request.resource.data.total >= 0
+        && request.resource.data.total <= (resource == null ? 0 : resource.data.total) + 2
+        && request.resource.data.name is string && request.resource.data.name.size() < 60
+        && request.resource.data.hist is list && request.resource.data.hist.size() <= 120;
+      allow write: if isAdmin();
+    }
+
     // Tarjeta de Navidad del día 25
     match /cards/{uid} {
       allow read: if me(uid) || isAdmin();
