@@ -143,6 +143,7 @@ function imgInto(node, uid, k, p) { if (p?.img) prizeImg(uid, k).then(src => { i
 let timer = 0, busy = false, later = {};
 export function startGnomes() {
   clearInterval(timer);
+  setTimeout(() => syncDoorPts(true).catch(() => {}), 4000);
   setTimeout(check, 6000);
   timer = setInterval(check, 30000);
   if (!startGnomes.vis) { startGnomes.vis = true; document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(check, 800); }); }
@@ -846,6 +847,16 @@ export const GAMES = [
     help: 'Solo cuenta su PRIMERA partida en línea que acaba: el 1.º gana tantos puntos como jugadores hay (4 si son 4), el 2.º uno menos… y el último 1. Quien abandona o no la acaba: −1 (cada vez).', def: { on: true },
     fields: [], prog: b => `${b.lv || 0} puntos ganados` + (b.neg ? ` · −${b.neg} por abandonar` : ''),
     owed: lv => lv || 0 },
+  // (V27.4) cada casilla hecha (en diciembre; en noviembre, desde que empezó el juego de los gnomos): +1 (configurable). Se suma solo.
+  { id: 'doors', day: 0, name: () => L('Casillas hechas', 'Caselles fetes', 'Doors done'), adm: 'Casillas del calendario hechas',
+    help: 'Cada casilla que hacen suma estos puntos (se suman solos, sin botón). Si les reinicias una casilla, se resta.', def: { on: true, pw: 1 },
+    fields: [['pw', 'Puntos por cada casilla hecha']], prog: b => `${b.lv || 0} casillas hechas`,
+    owed: (lv, r) => lv * (+r.pw || 0) },
+  // (V27.3) el solitario del día 13: la PRIMERA vez que lo resuelven
+  { id: 'sol13', day: 13, name: () => L('El solitario de Navidad', 'El solitari de Nadal', 'Christmas solitaire'), adm: 'El solitario de Navidad (día 13)',
+    help: 'La PRIMERA vez que resuelven el solitario ganan estos puntos (botón verde para cobrar). No resta nada.', def: { on: true, pw: 2 },
+    fields: [['pw', 'Al resolverlo (1.ª vez)']], prog: b => b.lv ? '🏆 lo ha resuelto' : 'aún no lo ha resuelto',
+    owed: (lv, r) => lv >= 1 ? +r.pw || 0 : 0 },
   // (V27) los marcianitos del día 16 (debajo del diploma): la PRIMERA vez que llegan a 100 puntos
   { id: 'inv16', day: 16, name: () => L('Los marcianitos de Navidad', 'Els marcianets de Nadal', 'Christmas space invaders'), adm: 'Los marcianitos de Navidad (día 16)',
     help: 'La PRIMERA vez que llegan a 100 puntos ganan estos puntos (botón verde para cobrar). No resta nada.', def: { on: true, pw: 2 },
@@ -864,7 +875,7 @@ export async function gameBonusState(id) {
   if (now >= end) return null;
   let doc = await store.gDoc('gb', S.user.uid + '_' + id).catch(() => null);
   if (!ok(doc) || !(doc.start >= since)) doc = null; // de antes de empezar (pruebas): no cuenta
-  return { id, rules: r, doc, since };
+  return { id, rules: r, doc, since, end };
 }
 // empieza la partida de puntos (la primera); devuelve true si esta partida es la que cuenta
 export async function gameBonusStart(bs) {
@@ -903,6 +914,21 @@ export async function gameAbandon(id) {
   const now = Date.now(), d = bs.doc || { uid: S.user.uid, game: id, start: now, lv: 0, pts: 0, at: now };
   bs.doc = { ...d, neg: Math.min(60, (d.neg || 0) + 1), nat: now };
   try { await store.gPut('gb', S.user.uid + '_' + id, bs.doc); LAST = null; try { reloadFab(); } catch {} return 1; } catch (e) { console.warn(e); return 0; }
+}
+// (V27.4) puntos de gnomo por las casillas hechas: se cuentan las respuestas guardadas desde que empezó el juego de los gnomos
+export async function syncDoorPts(quiet = false) {
+  if (!isGnome() || !S.user) return 0;
+  const bs = await gameBonusState('doors'); if (!bs) return 0;
+  const end = bs.end || FAR;
+  const n = Object.entries(S.answers || {}).filter(([d, a]) => +d >= 1 && +d <= 25 && a && +a.at >= bs.since && +a.at < end).length;
+  const lv = Math.min(25, n), pts = Math.min(300, lv * Math.max(0, +bs.rules.pw || 0));
+  const before = bs.doc?.pts || 0;
+  if (bs.doc && (bs.doc.lv || 0) === lv && before === pts) return 0;
+  const now = Date.now();
+  bs.doc = { ...(bs.doc || { uid: S.user.uid, game: 'doors', start: now }), lv, pts, at: now };
+  try { await store.gPut('gb', S.user.uid + '_doors', bs.doc); LAST = null; try { reloadFab(); } catch {} } catch (e) { console.warn(e); return 0; }
+  if (!quiet && pts > before) toast('🍄 +' + (pts - before) + ' ' + L('para tu juego de los gnomos', 'per al teu joc dels gnoms', 'for your gnome game'), 3500);
+  return pts - before;
 }
 export async function gameBonusClaim(bs) {
   const owed = gameBonusOwed(bs), add = owed - (bs.doc?.pts || 0); if (add <= 0) return 0;

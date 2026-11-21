@@ -3607,3 +3607,37 @@ body:has(.pch-wrap) .pch-fab { display: none; }
 .inv-move { width: 86px; height: 72px; font-size: 34px; }
 .inv-fire { width: 130px; height: 78px; }
 .inv-lv { margin: 6px 0; }
+/* (V27.2) foto de la pregunta de la actividad */
+.aq-qimg { display: block; margin: 4px auto 8px; padding: 0; border: 0; background: none; cursor: zoom-in; text-align: center; }
+.aq-qimg img { display: block; max-width: 100%; max-height: 240px; margin: 0 auto; border-radius: 12px; box-shadow: 0 4px 12px #0004; border: 3px solid #fff; }
+.aq-qimg small { display: block; margin-top: 4px; font-size: 12px; color: #7a1020; }
+.act-quizbox:empty { display: none; }
+
+/* ================= (V27.3) día 13: el solitario de Navidad ================= */
+.sol-hud { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin: 2px auto 6px; color: #fff; font: 700 14px 'Montserrat', sans-serif; }
+.sol-hud > span { background: #0006; padding: 4px 10px; border-radius: 12px; }
+.sol-btn { border: 0; border-radius: 12px; padding: 7px 10px; font: 800 13px 'Montserrat', sans-serif; color: #7a1020; background: #fffaf0; box-shadow: 0 3px 0 #c9a46a; cursor: pointer; }
+.sol-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #c9a46a; }
+.sol-btn:disabled { opacity: .45; }
+.sol-auto { position: relative; display: block; margin: 8px auto 0; font-size: 16px; padding: 10px 18px; color: #fff; background: linear-gradient(180deg, #4ade80, #1f9a4a); box-shadow: 0 4px 0 #0f5c2c; }
+.sol-board { position: relative; margin: 0 auto; border-radius: 16px; background: radial-gradient(circle at 50% 30%, #1f7a4c, #0e4a2d 75%); box-shadow: inset 0 0 0 3px #f2c14e, 0 10px 30px #0008; touch-action: none; overflow: hidden; -webkit-user-select: none; user-select: none; }
+.sol-slot, .sol-card { position: absolute; left: 0; top: 0; width: var(--cw); height: var(--ch); border-radius: calc(var(--cw) * .12); }
+.sol-slot { border: 2px dashed #ffffff55; display: grid; place-items: center; color: #ffffff66; font: 800 calc(var(--cw) * .42) 'Montserrat', sans-serif; }
+.sol-slot.red { color: #ff8fa366; } .sol-slot.green { color: #8ff0b266; }
+.sol-slot.stock { cursor: pointer; font-size: calc(var(--cw) * .5); }
+.sol-card { overflow: hidden; background: #fffdf7; box-shadow: 0 1px 0 #0002, 0 2px 5px #0005; transition: transform .18s ease; cursor: pointer; }
+.sol-card.drag { transition: none; box-shadow: 0 10px 20px #0007; }
+.sol-card.back img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sol-card.face { border: 1px solid #d9c9a8; }
+.sol-corner { position: absolute; left: 3%; top: 1%; display: flex; flex-direction: column; align-items: center; line-height: .95; font-family: 'Montserrat', sans-serif; z-index: 2; }
+.sol-corner b { font-size: calc(var(--cw) * .34); font-weight: 900; letter-spacing: -1px; }
+.sol-corner span { font-size: calc(var(--cw) * .26); }
+.sol-corner.br { left: auto; top: auto; right: 4%; bottom: 2%; flex-direction: row; gap: 1px; opacity: .9; }
+.sol-corner.br b { font-size: calc(var(--cw) * .22); } .sol-corner.br span { font-size: calc(var(--cw) * .2); }
+.sol-card.red .sol-corner { color: #c8102e; } .sol-card.green .sol-corner { color: #0f7a3c; }
+.sol-img { position: absolute; right: 2%; bottom: 14%; width: 68%; height: 62%; object-fit: contain; }
+.sol-card.pic .sol-img { width: 78%; height: 72%; right: 4%; bottom: 10%; }
+.sol-shake { animation: solShake .35s; }
+@keyframes solShake { 25% { margin-left: -4px; } 75% { margin-left: 4px; } }
+.sol-board { z-index: 1; isolation: isolate; }
+.sol-hud { gap: 4px; font-size: 13px; } .sol-hud > span { padding: 4px 7px; } .sol-btn { padding: 6px 8px; font-size: 12px; }

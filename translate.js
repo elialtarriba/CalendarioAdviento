@@ -71,7 +71,7 @@ export async function localizeDay(c, def, lang) {
   // pregunta con 4 respuestas de las actividades 1 y 2
   for (const f of ['act1Q', 'act2Q']) {
     const qz = c[f]; if (!qz?.es?.q || qz[lang]) continue;
-    jobs.push(Promise.all([tr(qz.es.q, lang), qz.es.exp ? tr(qz.es.exp, lang) : '', ...qz.es.opts.map(o => (o ? tr(o, lang) : ''))]).then(([q, exp, ...opts]) => { out[f] = { ...qz, [lang]: { q, opts, ok: qz.es.ok, ...(exp ? { exp } : {}), ...(qz.es.expImg ? { expImg: qz.es.expImg } : {}) } }; }));
+    jobs.push(Promise.all([tr(qz.es.q, lang), qz.es.exp ? tr(qz.es.exp, lang) : '', ...qz.es.opts.map(o => (o ? tr(o, lang) : ''))]).then(([q, exp, ...opts]) => { out[f] = { ...qz, [lang]: { q, opts, ok: qz.es.ok, ...(exp ? { exp } : {}), ...(qz.es.expImg ? { expImg: qz.es.expImg } : {}), ...(qz.es.qImg ? { qImg: qz.es.qImg } : {}) } }; }));
   }
   if (Array.isArray(c.missions)) out.missions = c.missions.map((m, i) => needs(m, def.missions?.[i]) ? { ...m, [lang]: m.es } : m);
   if (Array.isArray(c.missions)) jobs.push(Promise.all(c.missions.map((m, i) => needs(m, def.missions?.[i]) ? tr(m.es, lang).then(t => ({ ...m, [lang]: t })) : m)).then(a => { out.missions = a; }));

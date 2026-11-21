@@ -21,7 +21,10 @@ export function render(body, ctx) {
   const screen = el('div', { class: 'sp-screen' }, el('div', { class: 'sp-line' }, '✨ ? ✨'));
   const btn = el('button', { class: 'btn good-btn no-delay' }, L('¡Descúbrelo!', 'Descobreix-lo!', 'Find out!'));
   const wrap = el('div', { class: 'good-check' }, el('h2', { class: 'good-title' }, '✨ ' + L('¿Cuál es tu superpoder de Navidad?', 'Quin és el teu superpoder de Nadal?', 'What is your Christmas superpower?')), screen, btn);
-  body.append(wrap);
+  body.append(wrap,
+    // (V27.3) debajo: el solitario de Navidad
+    el('button', { type: 'button', class: 'oca-cta inv-cta no-delay', onclick: () => import('./solitaire.js').then(m => m.openSolitaire(ctx)) }, '🃏 ' + L('¡Juega al solitario de Navidad!', 'Juga al solitari de Nadal!', 'Play Christmas solitaire!')),
+    el('p', { class: 'pm-goalnote' }, '⭐ ' + L('Si lo resuelves, suma al Marcador de Navidad (y los gnomos, a su juego la 1.ª vez).', 'Si el resols, suma al Marcador de Nadal (i els gnoms, al seu joc la 1a vegada).', 'Solve it for Christmas scoreboard points (and gnome points the first time).')));
   let last = -1, busy = false;
   const line = (p, cls = '') => el('div', { class: 'sp-line ' + cls }, el('span', { class: 'sp-emo' }, p[0]), el('b', {}, p[1]));
   btn.onclick = async () => {

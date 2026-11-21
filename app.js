@@ -3,7 +3,7 @@ import { initStore, store, DEMO, nameKey, isPlayerEmail, famKey } from './store.
 import { t, tx, setLang, getLang } from './i18n.js';
 import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js';
 import { creak, speak, sayVoice, preloadVoice, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState, toggleMuted } from './sound.js';
-import { typeRich, gallery, lightbox } from './richact.js';
+import { typeRich, gallery, lightbox, plain } from './richact.js';
 import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js';
 import { APP_VERSION, CONTACT_EMAIL, isOwnerEmail } from './version.js';
 
@@ -1066,6 +1066,7 @@ async function openDoorInner(n, door, mode = null) {
       S.answers[n] = { ...rec };
       try { await store.submitAnswer(S.user.uid, n, rec); } catch (e) { console.error(e); toast('⚠️ ' + e.message); }
       if (rec.status === 'correct') { fanfare(); checkPrize(); }
+      if (figure() === 'gnomo') import('./gnomes.js').then(m => m.syncDoorPts()).catch(e => console.warn(e)); // (V27.4) +1 per al joc dels gnoms
     },
     finish: (later = false) => { if (!closed) { closed = true; closeDay(n, layer, note, door, later); } },
     // (V24.2) ⭐ Marcador de Navidad: el juego avisa cada vez que se ACABA (también al repetirlo).
@@ -1400,13 +1401,19 @@ async function showActivity(n, layer, simple = false) {
   prefetchAct(n);
   const media = ((await withTimeout(MEDIAP.get(n), 6000)) || []).filter(m => m.act === key);
   const gal = gallery(media);
+  const quizBox = el('div', { class: 'act-quizbox' }); // (V27.2) la pregunta va DESPUÉS de las fotos y vídeos
+  const qz = content[key + 'Q']?.[getLang()] || content[key + 'Q']?.es;
+  // (V27.2) si la actividad es una pregunta o lleva fotos/vídeos, NO sale el texto de ejemplo del calendario (solo el texto que ha escrito la administradora)
+  const norm = s => plain(String(s || '')).replace(/\s+/g, ' ').trim();
+  const isExample = norm(text) && Object.values(defaultDay(n)[key] || {}).some(v => norm(v) === norm(text));
+  const showText = (qz?.q || media.length) && isExample ? '' : text;
   const btn = el('button', { class: 'btn btn-finish no-delay', disabled: true }, t('finish'));
   const later = el('button', { class: 'btn btn-cancel no-delay' }, t('cancelLater'));
   note.append(
     el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, `${t(fig === 'arbol' ? 'activity1' : 'activity2')} · ${t('dayN', n)}`)),
     el('div', { class: 'note-body activity-body' },
       el('img', { class: 'activity-fig', src: FIG_IMG[fig], alt: '' }),
-      textBox, gal,
+      textBox, gal, quizBox,
       el('p', { class: 'activity-warn' }, t('warnColor', t('figName')[fig]))),
     el('div', { class: 'note-foot' }, later, btn));
   layer.append(note);
@@ -1423,9 +1430,8 @@ async function showActivity(n, layer, simple = false) {
     if (n === 24) btn.style.display = 'none'; // se termina con «Me lo quedo»
     sp(textBox).then(v => { btn.disabled = false; if (v === 'keep') btn.onclick(); }).catch(() => { btn.disabled = false; });
   } else {
-    await Promise.race([typeRich(textBox, text, 24), decided]);
-    const qz = content[key + 'Q']?.[getLang()] || content[key + 'Q']?.es;
-    if (qz?.q && !choice) { await Promise.race([actQuiz(textBox, qz, n, key, content), decided]); }
+    if (showText) await Promise.race([typeRich(textBox, showText, 24), decided]); else textBox.style.display = 'none';
+    if (qz?.q && !choice) { await Promise.race([actQuiz(quizBox, qz, n, key, content), decided]); }
     btn.disabled = false;
   }
   const res = choice || await decided;
@@ -1442,10 +1448,12 @@ async function showActivity(n, layer, simple = false) {
 function actQuiz(box, qz, n, key, content = {}) {
   return new Promise(resolve => {
     const opts = qz.opts.map((o, i) => ({ o, i })).filter(x => x.o);
+    const qImg = qz.qImg || Object.values(content[key + 'Q'] || {}).find(x => x?.qImg)?.qImg || ''; // (V27.2) foto de la pregunta
     const fb = el('div', { class: 'aq-fb' });
     const list = el('div', { class: 'aq-list' });
     const card = el('div', { class: 'aq-play' },
       el('div', { class: 'aq-garland' }, ...Array.from({ length: 9 }, (_, i) => el('i', { style: `--i:${i}` }))),
+      qImg ? el('button', { type: 'button', class: 'aq-qimg no-delay', onclick: () => lightbox([{ kind: 'img', src: qImg }], 0) }, el('img', { src: qImg, alt: '' }), el('small', {}, '🔍 ' + L3('Toca para verla en grande', 'Toca per veure-la en gran', 'Tap to enlarge'))) : null,
       el('p', { class: 'aq-question' }, qz.q), list, fb);
     let answered = false;
     opts.forEach(({ o, i }, k) => list.append(el('button', { type: 'button', class: 'aq-ans no-delay', style: `--k:${k}`, onclick: ev => {

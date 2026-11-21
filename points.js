@@ -28,6 +28,7 @@ export const PGAMES = [
   ['d10', 10, () => L('La oca de Navidad', 'L’oca de Nadal', 'The Christmas goose game')],
   ['d11', 11, () => L('El laberinto', 'El laberint', 'The maze')],
   ['d12', 12, () => L('El parchís de Navidad (en línea)', 'El parxís de Nadal (en línia)', 'Christmas ludo (online)')],
+  ['d13', 13, () => L('El solitario de Navidad', 'El solitari de Nadal', 'Christmas solitaire')],
   ['d14', 14, () => L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents')],
   ['d15', 15, () => L('Ordena las bolas', 'Ordena les boles', 'Sort the baubles')],
   ['d16', 16, () => L('Los marcianitos de Navidad (100 puntos)', 'Els marcianets de Nadal (100 punts)', 'Christmas space invaders (100 points)')],

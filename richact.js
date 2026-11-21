@@ -157,6 +157,18 @@ export function openActEditor({ day, actKey, title, html, langName, quiz = null 
     const expText = el('textarea', { rows: 4, class: 'aq-exp', maxlength: 700, placeholder: 'Opcional. Ej.: Rudolf tiene la nariz roja porque… (un párrafo como máximo)' }, quiz?.exp || '');
     const expCount = el('small', { class: 'muted aq-count' });
     const cnt = () => { expCount.textContent = `${expText.value.length}/700`; }; expText.addEventListener('input', cnt); cnt();
+    // (V27.2) foto de la pregunta: sale encima de la pregunta, desde el principio
+    let qImg = quiz?.qImg || '';
+    const qImgBox = el('div', { class: 'aq-imgbox' });
+    const qImgIn = el('input', { type: 'file', accept: 'image/*', style: 'display:none', onchange: async () => {
+      const f = qImgIn.files[0]; qImgIn.value = ''; if (!f) return;
+      try { qImg = await shrink(f, 900, 260000); drawQImg(); toast('📷 Foto puesta (se guarda al pulsar «Guardar»)'); } catch (e) { toast('No se ha podido usar esa foto', 5000); }
+    } });
+    const drawQImg = () => qImgBox.replaceChildren(qImg
+      ? el('div', { class: 'aq-thumb' }, el('img', { src: qImg, alt: '', onclick: () => lightbox([{ kind: 'img', src: qImg }], 0) }),
+          el('button', { type: 'button', class: 'ed-del no-delay', title: 'Quitar la foto', onclick: () => { qImg = ''; drawQImg(); } }, '✕'))
+      : el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay', onclick: () => qImgIn.click() }, '📷 Añadir una foto a la pregunta'), qImgIn);
+    drawQImg();
     let expImg = quiz?.expImg || '';
     const imgBox = el('div', { class: 'aq-imgbox' });
     const imgIn = el('input', { type: 'file', accept: 'image/*', style: 'display:none', onchange: async () => {
@@ -169,10 +181,11 @@ export function openActEditor({ day, actKey, title, html, langName, quiz = null 
       : el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay', onclick: () => imgIn.click() }, '📷 Añadir una foto'), imgIn);
     drawImg();
     const qBody = el('div', { class: 'aq-body' }, el('label', { class: 'aq-lbl' }, 'Pregunta'), qText,
+      el('label', { class: 'aq-lbl' }, '📷 Foto de la pregunta (opcional; sale encima de la pregunta, grande al tocarla)'), qImgBox,
       el('label', { class: 'aq-lbl' }, 'Respuestas (toca el círculo de la correcta)'), ...rows,
       el('label', { class: 'aq-lbl' }, '💡 Explicación (sale en el botón «Explicación» después de contestar)'), expText, expCount,
-      el('label', { class: 'aq-lbl' }, '📷 Foto de la explicación (sale pequeña; al tocarla se hace grande)'), imgBox,
-      el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay', onclick: () => { qText.value = ''; ins.forEach(x => x.value = ''); okIdx = -1; marks.forEach(m => m.classList.remove('on')); expText.value = ''; cnt(); expImg = ''; drawImg(); qBox.classList.remove('open'); } }, '🗑️ Quitar la pregunta'));
+      el('label', { class: 'aq-lbl' }, '📷 Foto de la explicación (sale DESPUÉS de contestar, en el botón «💡 Explicación»)'), imgBox,
+      el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay', onclick: () => { qText.value = ''; ins.forEach(x => x.value = ''); okIdx = -1; marks.forEach(m => m.classList.remove('on')); expText.value = ''; cnt(); expImg = ''; drawImg(); qImg = ''; drawQImg(); qBox.classList.remove('open'); } }, '🗑️ Quitar la pregunta'));
     const qBox = el('div', { class: 'aq-box' + (quiz?.q ? ' open' : '') },
       el('button', { type: 'button', class: 'aq-toggle no-delay', onclick: () => qBox.classList.toggle('open') }, '❓ Pregunta con 4 respuestas', el('small', {}, 'Escribe una pregunta y 4 respuestas; marca la correcta')),
       qBody);
@@ -182,12 +195,13 @@ export function openActEditor({ day, actKey, title, html, langName, quiz = null 
       if (opts.filter(Boolean).length < 2) return { err: 'Escribe al menos 2 respuestas.' };
       if (okIdx < 0 || !opts[okIdx]) return { err: 'Toca el círculo de la respuesta correcta.' };
       const exp = expText.value.trim().slice(0, 700);
-      return { quiz: { q, opts, ok: okIdx, ...(exp ? { exp } : {}), ...(expImg ? { expImg } : {}) } };
+      return { quiz: { q, opts, ok: okIdx, ...(exp ? { exp } : {}), ...(expImg ? { expImg } : {}), ...(qImg ? { qImg } : {}) } };
     };
     const box = el('div', { class: 'act-editor' },
       el('h2', {}, '✏️ ' + title),
       el('p', { class: 'muted' }, `Día ${day} · texto en ${langName}. Escribe todo lo que quieras; usa T para títulos, el color para pintarlos y 😀 para emojis (o los del teclado).`),
       toolbar, emojiBox, ed,
+      el('p', { class: 'muted aq-note' }, 'ℹ️ Si pones una pregunta, fotos o vídeos y dejas aquí el texto de ejemplo del calendario, ese texto NO sale: solo sale el texto que escribas tú.'),
       qBox,
       el('h3', {}, '📷 Fotos y vídeos'),
       mediaBox,
