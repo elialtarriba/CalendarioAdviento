@@ -546,14 +546,15 @@ function prizeState(g) {
   let ok = 0, bad = 0, pend = 0, todo = 0;
   for (let d = 1; d <= g; d++) {
     const a = S.answers[d];
-    if (a?.status === 'correct') ok++;
+    if (a?.status === 'correct' && actPending(d)) todo++; // (V26.4) falta su actividad 1 o 2: aún no está hecha del todo
+    else if (a?.status === 'correct') ok++;
     else if (a?.status === 'incorrect') bad++;
     else if (a?.status === 'pending') pend++;
     else if (missed(d)) bad++;
     else todo++;
   }
-  // (V22.7) hay margen de 3: si ya ha llegado el día g, las casillas por revisar o sin hacer cuentan dentro del margen
-  const state = bad > 3 ? 'lost' : !(todo || pend) || (canOpen(g) && bad + pend + todo <= 3) ? 'won' : 'play';
+  // (V26.4) el regal surt només quan les g caselles estan fetes del tot (resposta + activitat); se pueden fallar 3 como mucho
+  const state = bad > 3 ? 'lost' : !(todo || pend) ? 'won' : 'play';
   return { g, ok, bad, pend, todo, state };
 }
 // regalos ya abiertos (se guardan en el perfil y en el aparato)
@@ -1126,6 +1127,9 @@ function renderSummary(body, ctx) {
 function checkPrize() {
   let seen = {}; const key = 'adv_prizes_' + S.user.uid;
   try { seen = JSON.parse(localStorage.getItem(key)) || {}; } catch {}
+  // (V26.4) si se han vuelto a cerrar casillas (pruebas, reinicio), el aviso del regalo podrá salir otra vez
+  let ch = false; GOALS.forEach(x => { if (seen[x] && prizeState(x).state !== 'won') { delete seen[x]; ch = true; } });
+  if (ch) try { localStorage.setItem(key, JSON.stringify(seen)); } catch {}
   const g = GOALS.find(x => !seen[x] && prizeState(x).state === 'won');
   if (!g) return;
   seen[g] = 1; try { localStorage.setItem(key, JSON.stringify(seen)); } catch {}

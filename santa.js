@@ -171,34 +171,10 @@ export function render(body, ctx) {
     let blob = null;
     fetch(url).then(r => r.blob()).then(b => { blob = b; }).catch(() => {});
     const name = 'feliz-navidad.png';
-    const save = el('button', { class: 'btn no-delay', onclick: async () => {
-      try {
-        const b = blob || await (await fetch(url)).blob();
-        const file = new File([b], name, { type: b.type || 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: t('merry') }); return; }
-        const u = URL.createObjectURL(b);
-        const a = el('a', { href: u, download: name, style: 'display:none' }); document.body.append(a); a.click();
-        setTimeout(() => { a.remove(); URL.revokeObjectURL(u); }, 4000);
-      } catch (e) { if (e.name !== 'AbortError') showBig(url); }
-    } }, '💾 ' + t('d25save'));
-    const print = el('button', { class: 'btn btn-green no-delay', onclick: async () => {
-      // iPhone/iPad: imprimir desde la app no está permitido, pero el menú de compartir tiene «Imprimir»
-      const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      if (iOS || navigator.standalone || matchMedia('(display-mode: standalone)').matches) {
-        try {
-          const b = blob || await (await fetch(url)).blob();
-          const file = new File([b], name, { type: b.type || 'image/png' });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) { toast('🖨️ ' + t('d25printHint'), 5000); await navigator.share({ files: [file] }); return; }
-        } catch (e) { if (e.name === 'AbortError') return; }
-      }
-      // ordenador: se imprime desde un marco aparte que solo contiene la imagen
-      const fr = el('iframe', { style: 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0' });
-      document.body.append(fr);
-      const d = fr.contentWindow.document;
-      d.open(); d.write(`<!doctype html><html><head><meta charset="utf-8"><style>@page{margin:10mm}html,body{margin:0;height:100%}body{display:flex;align-items:center;justify-content:center}img{max-width:100%;max-height:100%}</style></head><body><img src="${url}"></body></html>`); d.close();
-      const go = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch { window.print(); } setTimeout(() => fr.remove(), 60000); };
-      const img = d.querySelector('img'); if (img.complete) setTimeout(go, 200); else img.onload = () => setTimeout(go, 200);
-    } }, '🖨️ ' + t('d25print'));
+    // (V26.4) guardar e imprimir: lo mismo que los regalos (en el iPhone, ventana con la imagen grande y los pasos)
+    const fileOf = () => blob ? new File([blob], name, { type: blob.type || 'image/png' }) : null;
+    const save = el('button', { class: 'btn no-delay', onclick: async () => { const m = await import('./share.js'); m.saveImage(url, name, fileOf()); } }, '💾 ' + t('d25save'));
+    const print = el('button', { class: 'btn btn-green no-delay', onclick: async () => { const m = await import('./share.js'); m.printImage(url, name, fileOf()); } }, '🖨️ ' + t('d25print'));
     const share = el('button', { class: 'btn no-delay', style: 'background:linear-gradient(#25d366,#128c4a);box-shadow:0 4px 0 #0b5e31', onclick: async () => {
       try {
         const b = blob || await (await fetch(url)).blob();

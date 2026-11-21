@@ -3532,3 +3532,15 @@ body:has(.pch-wrap) .pch-fab { display: none; }
 /* (V26.4) día 9: los cuatro botones más separados */
 .sm-ring { gap: 22px; padding: 16px; }
 .sm-center { width: 30%; }
+/* (V26.4) ventana de guardar / imprimir (iPhone): imagen grande y pasos */
+.sv-back { position: fixed; inset: 0; z-index: 3200; display: grid; place-items: center; padding: 14px; background: #000b; animation: fadeIn .25s; }
+.sv-back.out { opacity: 0; transition: opacity .25s; }
+.sv-card { width: min(94vw, 460px); max-height: 92vh; overflow: auto; text-align: center; padding: 16px 14px; border-radius: 24px; color: #7a1020;
+  background: radial-gradient(circle at 50% 0%, #fffef6, #fff1cc 70%, #ffe7a8); border: 4px solid #f2c14e; box-shadow: 0 0 0 4px #a3122c, 0 20px 50px #000a; }
+.sv-card h2 { font-family: 'Mountains of Christmas', cursive; font-size: 32px; margin: 2px 0 8px; }
+.sv-img { display: block; width: 100%; max-height: 52vh; object-fit: contain; border-radius: 12px; box-shadow: 0 6px 16px #0005;
+  -webkit-touch-callout: default !important; -webkit-user-select: auto !important; user-select: auto !important; pointer-events: auto !important; }
+.sv-steps { text-align: left; margin: 12px 4px 8px 26px; padding: 0; font: 700 17px/1.45 'Montserrat', sans-serif; color: #5a2a10; }
+.sv-steps li { margin: 4px 0; }
+.sv-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.sv-btns .btn { width: 100%; margin: 0; }

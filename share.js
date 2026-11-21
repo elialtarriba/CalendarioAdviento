@@ -123,18 +123,32 @@ export async function imageFile(src, file = 'regalo.jpg') {
 }
 const isIOSApp = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
   || navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+// (V26.4) iPhone/iPad: el menú de compartir a veces se cierra solo al elegir «Guardar en Archivos».
+// Lo que funciona SIEMPRE es mantener el dedo sobre la imagen → «Guardar en Fotos» (o «Compartir» → «Imprimir»).
+// Por eso se abre una ventana con la imagen grande y los pasos, y un botón para compartir por si se prefiere.
+export function saveView(src, file = 'regalo.jpg', { print = false, ready = null } = {}) {
+  document.querySelector('.sv-back')?.remove();
+  const L3 = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
+  const steps = print
+    ? [L3('Mantén el dedo encima de la imagen', 'Mantén el dit damunt la imatge', 'Press and hold the picture'), L3('Toca «Compartir»', 'Toca «Comparteix»', 'Tap “Share”'), L3('Desliza hacia abajo y toca «Imprimir»', 'Llisca avall i toca «Imprimeix»', 'Scroll down and tap “Print”')]
+    : [L3('Mantén el dedo encima de la imagen', 'Mantén el dit damunt la imatge', 'Press and hold the picture'), L3('Toca «Guardar en Fotos»', 'Toca «Desa a Fotos»', 'Tap “Save to Photos”'), L3('¡Ya la tienes en tus fotos! 📷', 'Ja la tens a les teves fotos! 📷', 'It’s in your photos! 📷')];
+  const close = () => { back.classList.add('out'); setTimeout(() => back.remove(), 250); };
+  const shareBtn = el('button', { type: 'button', class: 'btn btn-ghost no-delay', onclick: async () => {
+    try { const f = ready || await imageFile(src, file); if (navigator.canShare?.({ files: [f] })) { await navigator.share({ files: [f] }); return; } } catch (e) { if (e?.name === 'AbortError') return; }
+    toast(L3('Este aparato no deja compartir: usa el dedo sobre la imagen.', 'Aquest aparell no deixa compartir: fes servir el dit sobre la imatge.', 'Sharing not available: press and hold the picture.'), 4000);
+  } }, '📤 ' + L3('Compartir (WhatsApp, correo…)', 'Compartir (WhatsApp, correu…)', 'Share (WhatsApp, email…)'));
+  const card = el('div', { class: 'sv-card' },
+    el('h2', {}, (print ? '🖨️ ' + L3('Imprimir', 'Imprimir', 'Print') : '💾 ' + L3('Guardar', 'Desar', 'Save'))),
+    el('img', { class: 'sv-img', src, alt: file }),
+    el('ol', { class: 'sv-steps' }, ...steps.map(x => el('li', {}, x))),
+    el('div', { class: 'sv-btns' }, shareBtn, el('button', { type: 'button', class: 'btn no-delay', onclick: close }, '✔️ ' + L3('Hecho', 'Fet', 'Done'))));
+  const back = el('div', { class: 'sv-back' }, card);
+  back.addEventListener('click', e => { if (e.target === back) close(); });
+  document.body.append(back);
+}
 export async function printImage(src, file = 'regalo.jpg', ready = null) {
-  // (V26.3) iPhone/iPad (y la app instalada en la pantalla de inicio): imprimir desde la web no funciona;
-  // se abre el menú de compartir, que tiene «Imprimir»
-  if (isIOSApp()) {
-    try {
-      const f = ready || await imageFile(src, file);
-      if (navigator.canShare?.({ files: [f] })) {
-        toast('🖨️ ' + t('d25printHint'), 6000);
-        await navigator.share({ files: [f] }); return;
-      }
-    } catch (e) { if (e?.name === 'AbortError') return; }
-  }
+  if (isIOSApp()) return saveView(src, file, { print: true, ready });
+  // ordenador (y Android): se imprime directamente solo la imagen
   document.querySelectorAll('.print-only').forEach(x => x.remove());
   const box = document.createElement('div'); box.className = 'print-only';
   const im = new Image(); im.src = src; box.append(im); document.body.append(box);
@@ -142,9 +156,13 @@ export async function printImage(src, file = 'regalo.jpg', ready = null) {
   im.complete ? go() : (im.onload = go);
 }
 export async function saveImage(src, file = 'certificado.jpg', ready = null) {
+  if (isIOSApp()) return saveView(src, file, { ready });
+  // ordenador y Android: se descarga el archivo
   try {
     const f = ready || await imageFile(src, file);
-    if (navigator.canShare?.({ files: [f] })) { await navigator.share({ files: [f] }); return; }
-  } catch (e) { if (e?.name === 'AbortError') return; }
-  const a = document.createElement('a'); a.href = src; a.download = file; document.body.append(a); a.click(); a.remove();
+    const u = URL.createObjectURL(f);
+    const a = document.createElement('a'); a.href = u; a.download = file; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 60000);
+    toast('💾 ' + ({ es: 'Guardado en Descargas', ca: 'Desat a Baixades', en: 'Saved to Downloads' })[getLang()], 3500);
+  } catch { const a = document.createElement('a'); a.href = src; a.download = file; document.body.append(a); a.click(); a.remove(); }
 }

@@ -100,12 +100,17 @@ export async function monthSummary(opts = {}) {
       // el móvil solo deja compartir con un toque directo: por eso un segundo botón
       const url = URL.createObjectURL(file);
       const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+      // (V26.4) iPhone/iPad: el PDF se abre en una hoja propia, donde «Compartir» sí deja guardarlo en Archivos o imprimirlo
+      const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       const go = el('button', { type: 'button', class: 'btn btn-big btn-green no-delay', onclick: async () => {
+        if (iOS) { const w = window.open(url, '_blank'); if (w) return; }
+        else { const a = el('a', { href: url, download: file.name }); document.body.append(a); a.click(); a.remove(); return; }
         try { if (canShare) { await navigator.share({ files: [file], title: file.name }); return; } } catch (e) { if (e?.name === 'AbortError') return; }
-        const a = el('a', { href: url, download: file.name, target: '_blank' }); document.body.append(a); a.click(); a.remove();
-      } }, '📄 ' + (canShare ? L('Guardar o compartir el PDF', 'Desar o compartir el PDF', 'Save or share the PDF') : L('Descargar el PDF', 'Descarregar el PDF', 'Download the PDF')));
+        location.href = url;
+      } }, '📄 ' + (iOS ? L('Abrir el PDF', 'Obrir el PDF', 'Open the PDF') : L('Descargar el PDF', 'Descarregar el PDF', 'Download the PDF')));
+      const share2 = canShare ? el('button', { type: 'button', class: 'btn btn-ghost no-delay', onclick: async () => { try { await navigator.share({ files: [file], title: file.name }); } catch {} } }, '📤 ' + L('Compartir (WhatsApp, correo…)', 'Compartir (WhatsApp, correu…)', 'Share (WhatsApp, email…)')) : null;
       await popup(el('div', { class: 'sum-pdfpop' }, el('h2', {}, '🎄 ' + L('¡Tu PDF está listo!', 'El teu PDF és a punt!', 'Your PDF is ready!')),
-        el('p', {}, canShare ? L('Pulsa el botón y elige «Guardar en Archivos» (o compártelo por WhatsApp o correo).', 'Prem el botó i tria «Desa a Fitxers» (o comparteix-lo per WhatsApp o correu).', 'Tap the button and choose “Save to Files” (or share it).') : L('Pulsa el botón para descargarlo.', 'Prem el botó per descarregar-lo.', 'Tap the button to download it.')), go),
+        el('p', {}, iOS ? L('Pulsa «Abrir el PDF». Cuando se vea, toca el botón de compartir ⬆️ y elige «Guardar en Archivos» o «Imprimir».', 'Prem «Obrir el PDF». Quan es vegi, toca el botó de compartir ⬆️ i tria «Desa a Fitxers» o «Imprimeix».', 'Tap “Open the PDF”, then the share button ⬆️ and choose “Save to Files” or “Print”.') : L('Pulsa el botón para descargarlo.', 'Prem el botó per descarregar-lo.', 'Tap the button to download it.')), go, share2),
         { cls: 'small', buttons: [{ label: L('Cerrar', 'Tancar', 'Close'), value: false, cls: 'btn-ghost' }] });
       setTimeout(() => URL.revokeObjectURL(url), 120000);
     };
