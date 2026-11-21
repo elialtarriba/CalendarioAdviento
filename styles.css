@@ -3641,3 +3641,6 @@ body:has(.pch-wrap) .pch-fab { display: none; }
 @keyframes solShake { 25% { margin-left: -4px; } 75% { margin-left: 4px; } }
 .sol-board { z-index: 1; isolation: isolate; }
 .sol-hud { gap: 4px; font-size: 13px; } .sol-hud > span { padding: 4px 7px; } .sol-btn { padding: 6px 8px; font-size: 12px; }
+/* (V27.5) portada en el móvil: a todo el ancho y, si es más alta, se baja con el dedo */
+.board.board-scroll { align-items: flex-start; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; }
+.board.board-scroll .board-img { flex: none; }

@@ -970,11 +970,16 @@ function layoutBoard(board, theme) {
   if (!W || !H) return;
   const ar = W / H;
   const diff = v => Math.abs(Math.log(v.w / v.h) - Math.log(ar));
-  const v = theme.variants.reduce((best, x) => (diff(x) < diff(best) ? x : best));
+  // (V27.5) en el móvil (vertical y estrecho), fuera de la pantalla completa: siempre la versión alta, a todo el ancho;
+  // si no cabe, se baja con el dedo. Así no sale la versión cuadrada «aplastada» con espacios en blanco.
+  const phone = !fullView && innerWidth < 600 && innerWidth < innerHeight;
+  const tall = theme.variants.reduce((best, x) => (x.w / x.h < best.w / best.h ? x : best));
+  const v = phone ? tall : theme.variants.reduce((best, x) => (diff(x) < diff(best) ? x : best));
+  board.classList.toggle('board-scroll', phone && W * v.h / v.w > H + 2);
   if (board._v !== v) { board._v = v; board.replaceChildren(buildImage(theme, v)); board.style.background = '#ffffff'; }
   const wrap = board.firstChild;
   let w, h;
-  if (ar > v.w / v.h) { h = H; w = H * v.w / v.h; } else { w = W; h = W * v.h / v.w; }
+  if (phone || ar <= v.w / v.h) { w = W; h = W * v.h / v.w; } else { h = H; w = H * v.w / v.h; }
   wrap.style.width = Math.floor(w) + 'px'; wrap.style.height = Math.floor(h) + 'px';
 }
 
