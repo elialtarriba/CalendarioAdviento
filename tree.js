@@ -38,6 +38,7 @@ function itemSvg(kind, i) {
 const COUNT = { star: 1, bulb: 6, ball: 6, bell: 2, sock: 2, gift: 8 };
 
 export function render(body, ctx) {
+  SLOTS.forEach(s => { s.used = false; }); // (V27.6) cada partida empieza con todos los huecos libres (antes, al repetir el día en la misma sesión, se quedaban ocupados)
   body.style.webkitUserSelect = body.style.userSelect = 'none';
   const kinds = Object.entries(COUNT).flatMap(([k, n]) => Array(n).fill(k));
   const items = kinds.map((kind, i) => ({ kind, type: kind, i }));

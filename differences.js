@@ -41,7 +41,8 @@ export function scareImage() {
 }
 
 export function render(body, ctx) {
-  const pool = [...DIFFS].sort(() => Math.random() - .5).slice(0, 5);
+  // (V27.6) copias nuevas en cada partida: antes se marcaban como «encontradas» las de la partida anterior (al reiniciar el día o cambiar de figura)
+  const pool = DIFFS.map(d => ({ ...d })).sort(() => Math.random() - .5).slice(0, 5);
   const changed = new Set(pool.map(d => d.id));
   const svgA = svgEl('viewBox="0 0 400 300"', scene(new Set()));
   const svgB = svgEl('viewBox="0 0 400 300" class="clickable"', scene(changed));
