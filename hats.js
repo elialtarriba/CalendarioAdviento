@@ -2,6 +2,7 @@
 import { t, tx, getLang } from './i18n.js';
 import { el, sleep, confetti, popup, svgEl } from './fx.js';
 import { chime, pop, machine, scare, hohoho } from './sound.js';
+import { c4Button } from './connect4.js';
 
 const HAT = 'ilu-gorro.webp'; // gorro pintado al estilo del calendario
 const ilu = src => el('img', { src, class: 'ilu', alt: '', draggable: 'false' });
@@ -10,7 +11,7 @@ export function render(body, ctx) {
   const c = ctx.content;
   const area = el('div', { class: 'hats-area' });
   const counter = el('div', { class: 'hats-count' }, '🎅 0 / 3');
-  body.append(el('h2', { class: 'q-title' }, '🎅 ' + (tx(c.hatsTitle) || t('hatsTitle'))), el('p', { class: 'game-help' }, tx(c.hatsHelp) || t('hatsHelp')), counter, area);
+  body.append(el('h2', { class: 'q-title' }, '🎅 ' + (tx(c.hatsTitle) || t('hatsTitle'))), el('p', { class: 'game-help' }, tx(c.hatsHelp) || t('hatsHelp')), counter, area, c4Button(ctx)); // (V28) debajo: el 4 en raya
   let caught = 0, busy = false;
   const hats = [0, 1, 2].map(i => {
     const h = el('button', { class: 'hat no-delay', 'aria-label': 'gorro' }); h.append(ilu(HAT));

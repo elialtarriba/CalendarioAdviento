@@ -1047,7 +1047,10 @@ async function openDoorInner(n, door, mode = null) {
   const body = el('div', { class: 'note-body' });
   const finishBtn = el('button', { class: 'btn btn-finish' }, t('finish'));
   const cancelBtn = el('button', { class: 'btn btn-cancel' }, t('cancelLater'));
-  note.append(el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, t('dayN', n))), body, el('div', { class: 'note-foot' }, cancelBtn, finishBtn)); // «lo haré luego» siempre, en todas las casillas
+  note.append(el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, t('dayN', n)),
+    // (V28) solo la administradora: probar la actividad 1 y después la 2 de este día (no se guarda nada)
+    S.ownerAcct ? el('button', { type: 'button', class: 'act-test-btn no-delay', onclick: e => { e.stopPropagation(); testActivities(n); } }, '🧪 ' + L3('Probar actividades 1 y 2', 'Provar activitats 1 i 2', 'Try activities 1 & 2')) : null),
+    body, el('div', { class: 'note-foot' }, cancelBtn, finishBtn)); // «lo haré luego» siempre, en todas las casillas
   layer.append(note);
   document.body.append(layer);
   // la nota viene "de lejos": desde la puerta hasta ocupar la pantalla
@@ -1166,6 +1169,24 @@ async function runActivity(n, layer) {
     console.error(e); clearCrumples(); layer.querySelectorAll('.note').forEach(x => x.remove());
     try { return await showActivity(n, layer, true); } catch (e2) { console.error(e2); toast('⚠️ ' + (e2.code || e2.message), 6000); return null; }
   }
+}
+
+// (V28) la administradora prueba las dos actividades del día, una detrás de otra, sin que cuente
+let testingActs = false;
+async function testActivities(n) {
+  if (testingActs) return; testingActs = true;
+  const layer = el('div', { class: 'note-layer act-test-layer' }); document.body.append(layer);
+  try {
+    DAYC.delete(n); MEDIAP.delete(n);
+    for (const key of ['act1', 'act2']) {
+      toast('🧪 ' + (key === 'act1' ? L3('Actividad 1 (árbol)', 'Activitat 1 (arbre)', 'Activity 1 (tree)') : L3('Actividad 2 (gnomo)', 'Activitat 2 (gnom)', 'Activity 2 (gnome)')), 2500);
+      layer.querySelectorAll('.note').forEach(x => x.remove());
+      let r = null;
+      try { r = await showActivity(n, layer, false, { key, test: true }); }
+      catch (e) { console.error(e); clearCrumples(); layer.querySelectorAll('.note').forEach(x => x.remove()); r = await showActivity(n, layer, true, { key, test: true }).catch(() => null); }
+      if (r === 'later') break;
+    }
+  } finally { clearCrumples(); layer.remove(); testingActs = false; }
 }
 
 // (V25.2) si algo falla al cerrar, la ventana se quita igual (si no, se quedaba invisible encima y no se podía abrir nada)
@@ -1393,10 +1414,11 @@ async function dayForActivity(n) {
   if (c) DAYC.set(n, c);
   return c || defaultDay(n);
 }
-async function showActivity(n, layer, simple = false) {
-  const fig = figure();
+async function showActivity(n, layer, simple = false, opt = {}) {
+  // (V28) opt.key = 'act1' | 'act2' y opt.test = solo para probar (la administradora): no se guarda nada
+  const fig = opt.key ? (opt.key === 'act1' ? 'arbol' : 'gnomo') : figure();
   const content = await dayForActivity(n);
-  const key = fig === 'arbol' ? 'act1' : 'act2';
+  const key = opt.key || (fig === 'arbol' ? 'act1' : 'act2');
   const over = null; // ya no hay actividades por persona: todos ven las del día
   const text = (over && over.trim()) || tx(content[key]);
   const note = el('div', { class: 'note activity-note', style: 'opacity:0' }); // invisible hasta que empieza la animación (sin parpadeos)
@@ -1440,7 +1462,7 @@ async function showActivity(n, layer, simple = false) {
     btn.disabled = false;
   }
   const res = choice || await decided;
-  if (res === 'done') {
+  if (res === 'done' && !opt.test) {
     const stamp = S.answers[n]?.at || true;
     S.profile.actDone = { ...(S.profile.actDone || {}), [n]: stamp };
     store.saveProfile(S.user.uid, { actDone: { [n]: stamp } }).catch(e => console.warn(e));

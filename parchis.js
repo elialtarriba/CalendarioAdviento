@@ -800,9 +800,10 @@ const boxList = () => Object.entries(BOX).filter(([, m]) => m && m.at).map(([id,
 const unread = () => boxList().filter(m => m.to === myUid() && !m.read).length;
 const newMsgId = () => 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
-async function sendMsg({ gid, to, tn, k = 'msg', txt = '', mut = null }) {
+async function sendMsg({ gid, to, tn, k = 'msg', txt = '', mut = null, g = null }) {
   const me = myUid(), id = newMsgId(), m = { gid, from: me, fn: myName(), to, tn: tn || '', k, txt: String(txt || '').slice(0, 200), at: Date.now() };
   if (mut) m.mut = mut;
+  if (g) m.g = g;
   BOX[id] = { ...m, read: true }; boxChanged();
   await Promise.all([store.gMerge('pinv', to, { box: { [id]: m } }), store.gMerge('pinv', me, { box: { [id]: { ...m, read: true } } })]);
 }
@@ -825,7 +826,7 @@ function clearGameMsgs(gid, others = []) {
 }
 const KIND = { inv: () => '✉️ ' + L('Invitación', 'Invitació', 'Invitation'), msg: () => '💬 ' + L('Mensaje', 'Missatge', 'Message'),
   yes: () => '✅ ' + L('¡Sí, juega!', 'Sí, juga!', 'Yes, playing!'), no: () => '🙅 ' + L('Ahora no', 'Ara no', 'Not now') };
-const msgText = m => m.txt || (m.k === 'inv' ? L(`${m.fn} quiere jugar contigo al parchís. ¿Juegas?`, `${m.fn} vol jugar amb tu al parxís. Hi jugues?`, `${m.fn} wants to play ludo with you. Will you play?`) : '');
+const msgText = m => m.txt || (m.k === 'inv' && m.g === 'c4' ? L(`${m.fn} quiere jugar contigo al 4 en raya. ¿Juegas?`, `${m.fn} vol jugar amb tu al 4 en ratlla. Hi jugues?`, `${m.fn} wants to play Connect 4 with you. Will you play?`) : m.k === 'inv' ? L(`${m.fn} quiere jugar contigo al parchís. ¿Juegas?`, `${m.fn} vol jugar amb tu al parxís. Hi jugues?`, `${m.fn} wants to play ludo with you. Will you play?`) : '');
 
 // ---- botón flotante con el número de mensajes (en toda la app)
 let fab = null;
@@ -861,7 +862,7 @@ async function answerInvite(m, yes, txt = '') {
     await store.gPatch('pgame', m.gid, { [`pl.${me}.st`]: 'ok', [`pl.${me}.seen`]: Date.now(), [`pl.${me}.n`]: myName(), [`pl.${me}.f`]: figure() });
     await sendMsg({ gid: m.gid, to: m.from, tn: m.fn, k: 'yes', txt });
     document.querySelector('.pch-inbox-back')?.remove();
-    if (!OPEN) openParchis(null, { mode: 'online', join: m.gid });
+    if (!OPEN) { if (d.game === 'c4') import('./connect4.js').then(x => x.openC4(null, { join: m.gid })); else openParchis(null, { mode: 'online', join: m.gid }); } // (V28) el 4 en raya usa el mismo buzón
   } else {
     await store.gPatch('pgame', m.gid, { [`pl.${me}.st`]: 'no' }).catch(() => {});
     await sendMsg({ gid: m.gid, to: m.from, tn: m.fn, k: 'no', txt });
@@ -877,7 +878,7 @@ export function openInbox() {
   const close = () => { off(); back.remove(); };
   const card = el('div', { class: 'pch-inbox popup pch-xmas' },
     el('button', { type: 'button', class: 'pch-inbox-x no-delay', onclick: () => close() }, '✕'),
-    el('h2', {}, '💬 ' + L('Mensajes del parchís', 'Missatges del parxís', 'Ludo messages')), list,
+    el('h2', {}, '💬 ' + L('Mensajes de los juegos', 'Missatges dels jocs', 'Game messages')), list,
     el('div', { class: 'popup-btns' }, el('button', { type: 'button', class: 'btn no-delay', onclick: () => close() }, L('Cerrar', 'Tancar', 'Close'))));
   const back = el('div', { class: 'popup-back pch-inbox-back' }, card);
   back.addEventListener('click', e => { if (e.target === back) close(); });
@@ -923,7 +924,7 @@ async function invitePopup(m) {
   chime();
   const ans = el('textarea', { class: 'pch-msg-in', rows: 2, maxlength: 200, placeholder: L('Contesta con un mensaje (opcional): «a las 18:00 estaré»…', 'Respon amb un missatge (opcional): «a les 18:00 hi seré»…', 'Reply with a message (optional)…') });
   const r = await popup(el('div', { class: 'pch-invite' }, el('div', { class: 'pch-intro-pics' }, ...COLORS.map(c => el('div', { class: 'pch-intro-pawn', html: pawnSvg(c) }))),
-    el('h2', {}, '🎲 ' + L('¡Te invitan al parchís!', 'Et conviden al parxís!', 'You’re invited to play ludo!')),
+    el('h2', {}, m.g === 'c4' ? '🔴🟡 ' + L('¡Te invitan al 4 en raya!', 'Et conviden al 4 en ratlla!', 'You’re invited to Connect 4!') : '🎲 ' + L('¡Te invitan al parchís!', 'Et conviden al parxís!', 'You’re invited to play ludo!')),
     el('div', { class: 'pch-invmsg' }, el('small', {}, '✉️ ' + m.fn + ':'), el('p', {}, msgText(m))), ans),
     { cls: 'pch-xmas', buttons: [{ label: '✅ ' + L('¡Sí, a jugar!', 'Sí, a jugar!', 'Yes, let’s play!'), value: 'yes' }, { label: '✍️ ' + L('Solo enviar el mensaje', 'Només enviar el missatge', 'Just send the message'), value: 'msg' }, { label: '🙅 ' + L('Ahora no', 'Ara no', 'Not now'), value: 'no' }, { label: L('Lo miro luego', 'M’ho miro després', 'Later'), value: null, cls: 'btn-ghost' }] });
   const t = ans.value.trim().slice(0, 200);
@@ -988,3 +989,8 @@ async function tidyBox() {
     if (dead) clearGameMsgs(g);
   }
 }
+
+// (V28) lo comparten otros juegos en línea (el 4 en raya del día 1): buzón, mensajes y «una partida abierta a la vez»
+export { sendMsg, clearGameMsgs, boxList, onBox, unread, myName, myUid, markRead };
+export const setOpenGame = w => { OPEN = w; };
+export const getOpenGame = () => OPEN;

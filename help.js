@@ -141,7 +141,7 @@ const SECTIONS = [
   { id: 'special', ico: '⭐', title: 'Los días especiales', color: '#a16207', body: () => [
     P('Casi todos los días son preguntas con 4 respuestas. Estos son distintos:'),
     el('div', { class: 'hg-days' }, ...[
-      [1, '🎅', 'Atrapa los 3 gorros', 'Mensaje anónimo, chiste y detector de personas buenas. Textos editables.'],
+      [1, '🎅', 'Atrapa los 3 gorros + 4 en raya', 'Mensaje anónimo, chiste y detector de personas buenas (textos editables). Debajo, «¡Juega al 4 en raya!»: contra el Pare Noel o en línea, con mensajes. 1.ª partida: Marcador +2; gnomos +2 si ganan, +1 si pierden.'],
       [2, '🎁', 'El duende de los regalos', 'Comecocos navideño con 3 niveles. Suma al Marcador con 1.000 puntos en Mediano o 800 en Difícil.'],
       [4, '🦌', 'Renos con gafas', 'Buscar los renos que llevan gafas.'],
       [6, '🔍', '5 diferencias + susto', 'Puedes cambiar los segundos del susto.'],
@@ -164,7 +164,7 @@ const SECTIONS = [
       el('span', {}, 'Marca los ', B('juegos que dan puntos'), ' (al principio, todos) y pulsa ', btn('💾 Guardar juegos', 'red'), '.'),
       el('span', {}, 'Abajo ves la ', B('clasificación completa'), ': 📜 abre el historial de cada uno y ✕ lo pone a 0.')),
     warn('No tiene nada que ver con el marcador 🍄 de los gnomos. Aquí no se pueden dar puntos a mano.'),
-    tip('Juegos que cuentan: días 1, 3, 4, 5, 6, 7, 8 (árbol y Dulce Navidad), 9, 10 (la oca), 11, 12 (parchís en línea: 4-3-2-1 según el puesto, −1 si abandonas), 13 (solitario resuelto), 14, 15, 16 (marcianitos: al llegar a 100 puntos), 17, 18, 19, 21, 22 y 23. El día 25 ya está cerrado. Las preguntas no dan puntos aquí.'),
+    tip('Juegos que cuentan: días 1 (gorros, y la 1.ª partida del 4 en raya: +2), 3, 4, 5, 6, 7, 8 (árbol y Dulce Navidad), 9, 10 (la oca), 11, 12 (parchís en línea: 4-3-2-1 según el puesto, −1 si abandonas), 13 (solitario resuelto), 14, 15, 16 (marcianitos: al llegar a 100 puntos), 17, 18, 19, 21, 22 y 23. El día 25 ya está cerrado. Las preguntas no dan puntos aquí.'),
   ] },
   { id: 'candy', ico: '🍬', title: 'Dulce Navidad (día 8) y puntos de gnomos', color: '#a3122c', body: () => [
     P('Un mini juego como el Candy Crush, con tus dibujos. Botón rojo «¡Juega a Dulce Navidad!» arriba del árbol del día 8 (y otra vez al acabar de decorarlo). No cuenta para la casilla.'),
@@ -507,6 +507,15 @@ function userSections() {
       item('📜', L('Instrucciones', 'Instruccions', 'Rules'), L('Al lado del dado: qué hace cada casilla especial.', 'Al costat del dau: què fa cada casella especial.', 'Next to the dice: what each special square does.')),
       item('⭐', L('Puntos', 'Punts', 'Points'), L('Acabar suma en el Marcador de Navidad. Si pierdes contra el Pare Noel: −1 (como mucho una vez al día).', 'Acabar suma al Marcador de Nadal. Si perds contra el Pare Noel: −1 (com a molt un cop al dia).', 'Finishing adds to the scoreboard. Lose to Santa: −1 (at most once a day).'))),
     tip(L('Gnomos: la primera vez que ganáis al Pare Noel, ¡premio para vuestro juego! 🍄', 'Gnoms: la primera vegada que guanyeu el Pare Noel, premi per al vostre joc! 🍄', 'Gnomes: the first time you beat Santa, a prize for your game! 🍄')),
+  ] },
+  { id: 'u-c4', ico: '🔴', color: '#1846b8', title: L('El 4 en raya (día 1)', 'El 4 en ratlla (dia 1)', 'Connect 4 (day 1)'), body: () => [
+    P(L('Debajo de los gorros pulsa ', 'A sota dels barrets prem ', 'Below the hats tap '), btn(L('¡Juega al 4 en raya!', 'Juga al 4 en ratlla!', 'Play Connect 4!'), 'red'), L(' y elige: contra el Pare Noel o con alguien en línea.', ' i tria: contra el Pare Noel o amb algú en línia.', ' and choose: against Santa or someone online.')),
+    el('div', { class: 'hg-list' },
+      item('👆', L('Tirar', 'Tirar', 'Play'), L('Coge tu ficha de abajo y suéltala encima de una columna: cae hasta abajo.', 'Agafa la teva fitxa de sota i deixa-la anar a sobre d’una columna: cau fins a baix.', 'Drag your disc over a column and let go: it drops.')),
+      item('🎯', L('Ganar', 'Guanyar', 'Win'), L('4 fichas seguidas: en fila, columna o diagonal.', '4 fitxes seguides: en fila, columna o diagonal.', '4 in a row: across, down or diagonal.')),
+      item('💬', L('Mensajes', 'Missatges', 'Messages'), L('En línea podéis escribiros. Al acabar se borran.', 'En línia us podeu escriure. En acabar s’esborren.', 'Online you can write to each other. Deleted at the end.')),
+      item('⏱', L('20 segundos', '20 segons', '20 seconds'), L('Si no tiras, te pregunta si sigues jugando.', 'Si no tires, et pregunta si continues jugant.', 'If you don’t play, it asks if you’re still playing.'))),
+    tip(L('Tu 1.ª partida acabada suma +2 en el Marcador de Navidad. Gnomos: +2 si la ganan, +1 si pierden o empatan. 🍄', 'La teva 1a partida acabada suma +2 al Marcador de Nadal. Gnoms: +2 si la guanyen, +1 si perden o empaten. 🍄', 'Your 1st finished game: +2 Christmas scoreboard. Gnomes: +2 win, +1 loss or draw. 🍄')),
   ] },
   { id: 'u-sol', ico: '🃏', color: '#0f7a3c', title: L('El solitario de Navidad (día 13)', 'El solitari de Nadal (dia 13)', 'Christmas solitaire (day 13)'), body: () => [
     P(L('Debajo de la ruleta de superpoderes pulsa ', 'A sota de la ruleta de superpoders prem ', 'Below the superpower wheel tap '), btn(L('¡Juega al solitario de Navidad!', 'Juga al solitari de Nadal!', 'Play Christmas solitaire!'), 'red'), '.'),

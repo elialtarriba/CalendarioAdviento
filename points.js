@@ -28,6 +28,7 @@ export const PGAMES = [
   ['d10', 10, () => L('La oca de Navidad', 'L’oca de Nadal', 'The Christmas goose game')],
   ['d11', 11, () => L('El laberinto', 'El laberint', 'The maze')],
   ['d12', 12, () => L('El parchís de Navidad (en línea)', 'El parxís de Nadal (en línia)', 'Christmas ludo (online)')],
+  ['c4', 1, () => L('El 4 en raya (1.ª partida)', 'El 4 en ratlla (1a partida)', 'Connect 4 (first game)')],
   ['d13', 13, () => L('El solitario de Navidad', 'El solitari de Nadal', 'Christmas solitaire')],
   ['d14', 14, () => L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents')],
   ['d15', 15, () => L('Ordena las bolas', 'Ordena les boles', 'Sort the baubles')],
@@ -86,6 +87,12 @@ export async function awardGame(id) {
   celebrate(id, p, next.total);
   paintPtsBars();
   return p;
+}
+// (V28) solo la primera vez (el 4 en raya): +2 y ya está
+export async function awardOnce(id) {
+  if (!S.user || !pgOn(id)) return 0;
+  const d = await loadMine(); if (!d || d.games?.[id]?.n) return 0;
+  return awardGame(id);
 }
 // (V26.3) cuántos puntos daría ahora acabar este juego (para explicarlo en pantalla): { on, p, left }
 export async function nextAward(id) {

@@ -852,6 +852,11 @@ export const GAMES = [
     help: 'Cada casilla que hacen suma estos puntos (se suman solos, sin botón). Si les reinicias una casilla, se resta.', def: { on: true, pw: 1 },
     fields: [['pw', 'Puntos por cada casilla hecha']], prog: b => `${b.lv || 0} casillas hechas`,
     owed: (lv, r) => lv * (+r.pw || 0) },
+  // (V28) el 4 en raya del día 1: su PRIMERA partida acabada (contra el Pare Noel o en línea): ganar +2, perder o empatar +1
+  { id: 'c4', day: 1, name: () => L('El 4 en raya', 'El 4 en ratlla', 'Connect 4'), adm: 'El 4 en raya (día 1)',
+    help: 'Solo cuenta su PRIMERA partida acabada (contra el Pare Noel o en línea): si gana, estos puntos; si pierde o empata (pero juega), los otros. Se suman solos.', def: { on: true, pw: 2, pl: 1 },
+    fields: [['pw', 'Ganar (1.ª partida)'], ['pl', 'Perder o empatar (1.ª partida)']], prog: b => b.lv >= 2 ? '🏆 ganó su 1.ª partida' : b.lv >= 1 ? 'jugó su 1.ª partida' : 'aún no ha jugado',
+    owed: (lv, r) => lv >= 2 ? +r.pw || 0 : lv >= 1 ? +r.pl || 0 : 0 },
   // (V27.3) el solitario del día 13: la PRIMERA vez que lo resuelven
   { id: 'sol13', day: 13, name: () => L('El solitario de Navidad', 'El solitari de Nadal', 'Christmas solitaire'), adm: 'El solitario de Navidad (día 13)',
     help: 'La PRIMERA vez que resuelven el solitario ganan estos puntos (botón verde para cobrar). No resta nada.', def: { on: true, pw: 2 },
