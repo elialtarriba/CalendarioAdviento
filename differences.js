@@ -1,14 +1,17 @@
 // Día 6: las 5 diferencias + susto divertido en el 5º intento
-import { t } from './i18n.js';
+import { t, getLang } from './i18n.js';
 import { el, sleep, confetti, toast, svgEl } from './fx.js';
 import { chime, wrong, pop, scare } from './sound.js';
 
 // Escena pintada al estilo del calendario (dibujos recortados del calendario).
 // Cada diferencia: zona (cx,cy,r) donde se pulsa en el dibujo de la derecha.
+// (V26.5) b = rectángulo del dibujo que cambia: se acepta el toque en TODO el dibujo (más un margen), no solo en su centro
 const DIFFS = [
-  { id: 'moon', c: [55, 45, 24] }, { id: 'scarf', c: [70, 200, 32] }, { id: 'lantern', c: [128, 236, 20] },
-  { id: 'robin', c: [244, 250, 20] }, { id: 'gift', c: [350, 262, 26] }, { id: 'bells', c: [190, 152, 16] }, { id: 'sleigh', c: [186, 272, 20] },
+  { id: 'moon', c: [55, 45, 24], b: [25, 15, 85, 75] }, { id: 'scarf', c: [70, 200, 32], b: [22, 142, 120, 262] }, { id: 'lantern', c: [128, 236, 20], b: [112, 210, 144, 264] },
+  { id: 'robin', c: [244, 250, 20], b: [228, 228, 261, 268] }, { id: 'gift', c: [350, 262, 26], b: [322, 234, 378, 292] }, { id: 'bells', c: [190, 152, 16], b: [176, 140, 205, 166] }, { id: 'sleigh', c: [186, 272, 20], b: [166, 254, 206, 290] },
 ];
+const PAD = 12;
+const near = (d, x, y) => { const [x1, y1, x2, y2] = d.b; const dx = Math.max(x1 - x, 0, x - x2), dy = Math.max(y1 - y, 0, y - y2); return Math.hypot(dx, dy); };
 const IMG = (src, x, y, w, h, extra = '') => `<image href="${src}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet" ${extra}/>`;
 
 function scene(changed) {
@@ -56,10 +59,13 @@ export function render(body, ctx) {
 
   svgB.addEventListener('click', async e => {
     if (over) return;
-    const r = svgB.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width * 400, y = (e.clientY - r.top) / r.height * 300;
+    // (V26.5) el punto exacto dentro del dibujo (sin el borde), y los toques sobre una diferencia ya encontrada no cuentan como fallo
+    let x, y;
+    try { const p = svgB.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svgB.getScreenCTM().inverse()); x = q.x; y = q.y; }
+    catch { const r = svgB.getBoundingClientRect(); x = (e.clientX - r.left - svgB.clientLeft) / svgB.clientWidth * 400; y = (e.clientY - r.top - svgB.clientTop) / svgB.clientHeight * 300; }
+    const hit = pool.filter(d => !d.found && near(d, x, y) <= PAD).sort((a, b) => Math.hypot(a.c[0] - x, a.c[1] - y) - Math.hypot(b.c[0] - x, b.c[1] - y))[0];
+    if (!hit && pool.some(d => d.found && near(d, x, y) <= PAD)) { pop(); toast('✅ ' + ({ es: '¡Esta ya la has encontrado!', ca: 'Aquesta ja l’has trobada!', en: 'You already found this one!' })[getLang()] || '✅'); return; }
     attempts++;
-    const hit = pool.find(d => !d.found && Math.hypot(d.c[0] - x, d.c[1] - y) < d.c[2] + 8);
     if (hit) { hit.found = true; found++; mark(hit); pop(); } else { wrong(); if (attempts < 8) toast(t('d6tries', 8 - attempts)); }
     foundEl.textContent = t('d6found', found); tries.textContent = t('d6tries', 8 - attempts);
     if (found === 5) { over = true; ctx.won?.(); chime(); confetti(160); toast(t('d6win')); ctx.submit({ answer: `5/5 (${attempts})`, status: 'correct' }); return; }
