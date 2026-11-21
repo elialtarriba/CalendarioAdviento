@@ -66,17 +66,22 @@ export function render(body, ctx) {
     const hit = pool.filter(d => !d.found && near(d, x, y) <= PAD).sort((a, b) => Math.hypot(a.c[0] - x, a.c[1] - y) - Math.hypot(b.c[0] - x, b.c[1] - y))[0];
     if (!hit && pool.some(d => d.found && near(d, x, y) <= PAD)) { pop(); toast('✅ ' + ({ es: '¡Esta ya la has encontrado!', ca: 'Aquesta ja l’has trobada!', en: 'You already found this one!' })[getLang()] || '✅'); return; }
     attempts++;
-    if (hit) { hit.found = true; found++; mark(hit); pop(); } else { wrong(); if (attempts < 8) toast(t('d6tries', 8 - attempts)); }
+    if (hit) { hit.found = true; found++; mark(hit); pop(); if (found < 5) toast('✅ ' + ({ es: '¡Correcto!', ca: 'Correcte!', en: 'Correct!' })[getLang()]); } else { wrong(); if (attempts < 8) toast(t('d6tries', 8 - attempts)); }
     foundEl.textContent = t('d6found', found); tries.textContent = t('d6tries', 8 - attempts);
     if (found === 5) { over = true; ctx.won?.(); chime(); confetti(160); toast(t('d6win')); ctx.submit({ answer: `5/5 (${attempts})`, status: 'correct' }); return; }
     if (attempts >= 8) { over = true; pool.filter(d => !d.found).forEach(d => mark(d, '#999')); toast(t('d6lost'), 3500); ctx.submit({ answer: `${found}/5`, status: 'incorrect' }); return; }
     if (attempts === 5 && !scared) {
       scared = true;
-      await sleep(250);
+      await sleep(hit ? 1100 : 450); // que se vea el círculo y el «¡Correcto!» antes del susto
       const s = scareImage(); document.body.append(s); scare();
       await sleep(secs * 1000); s.remove();
-      const m = el('div', { class: 'unlock-msg' }, el('div', {}, '🔓 ' + t('d6unlock'))); document.body.append(m); chime();
-      await sleep(2000); m.remove();
+      // (V27.1) después del susto: dejar claro que era una broma y que el juego sigue (antes decía «Has desbloqueado esta casilla» y parecía que se había acabado)
+      if (over) return;
+      const left = 5 - found, tl = 8 - attempts;
+      const m = el('div', { class: 'unlock-msg' }, el('div', {}, '😄 ' + ({ es: '¡Era una broma!', ca: 'Era una broma!', en: 'Just a joke!' })[getLang()],
+        el('small', { style: 'display:block;font-size:.75em;margin-top:6px' }, (left === 1 ? { es: `Sigue buscando: te falta 1 diferencia y te quedan ${tl} intentos.`, ca: `Continua buscant: et falta 1 diferència i et queden ${tl} intents.`, en: `Keep looking: 1 difference to go, ${tl} tries left.` } : { es: `Sigue buscando: te faltan ${left} diferencias y te quedan ${tl} intentos.`, ca: `Continua buscant: et falten ${left} diferències i et queden ${tl} intents.`, en: `Keep looking: ${left} differences to go, ${tl} tries left.` })[getLang()])));
+      document.body.append(m); chime();
+      await sleep(2600); m.remove();
     }
   });
 }

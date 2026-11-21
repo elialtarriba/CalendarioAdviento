@@ -147,7 +147,7 @@ function openGame(ctx) {
   const g = cv.getContext('2d');
   let T = 20, dpr = 1;
   function fit() {
-    const w = Math.min(innerWidth * .96, 560), h = innerHeight - 300;
+    const w = Math.min(innerWidth * .96, 560), h = innerHeight - 330;
     T = Math.max(12, Math.floor(Math.min(w / COLS, h / ROWS)));
     dpr = Math.min(2, devicePixelRatio || 1);
     cv.width = COLS * T * dpr; cv.height = ROWS * T * dpr; cv.style.width = COLS * T + 'px'; cv.style.height = ROWS * T + 'px';
@@ -183,7 +183,7 @@ function openGame(ctx) {
   // deslizar el dedo sobre el tablero
   let sx = 0, sy = 0, sw = false;
   cv.addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; sw = true; unlockAudio(); });
-  cv.addEventListener('pointermove', e => { if (!sw) return; const dx = e.clientX - sx, dy = e.clientY - sy; if (Math.hypot(dx, dy) > 18) { setDir(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up')); sx = e.clientX; sy = e.clientY; } });
+  cv.addEventListener('pointermove', e => { if (!sw) return; const dx = e.clientX - sx, dy = e.clientY - sy; if (Math.hypot(dx, dy) > 14) { setDir(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up')); sx = e.clientX; sy = e.clientY; } });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => cv.addEventListener(ev, () => { sw = false; }));
 
   // ---- moverse por las casillas
@@ -224,6 +224,14 @@ function openGame(ctx) {
     }
     if (p.next && canGo(p, p.next)) p.dir = p.next;
   };
+  // (V27.1) girar es fácil: si pides un giro justo después de pasar el cruce (hasta casi media casilla), el duende vuelve al cruce y gira.
+  // Y si lo pides antes de llegar, se guarda y gira en cuanto puede.
+  function preTurn(p) {
+    const n = p.next; if (!n || n === p.dir || OPP[p.dir] === n) return;
+    const cx = Math.round(p.x), cy = Math.round(p.y), off = Math.abs(p.x - cx) + Math.abs(p.y - cy);
+    if (off > .45) return;
+    if (canGo({ x: cx, y: cy }, n)) { p.x = cx; p.y = cy; p.dir = n; playerCenter(p); }
+  }
   const dist2 = (a, bx, by) => (a.x - bx) ** 2 + (a.y - by) ** 2;
   const ghostCenter = gh => {
     let target;
@@ -272,6 +280,7 @@ function openGame(ctx) {
     if (!chase && modeT > 6) { chase = true; modeT = 0; } else if (chase && modeT > 20) { chase = false; modeT = 0; }
     if (frightT > 0) { frightT -= dt; if (frightT <= 0) ghosts.forEach(gh => { if (gh.mode === 'fright') gh.mode = 'chase'; }); }
     player.mouth = (player.mouth + dt * 9) % 2;
+    preTurn(player);
     advance(player, player.speed * dt, playerCenter);
     ghosts.forEach(gh => {
       const sp = gh.mode === 'eaten' ? 11 : gh.mode === 'fright' ? LV.gs * .55 : gh.mode === 'house' || gh.mode === 'leave' ? 3 : (cell(Math.round(gh.x), Math.round(gh.y)) === ' ' ? LV.gs * .6 : LV.gs);

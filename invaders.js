@@ -15,6 +15,11 @@ export const GOAL = 100;
 const W = 360, H = 500, PY = 462, ROWS = 5, COLS = 8, LIVES = 3;
 const ROWPTS = [3, 3, 2, 1, 1];                     // punts per fila (a dalt valen més)
 const ALCOL = ['#b56cff', '#b56cff', '#4fc3ff', '#5fe07a', '#5fe07a'];
+// (V27.1) dos nivells: fàcil (marcianets lents, poques boles de neu, més làsers) i difícil (com abans). Tots dos compten per als 100 punts.
+const LEVELS = {
+  easy: { ico: '🙂', name: () => L('Fácil', 'Fàcil', 'Easy'), slow: 1.7, bombK: 2.1, bombV: .62, cool: .2, maxShots: 3, shieldHp: 4, lives: 4, ship: 230 },
+  hard: { ico: '🔥', name: () => L('Difícil', 'Difícil', 'Hard'), slow: 1, bombK: 1, bombV: 1, cool: .32, maxShots: 2, shieldHp: 3, lives: 3, ship: 190 },
+};
 
 // ---------------------------------------------------------------- dibuixos (fets aquí)
 function alienSprite(col, frame, sc) {
@@ -69,8 +74,9 @@ function shade(hex, k) { const n = parseInt(hex.slice(1), 16); const f = v => Ma
 // ---------------------------------------------------------------- el joc
 export function openInvaders(ctx) {
   let alive = true, raf = 0;
-  const bestKey = 'adv_inv_best_' + (S.user?.uid || '');
-  const best = () => { try { return +localStorage.getItem(bestKey) || 0; } catch { return 0; } };
+  const bestKey = () => 'adv_inv_best_' + lvKey + '_' + (S.user?.uid || '');
+  const bestOf = k => { try { return +localStorage.getItem('adv_inv_best_' + k + '_' + (S.user?.uid || '')) || 0; } catch { return 0; } };
+  const best = () => { try { return +localStorage.getItem(bestKey()) || 0; } catch { return 0; } };
   const scoreEl = el('b', {}, '0'), barIn = el('div', { class: 'inv-barin' }), barTxt = el('span', { class: 'inv-bartxt' }), livesEl = el('div', { class: 'inv-lives' });
   const cv = el('canvas', { class: 'inv-cv' }), msg = el('div', { class: 'oca-msg' });
   const keys = { left: false, right: false, fire: false };
@@ -82,10 +88,12 @@ export function openInvaders(ctx) {
     b.addEventListener('contextmenu', e => e.preventDefault());
     return b;
   };
+  // (V27.1) el làser a l'esquerra i les dues fletxes juntes a la dreta
   const pad = el('div', { class: 'inv-pad' },
-    hold('left', '◀', 'inv-move', L('Izquierda', 'Esquerra', 'Left')),
     hold('fire', el('span', {}, '⚡', el('small', {}, L('¡LÁSER!', 'LÀSER!', 'LASER!'))), 'inv-fire', L('Disparar', 'Disparar', 'Fire')),
-    hold('right', '▶', 'inv-move', L('Derecha', 'Dreta', 'Right')));
+    el('div', { class: 'inv-arrows' },
+      hold('left', '◀', 'inv-move', L('Izquierda', 'Esquerra', 'Left')),
+      hold('right', '▶', 'inv-move', L('Derecha', 'Dreta', 'Right'))));
   const rulesBtn = el('button', { type: 'button', class: 'inv-rules no-delay', onclick: () => showRules() }, '📜 ' + L('Reglas', 'Normes', 'Rules'));
   const close = () => { alive = false; cancelAnimationFrame(raf); removeEventListener('keydown', kd); removeEventListener('keyup', ku); removeEventListener('resize', fit); wrap.classList.add('out'); document.documentElement.classList.remove('gm-lock'); setTimeout(() => wrap.remove(), 350); };
   const wrap = el('div', { class: 'oca-wrap inv-wrap' },
@@ -119,7 +127,7 @@ export function openInvaders(ctx) {
   ['pointerup', 'pointercancel'].forEach(ev => cv.addEventListener(ev, () => { dragX = null; }));
 
   // ---- estat
-  let score, lives, wave, ship, shots, bombs, aliens, dir, stepT, frame, shields, ufo, ufoT, parts, running = false, over = false, goalHit = false, cool = 0, bombT = 0, inv = 0, stars;
+  let LV = LEVELS.easy, lvKey = 'easy', score, lives, wave, ship, shots, bombs, aliens, dir, stepT, frame, shields, ufo, ufoT, parts, running = false, over = false, goalHit = false, cool = 0, bombT = 0, inv = 0, stars;
   stars = Array.from({ length: 50 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.4 + .3, s: Math.random() * 12 + 4 }));
   function newWave() {
     aliens = [];
@@ -130,17 +138,17 @@ export function openInvaders(ctx) {
   function newShields() {
     shields = [];
     const shape = ['..####..', '.######.', '########', '###..###'];
-    [0, 1, 2, 3].forEach(i => { const ox = 32 + i * 84; shape.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '#') shields.push({ x: ox + x * 7, y: 400 + y * 7, hp: 3 }); })); });
+    [0, 1, 2, 3].forEach(i => { const ox = 32 + i * 84; shape.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '#') shields.push({ x: ox + x * 7, y: 400 + y * 7, hp: LV.shieldHp }); })); });
   }
   function reset() {
-    score = 0; lives = LIVES; wave = 1; goalHit = false; over = false; parts = []; ufo = null; ufoT = 12 + Math.random() * 8; inv = 0;
+    score = 0; lives = LV.lives; wave = 1; goalHit = false; over = false; parts = []; ufo = null; ufoT = 12 + Math.random() * 8; inv = 0;
     ship = { x: W / 2 }; newWave(); newShields(); paintHud();
   }
   function paintHud() {
     scoreEl.textContent = score;
     const p = Math.min(1, score / GOAL); barIn.style.width = (p * 100) + '%';
     barTxt.textContent = score >= GOAL ? '⭐ ' + GOAL + ' ✅' : `⭐ ${score} / ${GOAL}`;
-    rc(livesEl, ...Array.from({ length: LIVES }, (_, i) => el('span', { class: 'inv-life' + (i < lives ? '' : ' gone') }, '🛷')));
+    rc(livesEl, ...Array.from({ length: LV.lives }, (_, i) => el('span', { class: 'inv-life' + (i < lives ? '' : ' gone') }, '🛷')));
   }
   let msgT = 0;
   function say(txt, kind = 'goose', ms = 1500) { rc(msg, el('span', {}, txt)); msg.className = 'oca-msg on ' + kind; clearTimeout(msgT); msgT = setTimeout(() => msg.classList.remove('on'), ms); }
@@ -159,19 +167,19 @@ export function openInvaders(ctx) {
   }
   function step(dt) {
     // trineu
-    const sp = 190;
+    const sp = LV.ship;
     if (dragX != null) ship.x += Math.max(-sp * 1.6 * dt, Math.min(sp * 1.6 * dt, dragX - ship.x));
     if (keys.left) ship.x -= sp * dt; if (keys.right) ship.x += sp * dt;
     ship.x = Math.max(24, Math.min(W - 24, ship.x));
     if (inv > 0) inv -= dt;
     // disparar (mantenir premut = rànegues)
     cool -= dt;
-    if (keys.fire && cool <= 0 && shots.length < 2) { shots.push({ x: ship.x, y: PY - 16 }); cool = .32; laser(); }
+    if (keys.fire && cool <= 0 && shots.length < LV.maxShots) { shots.push({ x: ship.x, y: PY - 16 }); cool = LV.cool; laser(); }
     shots.forEach(s => s.y -= 430 * dt);
     shots = shots.filter(s => s.y > -10);
     // marcianets: passos (més ràpids quan en queden pocs)
     const live = aliens.filter(a => a.alive);
-    const interval = .05 + .62 * (live.length / (ROWS * COLS)) - Math.min(.12, (wave - 1) * .03);
+    const interval = (.05 + .62 * (live.length / (ROWS * COLS)) - Math.min(.12, (wave - 1) * .03)) * LV.slow;
     stepT += dt;
     if (stepT >= Math.max(.04, interval)) {
       stepT = 0; frame ^= 1;
@@ -182,11 +190,11 @@ export function openInvaders(ctx) {
     // bombes de neu
     bombT -= dt;
     if (bombT <= 0 && live.length) {
-      bombT = Math.max(.35, 1.15 - wave * .12) * (.6 + Math.random() * .8);
+      bombT = Math.max(.35, 1.15 - wave * .12) * (.6 + Math.random() * .8) * LV.bombK;
       const cols = {}; live.forEach(a => { const k = Math.round(a.x); if (!cols[k] || cols[k].y < a.y) cols[k] = a; });
       const front = Object.values(cols); const near = front.sort((a, b) => Math.abs(a.x - ship.x) - Math.abs(b.x - ship.x));
-      const a = Math.random() < .5 ? near[0] : front[Math.floor(Math.random() * front.length)];
-      bombs.push({ x: a.x, y: a.y + 14, v: 120 + wave * 18 });
+      const a = Math.random() < (lvKey === 'easy' ? .2 : .5) ? near[0] : front[Math.floor(Math.random() * front.length)];
+      bombs.push({ x: a.x, y: a.y + 14, v: (120 + wave * 18) * LV.bombV });
     }
     bombs.forEach(b => b.y += b.v * dt);
     bombs = bombs.filter(b => b.y < H + 10);
@@ -252,7 +260,7 @@ export function openInvaders(ctx) {
     g.fillStyle = '#eaf4ff'; g.beginPath(); g.moveTo(0, H); g.lineTo(0, H - 14); for (let x = 0; x <= W; x += 30) g.quadraticCurveTo(x + 15, H - 22, x + 30, H - 14); g.lineTo(W, H); g.fill();
     if (!aliens) return;
     // fortins de neu
-    shields.forEach(b => { if (b.hp <= 0) return; g.fillStyle = b.hp === 3 ? '#ffffff' : b.hp === 2 ? '#d6e9ff' : '#9fc3ee'; g.fillRect(b.x, b.y, 7, 7); });
+    shields.forEach(b => { if (b.hp <= 0) return; g.fillStyle = b.hp >= 3 ? '#ffffff' : b.hp === 2 ? '#d6e9ff' : '#9fc3ee'; g.fillRect(b.x, b.y, 7, 7); });
     // marcianets
     aliens.forEach(a => { if (!a.alive) return; const s = SPR.al[a.r][frame]; g.drawImage(s, a.x - 17, a.y - 16, 34, 32); });
     if (ufo) g.drawImage(SPR.ufo, ufo.x - 25, ufo.y - 12, 50, 24);
@@ -275,16 +283,22 @@ export function openInvaders(ctx) {
         el('li', {}, '◀ ▶ ' + L('Mueve el trineo con las flechas (o arrastrando el dedo por el tablero).', 'Mou el trineu amb les fletxes (o arrossegant el dit pel tauler).', 'Move the sleigh with the arrows (or drag on the board).')),
         el('li', {}, '⚡ ' + L('Pulsa el botón rojo LÁSER para disparar. Si lo mantienes pulsado, dispara seguido.', 'Prem el botó vermell LÀSER per disparar. Si el mantens premut, dispara seguit.', 'Press the red LASER button to fire. Hold it to keep firing.')),
         el('li', {}, '👽 ' + L('Marcianitos: abajo 1 punto, en medio 2, arriba 3. El platillo volador 🛸: 5, 10 o 15.', 'Marcianets: a baix 1 punt, al mig 2, a dalt 3. El plateret volador 🛸: 5, 10 o 15.', 'Invaders: bottom 1 point, middle 2, top 3. The flying saucer 🛸: 5, 10 or 15.')),
-        el('li', {}, '❄️ ' + L('Te tiran bolas de nieve: escóndete detrás de los fuertes de nieve. Tienes 3 trineos 🛷.', 'Et tiren boles de neu: amaga’t darrere els fortins de neu. Tens 3 trineus 🛷.', 'They throw snowballs: hide behind the snow forts. You have 3 sleighs 🛷.')),
+        el('li', {}, '❄️ ' + L('Te tiran bolas de nieve: escóndete detrás de los fuertes de nieve. Tienes 3 trineos 🛷 (4 en el nivel Fácil).', 'Et tiren boles de neu: amaga’t darrere els fortins de neu. Tens 3 trineus 🛷 (4 en el nivell Fàcil).', 'They throw snowballs: hide behind the snow forts. You have 3 sleighs 🛷 (4 on Easy).')),
         el('li', {}, '⬇️ ' + L('Si los marcianitos llegan abajo, se acaba la partida.', 'Si els marcianets arriben a baix, s’acaba la partida.', 'If the invaders reach the bottom, the game ends.')),
+        el('li', {}, '🎮 ' + L('Dos niveles: Fácil y Difícil. En los dos cuenta llegar a 100.', 'Dos nivells: Fàcil i Difícil. En tots dos compta arribar a 100.', 'Two levels: Easy and Hard. Reaching 100 counts in both.')),
         el('li', { class: 'inv-rlgoal' }, '⭐ ' + L(`Llega a ${GOAL} puntos: suma al Marcador de Navidad (+2 la 1.ª vez, +1 las siguientes).`, `Arriba a ${GOAL} punts: suma al Marcador de Nadal (+2 la 1a vegada, +1 les següents).`, `Reach ${GOAL} points: Christmas scoreboard points (+2 the first time, +1 after).`)),
         el('li', { class: 'inv-rlgoal' }, '🍄 ' + L(`Gnomos: la 1.ª vez que llegáis a ${GOAL}, ¡puntos para vuestro juego!`, `Gnoms: la 1a vegada que arribeu a ${GOAL}, punts per al vostre joc!`, `Gnomes: the first time you reach ${GOAL}, points for your game!`))),
       el('div', { class: 'cc8-endbtns' },
-        el('button', { type: 'button', class: 'btn btn-big no-delay', onclick: () => { box.remove(); if (first) start(); else running = was; } }, first ? '🚀 ' + L('¡A jugar!', 'A jugar!', 'Play!') : '👍 ' + L('Seguir', 'Continuar', 'Continue')),
+        ...(first ? Object.entries(LEVELS).map(([k, lv]) => el('button', { type: 'button', class: 'pm-lvbtn inv-lv pm-' + k + ' no-delay', onclick: () => { box.remove(); start(k); } },
+          el('span', { class: 'pm-lvico' }, lv.ico),
+          el('div', {}, el('b', {}, lv.name()), el('small', {}, k === 'easy' ? L('Marcianitos lentos y pocas bolas de nieve. 4 trineos.', 'Marcianets lents i poques boles de neu. 4 trineus.', 'Slow invaders, few snowballs. 4 sleighs.') : L('Rápidos y con muchas bolas de nieve. 3 trineos.', 'Ràpids i amb moltes boles de neu. 3 trineus.', 'Fast, lots of snowballs. 3 sleighs.')),
+            bestOf(k) ? el('small', { class: 'pm-lvbest' }, '🏆 ' + L('Tu récord', 'El teu rècord', 'Your best') + ': ' + bestOf(k)) : null)))
+          : [el('button', { type: 'button', class: 'btn btn-big no-delay', onclick: () => { box.remove(); running = was; } }, '👍 ' + L('Seguir', 'Continuar', 'Continue'))]),
         first ? el('button', { type: 'button', class: 'btn btn-ghost no-delay', onclick: () => close() }, '⏰ ' + L('Lo haré más tarde', 'Ho faré més tard', 'Later')) : null)));
     wrap.append(box);
   }
-  async function start() {
+  async function start(k) {
+    if (k) { lvKey = k; LV = LEVELS[k]; }
     reset(); running = false;
     for (const n of ['3', '2', '1', L('¡Fuego!', 'Foc!', 'Fire!')]) { if (!alive) return; say(n, 'goose', 600); clickSound(); await sleep(620); }
     if (alive) running = true;
@@ -292,14 +306,14 @@ export function openInvaders(ctx) {
   async function end() {
     if (over) return; over = true; running = false;
     await sleep(900); if (!alive) return;
-    const b0 = best(), rec = score > b0; if (rec) try { localStorage.setItem(bestKey, score); } catch {}
+    const b0 = best(), rec = score > b0; if (rec) try { localStorage.setItem(bestKey(), score); } catch {}
     if (goalHit) { fanfare(); confetti(200); } else sadTrombone();
     const lines = [goalHit ? '⭐ ' + L(`¡Has llegado a ${GOAL} puntos! Suma al Marcador de Navidad.`, `Has arribat a ${GOAL} punts! Suma al Marcador de Nadal.`, `You reached ${GOAL} points! Scoreboard points added.`)
       : '⭐ ' + L(`Para el Marcador de Navidad hacen falta ${GOAL} puntos. ¡Inténtalo otra vez!`, `Per al Marcador de Nadal calen ${GOAL} punts. Torna-ho a provar!`, `You need ${GOAL} points for the scoreboard. Try again!`)];
     const card = el('div', { class: 'cc8-endcard' },
       el('div', { class: 'cc8-bigstar' }, goalHit ? '🏆' : '👽'),
       el('h2', {}, goalHit ? L('¡Campeón de los marcianitos!', 'Campió dels marcianets!', 'Invader champion!') : L('¡Fin de la partida!', 'Fi de la partida!', 'Game over!')),
-      el('p', { class: 'cc8-endpts' }, L('Puntos', 'Punts', 'Points') + ': ', el('b', {}, score), ' · ' + L('oleada', 'onada', 'wave') + ' ' + wave),
+      el('p', { class: 'cc8-endpts' }, L('Puntos', 'Punts', 'Points') + ': ', el('b', {}, score), ' · ' + LV.ico + ' ' + LV.name() + ' · ' + L('oleada', 'onada', 'wave') + ' ' + wave),
       el('p', { class: 'cc8-rec' }, '🏆 ' + (rec ? L('¡Nuevo récord!', 'Nou rècord!', 'New record!') : L('Tu récord', 'El teu rècord', 'Your best') + ': ' + Math.max(b0, score))),
       ...lines.map(x => el('p', { class: 'cc8-rec cc8-ptinfo' }, x)));
     if (G) {
@@ -312,6 +326,7 @@ export function openInvaders(ctx) {
     }
     card.append(el('div', { class: 'cc8-endbtns' },
       el('button', { type: 'button', class: 'btn btn-big no-delay', onclick: () => { box.remove(); start(); } }, '🔄 ' + L('Jugar otra vez', 'Tornar a jugar', 'Play again')),
+      el('button', { type: 'button', class: 'btn no-delay', onclick: () => { box.remove(); showRules(true); } }, '🎮 ' + L('Cambiar de nivel', 'Canviar de nivell', 'Change level')),
       el('button', { type: 'button', class: 'btn btn-ghost no-delay', onclick: () => close() }, '🎓 ' + L('Volver al diploma', 'Tornar al diploma', 'Back to the diploma'))));
     const box = el('div', { class: 'cc8-end' }, card);
     wrap.append(box);

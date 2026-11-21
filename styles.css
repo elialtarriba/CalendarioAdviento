@@ -3560,8 +3560,8 @@ body:has(.pch-wrap) .pch-fab { display: none; }
 .pm-life { width: 30px; height: 30px; } .pm-life.gone { opacity: .25; filter: grayscale(1); }
 .pm-stage { position: relative; display: flex; justify-content: center; }
 .pm-cv { display: block; border-radius: 14px; background: radial-gradient(circle at 50% 40%, #16305e, #0b1a3a 70%); box-shadow: 0 0 0 4px #f2c14e, 0 0 0 8px #a3122c, 0 12px 30px #000a; touch-action: none; }
-.pm-pad { position: relative; display: grid; grid-template-columns: 64px 64px 64px; grid-template-rows: 52px 52px; gap: 6px 10px; justify-content: center; margin: 10px auto 0; }
-.pm-key { border: 0; border-radius: 16px; font-size: 24px; color: #fff; background: linear-gradient(180deg, #e0435a, #a3122c); box-shadow: 0 5px 0 #6d0a1c, 0 8px 14px #0006; cursor: pointer; touch-action: none; -webkit-user-select: none; user-select: none; }
+.pm-pad { position: relative; display: grid; grid-template-columns: 88px 88px 88px; grid-template-rows: 66px 66px; gap: 6px 12px; justify-content: center; margin: 10px auto 0; }
+.pm-key { border: 0; border-radius: 20px; font-size: 34px; color: #fff; background: linear-gradient(180deg, #e0435a, #a3122c); box-shadow: 0 5px 0 #6d0a1c, 0 8px 14px #0006; cursor: pointer; touch-action: none; -webkit-user-select: none; user-select: none; }
 .pm-key:active { transform: translateY(4px); box-shadow: 0 1px 0 #6d0a1c; }
 .pm-up { grid-column: 2; grid-row: 1; } .pm-left { grid-column: 1; grid-row: 2; } .pm-down { grid-column: 2; grid-row: 2; } .pm-right { grid-column: 3; grid-row: 2; }
 .pm-levels { width: min(94vw, 420px); }
@@ -3601,3 +3601,9 @@ body:has(.pch-wrap) .pch-fab { display: none; }
 .inv-rlgoal { background: #fff6d6; border-radius: 10px; padding: 6px 8px; font-weight: 800; color: #7a1020; }
 .inv-wrap .oca-msg { top: 40%; }
 .inv-wrap .oca-title { font-size: clamp(22px, 7vw, 34px); white-space: nowrap; }
+/* (V27.1) marcianets: làser a l'esquerra, fletxes juntes a la dreta, més grans */
+.inv-pad { justify-content: space-between; width: min(94vw, 460px); gap: 10px; }
+.inv-arrows { display: flex; gap: 10px; }
+.inv-move { width: 86px; height: 72px; font-size: 34px; }
+.inv-fire { width: 130px; height: 78px; }
+.inv-lv { margin: 6px 0; }

@@ -189,8 +189,8 @@ const SECTIONS = [
   { id: 'invaders', ico: '👽', title: 'Los marcianitos de Navidad (día 16)', color: '#3b2a8a', body: () => [
     P('Debajo del diploma absurdo hay un botón rojo ', B('«¡Pulsa para divertirte!»'), '. Abre un juego como el Space Invaders de antes: marcianitos verdes con gorro de Papá Noel que bajan poco a poco y un trineo que les dispara rayos láser.'),
     el('div', { class: 'hg-list' },
-      el('div', {}, el('span', {}, '🎮'), el('div', {}, B('Cómo se juega'), el('small', {}, '◀ ▶ mueven el trineo (o arrastrar el dedo por el tablero); el botón rojo ⚡ LÁSER dispara (mantenido, dispara seguido). Marcianitos: abajo 1 punto, en medio 2, arriba 3; platillo volador 5, 10 o 15. 3 trineos; fuertes de nieve para esconderse. Botón 📜 Normas dentro del juego.'))),
-      el('div', {}, el('span', {}, '⭐'), el('div', {}, B('Marcador de Navidad'), el('small', {}, 'Al llegar a 100 puntos: +2 la 1.ª vez y +1 las siguientes (como mucho 5 al día). No resta nada.'))),
+      el('div', {}, el('span', {}, '🎮'), el('div', {}, B('Cómo se juega'), el('small', {}, '⚡ LÁSER a la izquierda y ◀ ▶ a la derecha mueven el trineo (o arrastrar el dedo por el tablero); el botón rojo ⚡ LÁSER dispara (mantenido, dispara seguido). Dos niveles: Fácil (lentos, pocas bolas de nieve, 4 trineos) y Difícil (3 trineos). Marcianitos: abajo 1 punto, en medio 2, arriba 3; platillo volador 5, 10 o 15. Fuertes de nieve para esconderse. Botón 📜 Normas dentro del juego.'))),
+      el('div', {}, el('span', {}, '⭐'), el('div', {}, B('Marcador de Navidad'), el('small', {}, 'Al llegar a 100 puntos (en Fácil o en Difícil): +2 la 1.ª vez y +1 las siguientes (como mucho 5 al día). No resta nada.'))),
       el('div', {}, el('span', {}, '🍄'), el('div', {}, B('Gnomos'), el('small', {}, 'La 1.ª vez que llegan a 100 puntos: +2 (botón verde para cobrar). Se cambia en 🍄 → 🎮 Puntos en los juegos.')))),
   ] },
   { id: 'general', ico: '🏆', title: 'Premios y ajustes', color: '#b45309', body: () => [
@@ -513,7 +513,7 @@ function userSections() {
       item('◀ ▶', L('Moverte', 'Moure’t', 'Move'), L('Las flechas mueven el trineo. También puedes arrastrar el dedo por el tablero.', 'Les fletxes mouen el trineu. També pots arrossegar el dit pel tauler.', 'The arrows move the sleigh. You can also drag on the board.')),
       item('⚡', L('Rayo láser', 'Raig làser', 'Laser'), L('El botón rojo dispara. Si lo mantienes pulsado, dispara seguido.', 'El botó vermell dispara. Si el mantens premut, dispara seguit.', 'The red button fires. Hold it to keep firing.')),
       item('👽', L('Puntos', 'Punts', 'Points'), L('Abajo 1, en medio 2, arriba 3. El platillo volador 🛸: 5, 10 o 15.', 'A baix 1, al mig 2, a dalt 3. El plateret volador 🛸: 5, 10 o 15.', 'Bottom 1, middle 2, top 3. The flying saucer 🛸: 5, 10 or 15.')),
-      item('❄️', L('Cuidado', 'Compte', 'Watch out'), L('Te tiran bolas de nieve: escóndete detrás de los fuertes. Tienes 3 trineos.', 'Et tiren boles de neu: amaga’t darrere els fortins. Tens 3 trineus.', 'They throw snowballs: hide behind the forts. You have 3 sleighs.'))),
+      item('❄️', L('Cuidado', 'Compte', 'Watch out'), L('Te tiran bolas de nieve: escóndete detrás de los fuertes. Elige Fácil o Difícil.', 'Et tiren boles de neu: amaga’t darrere els fortins. Tria Fàcil o Difícil.', 'They throw snowballs: hide behind the forts. Choose Easy or Hard.'))),
     tip(L('Llega a 100 puntos y sumas en el Marcador de Navidad. Gnomos: la 1.ª vez, ¡premio para vuestro juego! 🍄', 'Arriba a 100 punts i sumes al Marcador de Nadal. Gnoms: la 1a vegada, premi per al vostre joc! 🍄', 'Reach 100 points for the Christmas scoreboard. Gnomes: the first time, a prize for your game! 🍄')),
   ] },
   { id: 'u-prizes', ico: '🏆', color: '#b45309', title: L('Los premios', 'Els premis', 'The prizes'), body: () => [
