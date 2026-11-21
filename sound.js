@@ -605,3 +605,12 @@ export function wishSong() {
     s.connect(f); f.connect(g); g.connect(out); s.start(at); }
   return { stop: (s = .5) => { try { out.gain.setTargetAtTime(0, c.currentTime, s / 3); } catch {} } };
 }
+// (V26.8) rayo làser dels marcianets: «piu» que baixa
+export function laser() {
+  try {
+    const c = ac(), t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    o.type = 'square'; o.frequency.setValueAtTime(1500, t); o.frequency.exponentialRampToValueAtTime(260, t + .14);
+    g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(.001, t + .16);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + .18);
+  } catch {}
+}

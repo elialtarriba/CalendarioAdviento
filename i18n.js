@@ -40,7 +40,7 @@ const T = {
     d13result: 'Resultado: 87% buena persona. 13% sospechoso. Papá Noel está investigando.',
     d13lines: ['Revisando calcetines…', 'Contando galletas robadas…', 'Midiendo sonrisas…', 'Consultando a los elfos…', 'Escaneando travesuras…', 'Comprobando abrazos…', 'Calculando turrón consumido…', 'Leyendo cartas antiguas…'],
     // día 15
-    d15title: 'El Diploma Absurdo', d15grant: 'Se otorga solemnemente a', d15text: 'Campeón mundial de abrir calendarios de Adviento sin cobrar por ello',
+    d15title: 'El Diploma Absurdo', d15grant: 'Se otorga solemnemente a', d15text: 'Campeón mundial de abrir calendarios de Adviento sin pagar nada',
     d15extra: 'Por su dedicación incansable, sus dedos ágiles abriendo puertecitas y su paciencia infinita esperando cada mañana una nueva sorpresa.',
     d15sign1: 'Papá Noel', d15sign1b: '(firmado con la manopla)', d15sign2: 'Rodolfo', d15sign2b: 'Jefe de Narices Rojas', d15seal: 'Comité Internacional de Renos', d15valid: 'Válido hasta que se acaben los polvorones.',
     // día 20
@@ -114,7 +114,7 @@ const T = {
     d13title: 'Comprovar si has estat bo aquest any', d13btn: "Prem-me", d13analyzing: 'Analitzant…',
     d13result: 'Resultat: 87% bona persona. 13% sospitós. El Pare Noel està investigant.',
     d13lines: ['Revisant mitjons…', 'Comptant galetes robades…', 'Mesurant somriures…', 'Consultant els follets…', 'Escanejant entremaliadures…', 'Comprovant abraçades…', 'Calculant torró consumit…', 'Llegint cartes antigues…'],
-    d15title: 'El Diploma Absurd', d15grant: "S'atorga solemnement a", d15text: "Campió mundial d'obrir calendaris d'Advent sense cobrar-ne res",
+    d15title: 'El Diploma Absurd', d15grant: "S'atorga solemnement a", d15text: "Campió mundial d'obrir calendaris d'Advent sense pagar res",
     d15extra: 'Per la seva dedicació incansable, els seus dits àgils obrint portetes i la seva paciència infinita esperant cada matí una nova sorpresa.',
     d15sign1: 'Pare Noel', d15sign1b: '(signat amb la manyopla)', d15sign2: 'Rodolf', d15sign2b: 'Cap de Nassos Vermells', d15seal: 'Comitè Internacional de Rens', d15valid: "Vàlid fins que s'acabin els polvorons.",
     d20list: 'El que hi ha a cada casella de la ruleta:', d20title: 'La ruleta del disbarat', d20btn: 'Girar!', d20mission: 'La teva missió:',
@@ -184,7 +184,7 @@ const T = {
     d13title: 'Check if you have been good this year', d13btn: 'Press me', d13analyzing: 'Analysing…',
     d13result: 'Result: 87% good person. 13% suspicious. Santa is investigating.',
     d13lines: ['Checking socks…', 'Counting stolen cookies…', 'Measuring smiles…', 'Asking the elves…', 'Scanning mischief…', 'Verifying hugs…', 'Calculating mince pies eaten…', 'Reading old letters…'],
-    d15title: 'The Absurd Diploma', d15grant: 'Solemnly awarded to', d15text: 'World champion of opening Advent calendars without getting paid for it',
+    d15title: 'The Absurd Diploma', d15grant: 'Solemnly awarded to', d15text: 'World champion of opening Advent calendars without paying a thing',
     d15extra: 'For tireless dedication, nimble door-opening fingers and endless patience waiting every morning for a new surprise.',
     d15sign1: 'Santa Claus', d15sign1b: '(signed with a mitten)', d15sign2: 'Rudolph', d15sign2b: 'Head of Red Noses', d15seal: 'International Reindeer Committee', d15valid: 'Valid until the mince pies run out.',
     d20list: 'What is on each slot of the wheel:', d20title: 'The wheel of nonsense', d20btn: 'Spin!', d20mission: 'Your mission:',

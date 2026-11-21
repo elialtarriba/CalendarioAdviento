@@ -846,6 +846,11 @@ export const GAMES = [
     help: 'Solo cuenta su PRIMERA partida en línea que acaba: el 1.º gana tantos puntos como jugadores hay (4 si son 4), el 2.º uno menos… y el último 1. Quien abandona o no la acaba: −1 (cada vez).', def: { on: true },
     fields: [], prog: b => `${b.lv || 0} puntos ganados` + (b.neg ? ` · −${b.neg} por abandonar` : ''),
     owed: lv => lv || 0 },
+  // (V27) los marcianitos del día 16 (debajo del diploma): la PRIMERA vez que llegan a 100 puntos
+  { id: 'inv16', day: 16, name: () => L('Los marcianitos de Navidad', 'Els marcianets de Nadal', 'Christmas space invaders'), adm: 'Los marcianitos de Navidad (día 16)',
+    help: 'La PRIMERA vez que llegan a 100 puntos ganan estos puntos (botón verde para cobrar). No resta nada.', def: { on: true, pw: 2 },
+    fields: [['pw', 'Al llegar a 100 puntos (1.ª vez)']], prog: b => b.lv ? '🏆 ha llegado a 100' : 'aún no ha llegado a 100',
+    owed: (lv, r) => lv >= 1 ? +r.pw || 0 : 0 },
 ];
 export const gameName = id => GAMES.find(g => g.id === id)?.name() || id;
 const gameRules = (cfg, id) => { const g = GAMES.find(x => x.id === id); return { ...(g?.def || {}), ...(cfg?.games?.[id] || {}) }; };

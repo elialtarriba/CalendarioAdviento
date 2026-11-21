@@ -3544,3 +3544,60 @@ body:has(.pch-wrap) .pch-fab { display: none; }
 .sv-steps li { margin: 4px 0; }
 .sv-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .sv-btns .btn { width: 100%; margin: 0; }
+
+/* ================= (V26.7) día 2: el duende de los regalos (comecocos) ================= */
+.pm-intro { text-align: center; }
+.pm-introcv { width: min(100%, 360px); height: auto; display: block; margin: 4px auto 6px; filter: drop-shadow(0 6px 8px #0003); }
+.pm-cta { margin: 8px auto 6px; }
+.pm-goalnote { font: 700 14px 'Montserrat', sans-serif; color: #7a1020; background: #fff6d6; border: 2px dashed #e0a800; border-radius: 12px; padding: 8px 10px; margin: 8px auto; max-width: 420px; }
+.pm-hud { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; width: min(96vw, 560px); margin: 2px auto 6px; color: #fff; }
+.pm-box { display: flex; flex-direction: column; align-items: center; padding: 4px 14px; border-radius: 14px; background: #fffaf0; color: #7a1020; box-shadow: 0 3px 0 #c9a46a; min-width: 70px; }
+.pm-box small { font: 800 11px 'Montserrat', sans-serif; letter-spacing: .5px; text-transform: uppercase; }
+.pm-box b { font: 800 22px 'Montserrat', sans-serif; }
+.pm-lvl { display: flex; flex-direction: column; align-items: center; font: 800 15px 'Montserrat', sans-serif; color: #ffe7a8; text-shadow: 0 2px 0 #0006; }
+.pm-lvl small { font-size: 12px; color: #fff; }
+.pm-lives { display: flex; gap: 2px; }
+.pm-life { width: 30px; height: 30px; } .pm-life.gone { opacity: .25; filter: grayscale(1); }
+.pm-stage { position: relative; display: flex; justify-content: center; }
+.pm-cv { display: block; border-radius: 14px; background: radial-gradient(circle at 50% 40%, #16305e, #0b1a3a 70%); box-shadow: 0 0 0 4px #f2c14e, 0 0 0 8px #a3122c, 0 12px 30px #000a; touch-action: none; }
+.pm-pad { position: relative; display: grid; grid-template-columns: 64px 64px 64px; grid-template-rows: 52px 52px; gap: 6px 10px; justify-content: center; margin: 10px auto 0; }
+.pm-key { border: 0; border-radius: 16px; font-size: 24px; color: #fff; background: linear-gradient(180deg, #e0435a, #a3122c); box-shadow: 0 5px 0 #6d0a1c, 0 8px 14px #0006; cursor: pointer; touch-action: none; -webkit-user-select: none; user-select: none; }
+.pm-key:active { transform: translateY(4px); box-shadow: 0 1px 0 #6d0a1c; }
+.pm-up { grid-column: 2; grid-row: 1; } .pm-left { grid-column: 1; grid-row: 2; } .pm-down { grid-column: 2; grid-row: 2; } .pm-right { grid-column: 3; grid-row: 2; }
+.pm-levels { width: min(94vw, 420px); }
+.pm-levels h2 { font-family: 'Mountains of Christmas', cursive; }
+.pm-lvbtn { display: flex; align-items: center; gap: 12px; width: 100%; margin: 8px 0; padding: 12px 14px; border-radius: 18px; border: 3px solid #f2c14e; text-align: left; color: #fff; cursor: pointer;
+  box-shadow: 0 5px 0 #0004, 0 8px 16px #0003; }
+.pm-lvbtn.pm-easy { background: linear-gradient(180deg, #4ade80, #1f9a4a); } .pm-lvbtn.pm-mid { background: linear-gradient(180deg, #60a5fa, #1f5fbf); } .pm-lvbtn.pm-hard { background: linear-gradient(180deg, #f87171, #a3122c); }
+.pm-lvbtn:active { transform: translateY(4px); box-shadow: 0 1px 0 #0004; }
+.pm-lvico { font-size: 34px; }
+.pm-lvbtn b { display: block; font: 800 20px 'Montserrat', sans-serif; }
+.pm-lvbtn small { display: block; font: 600 13px 'Montserrat', sans-serif; opacity: .95; }
+.pm-lvgoal { margin-top: 2px; font-weight: 800 !important; color: #fff6c8; }
+.pm-lvbest { color: #fff; }
+.pm-howto { text-align: left; font-size: 14px; color: #5a2a10; background: #fff6d6; border-radius: 12px; padding: 6px 10px; margin-top: 6px; }
+.pm-howto p { margin: 4px 0; }
+.pm-wrap .oca-msg { top: 40%; }
+
+/* ================= (V27) día 16: los marcianitos de Navidad ================= */
+.inv-cta { display: block; margin: 18px auto 6px; }
+.inv-hud { position: relative; display: flex; align-items: center; gap: 8px; width: min(96vw, 520px); margin: 2px auto 6px; }
+.inv-bar { position: relative; flex: 1; height: 26px; border-radius: 14px; background: #0b1a3a; box-shadow: inset 0 2px 4px #0008, 0 0 0 2px #f2c14e; overflow: hidden; }
+.inv-barin { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #ffd24a, #ff8a1e); transition: width .3s; }
+.inv-bartxt { position: relative; display: block; text-align: center; line-height: 26px; font: 800 14px 'Montserrat', sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
+.inv-lives { display: flex; font-size: 18px; } .inv-life.gone { opacity: .2; filter: grayscale(1); }
+.inv-rules { border: 0; border-radius: 12px; padding: 6px 8px; font: 800 12px 'Montserrat', sans-serif; color: #7a1020; background: #fffaf0; box-shadow: 0 3px 0 #c9a46a; cursor: pointer; }
+.inv-cv { display: block; border-radius: 14px; box-shadow: 0 0 0 4px #f2c14e, 0 0 0 8px #3b2a8a, 0 12px 30px #000a; touch-action: none; }
+.inv-pad { position: relative; display: flex; justify-content: center; align-items: center; gap: 14px; margin: 12px auto 0; }
+.inv-key { border: 0; border-radius: 18px; color: #fff; cursor: pointer; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.inv-move { width: 76px; height: 60px; font-size: 28px; background: linear-gradient(180deg, #4ade80, #1f9a4a); box-shadow: 0 6px 0 #0f5c2c, 0 9px 14px #0006; }
+.inv-fire { width: 120px; height: 72px; font-size: 26px; border-radius: 40px; background: radial-gradient(circle at 40% 30%, #ff8a9a, #e0283f 55%, #8a0f22); box-shadow: 0 7px 0 #5e0a17, 0 10px 18px #0008; }
+.inv-fire small { display: block; font: 800 13px 'Montserrat', sans-serif; letter-spacing: 1px; }
+.inv-key.on, .inv-key:active { transform: translateY(5px); box-shadow: 0 1px 0 #0006; filter: brightness(1.1); }
+.inv-rulescard { width: min(94vw, 440px); text-align: left; }
+.inv-rulescard h2 { text-align: center; font-family: 'Mountains of Christmas', cursive; }
+.inv-rl { margin: 6px 0; padding-left: 4px; list-style: none; font: 600 14px 'Montserrat', sans-serif; color: #4a2410; }
+.inv-rl li { margin: 7px 0; }
+.inv-rlgoal { background: #fff6d6; border-radius: 10px; padding: 6px 8px; font-weight: 800; color: #7a1020; }
+.inv-wrap .oca-msg { top: 40%; }
+.inv-wrap .oca-title { font-size: clamp(22px, 7vw, 34px); white-space: nowrap; }

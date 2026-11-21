@@ -16,6 +16,7 @@ const FIG = { galleta: 'galleta.png', arbol: 'arbol.png', gnomo: 'gnomo.png' };
 // juegos que pueden dar puntos (id → nombre). Los días se refieren a la casilla.
 export const PGAMES = [
   ['d1', 1, () => L('Los gorros', 'Els barrets', 'The hats')],
+  ['d2', 2, () => L('El duende de los regalos (Mediano o Difícil)', 'El follet dels regals (Mitjà o Difícil)', 'The present elf (Medium or Hard)')],
   ['d3', 3, () => L('Sudoku', 'Sudoku', 'Sudoku')],
   ['d4', 4, () => L('Los renos', 'Els rens', 'The reindeer')],
   ['d5', 5, () => L('Desafío de colores', 'Desafiament de colors', 'Colour challenge')],
@@ -29,6 +30,7 @@ export const PGAMES = [
   ['d12', 12, () => L('El parchís de Navidad (en línea)', 'El parxís de Nadal (en línia)', 'Christmas ludo (online)')],
   ['d14', 14, () => L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents')],
   ['d15', 15, () => L('Ordena las bolas', 'Ordena les boles', 'Sort the baubles')],
+  ['d16', 16, () => L('Los marcianitos de Navidad (100 puntos)', 'Els marcianets de Nadal (100 punts)', 'Christmas space invaders (100 points)')],
   ['d17', 17, () => L('Tres en raya', 'Tres en ratlla', 'Noughts and crosses')],
   ['d18', 18, () => L('Puzle de Papá Noel', 'Trencaclosques del Pare Noel', 'Santa puzzle')],
   ['d19', 19, () => L('Código secreto', 'Codi secret', 'Secret code')],

@@ -1092,7 +1092,7 @@ async function openDoorInner(n, door, mode = null) {
   try {
     // juegos que se pueden repetir: se juegan de nuevo, pero la respuesta guardada (y los premios) no cambian
     if (ctx.prev && ['hats', 'reindeer', 'differences', 'memory', 'goodcheck'].includes(content.type)) { ctx.replay = true; ctx.prev = null; }
-    if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze', 'colors', 'mastermind', 'oca', 'parchis'].includes(content.type)) renderSummary(body, ctx);
+    if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze', 'colors', 'mastermind', 'oca', 'parchis', 'pacman'].includes(content.type)) renderSummary(body, ctx);
     else (await import(`./${content.type}.js`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   // casilla 25: el regalo sorpresa abajo del todo (si el juego se vuelve a pintar, se vuelve a poner)
