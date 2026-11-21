@@ -1,7 +1,7 @@
 // Cartel navideño con el resultado de una partida (foto para el grupo de WhatsApp de la familia).
 // shareResult({ title, emoji, who, rows: [[etiqueta, valor]…], note, file, text })
 import { el, popup, toast } from './fx.js';
-import { getLang } from './i18n.js';
+import { getLang, t } from './i18n.js';
 
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const loadImg = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
@@ -116,17 +116,34 @@ export async function nameOnPhoto(src, name, yPct = 39) {
 }
 
 // (V22.7) imprimir o guardar una imagen
-export function printImage(src) {
+// (V26.3) la imagen como archivo, preparada ANTES de que la persona toque el botón (el iPhone solo deja compartir justo al tocar)
+export async function imageFile(src, file = 'regalo.jpg') {
+  const blob = await (await fetch(src)).blob();
+  return new File([blob], file, { type: blob.type || 'image/jpeg' });
+}
+const isIOSApp = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  || navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+export async function printImage(src, file = 'regalo.jpg', ready = null) {
+  // (V26.3) iPhone/iPad (y la app instalada en la pantalla de inicio): imprimir desde la web no funciona;
+  // se abre el menú de compartir, que tiene «Imprimir»
+  if (isIOSApp()) {
+    try {
+      const f = ready || await imageFile(src, file);
+      if (navigator.canShare?.({ files: [f] })) {
+        toast('🖨️ ' + t('d25printHint'), 6000);
+        await navigator.share({ files: [f] }); return;
+      }
+    } catch (e) { if (e?.name === 'AbortError') return; }
+  }
   document.querySelectorAll('.print-only').forEach(x => x.remove());
   const box = document.createElement('div'); box.className = 'print-only';
   const im = new Image(); im.src = src; box.append(im); document.body.append(box);
   const go = () => { document.body.classList.add('printing'); setTimeout(() => { try { window.print(); } catch {} setTimeout(() => { document.body.classList.remove('printing'); box.remove(); }, 800); }, 120); };
   im.complete ? go() : (im.onload = go);
 }
-export async function saveImage(src, file = 'certificado.jpg') {
+export async function saveImage(src, file = 'certificado.jpg', ready = null) {
   try {
-    const blob = await (await fetch(src)).blob();
-    const f = new File([blob], file, { type: blob.type || 'image/jpeg' });
+    const f = ready || await imageFile(src, file);
     if (navigator.canShare?.({ files: [f] })) { await navigator.share({ files: [f] }); return; }
   } catch (e) { if (e?.name === 'AbortError') return; }
   const a = document.createElement('a'); a.href = src; a.download = file; document.body.append(a); a.click(); a.remove();

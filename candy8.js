@@ -324,17 +324,33 @@ export async function openCandy(ctx = {}) {
     const go = fn => () => { box.remove(); fn(); };
     if (last) {
       if (bonusPartida) bonusPartida = false;
-      import('./points.js').then(m => m.awardGame('candy8')).catch(e => console.warn(e)); // (V24.2) ⭐ Marcador de Navidad
+      // (V24.2) ⭐ Marcador de Navidad (V26.3: se dice en la tarjeta cuántos puntos ha sumado)
+      const ptLine = el('p', { class: 'cc8-rec cc8-ptinfo' }, '⭐ …');
+      import('./points.js').then(async m => { const on = m.pgOn('candy8'); const p = await m.awardGame('candy8');
+        ptLine.textContent = !on ? '' : p ? '⭐ ' + L(`Marcador de Navidad: +${p} ${p === 1 ? 'punto' : 'puntos'} por acabar la partida.`, `Marcador de Nadal: +${p} ${p === 1 ? 'punt' : 'punts'} per acabar la partida.`, `Christmas scoreboard: +${p} for finishing the game.`)
+          : '⭐ ' + L('Marcador de Navidad: hoy esta partida ya no suma (máximo 5 al día). ¡Puedes seguir jugando por diversión!', 'Marcador de Nadal: avui aquesta partida ja no suma (màxim 5 al dia). Pots continuar jugant per diversió!', 'Christmas scoreboard: no more points today (max 5 a day). Keep playing for fun!');
+        if (!ptLine.textContent) ptLine.remove(); }).catch(e => { console.warn(e); ptLine.remove(); });
       btns.push(el('button', { type: 'button', class: 'btn btn-big no-delay', onclick: go(newPartida) }, save.partida >= PARTIDAS ? '🏆 ' + L('Ver el final', 'Veure el final', 'See the ending') : '🎮 ' + L('Nueva partida', 'Partida nova', 'New game')));
       card.append(el('div', { class: 'cc8-endstars' }, ...Array.from({ length: NIVELES }, (_, i) => el('span', { class: 'on', style: `--i:${i}` }, '★'))),
         el('h2', {}, L('¡Partida completada!', 'Partida completada!', 'Game complete!')),
-        el('p', {}, L(`Has pasado los ${NIVELES} niveles de la partida ${partida}. ¡Eres una estrella de la Navidad!`, `Has passat els ${NIVELES} nivells de la partida ${partida}. Ets una estrella del Nadal!`, `You beat all ${NIVELES} levels of game ${partida}. You are a Christmas star!`)));
+        el('p', {}, L(`Has pasado los ${NIVELES} niveles de la partida ${partida}. ¡Eres una estrella de la Navidad!`, `Has passat els ${NIVELES} nivells de la partida ${partida}. Ets una estrella del Nadal!`, `You beat all ${NIVELES} levels of game ${partida}. You are a Christmas star!`)), ptLine);
     } else if (pass) {
       btns.push(el('button', { type: 'button', class: 'btn btn-big no-delay', onclick: go(startLevel) }, `➡️ ${L('Nivel', 'Nivell', 'Level')} ${lv + 1}`));
       card.append(el('div', { class: 'cc8-endstars' }, ...Array.from({ length: NIVELES }, (_, i) => el('span', { class: i < lv ? 'on' : '', style: `--i:${i}` }, '★'))),
         el('h2', {}, `${L('¡Nivel', 'Nivell', 'Level')} ${lv} ${L('superado!', 'superat!', 'cleared!')}`),
-        el('p', { class: 'cc8-endpts' }, L('Puntos', 'Punts', 'Points') + ': ', el('b', {}, score)),
+        el('p', { class: 'cc8-endpts' }, L('Puntos del juego', 'Punts del joc', 'Game points') + ': ', el('b', {}, score)),
         el('p', {}, L('El siguiente es un poco más difícil…', 'El següent és una mica més difícil…', 'The next one is a bit harder…')));
+      // (V26.3) que quede claro: los puntos del juego no son los del Marcador de Navidad
+      const info = el('p', { class: 'cc8-rec cc8-ptinfo' });
+      card.append(info);
+      import('./points.js').then(async m => {
+        const a = await m.nextAward('candy8'); if (!a.on) { info.remove(); return; }
+        info.textContent = '⭐ ' + (a.p
+          ? L(`Estos ${score} puntos solo sirven para pasar de nivel. Para el Marcador de Navidad (el de todos) cuenta acabar la partida: cuando pases los ${NIVELES} niveles sumarás +${a.p} ${a.p === 1 ? 'punto' : 'puntos'}${a.p === 2 ? ' (la primera vez; después +1, hasta 5 al día)' : ''}.`,
+              `Aquests ${score} punts només serveixen per passar de nivell. Per al Marcador de Nadal (el de tothom) compta acabar la partida: quan passis els ${NIVELES} nivells sumaràs +${a.p} ${a.p === 1 ? 'punt' : 'punts'}${a.p === 2 ? ' (la primera vegada; després +1, fins a 5 al dia)' : ''}.`,
+              `These ${score} points are only for passing levels. For the Christmas scoreboard, finishing the game counts: +${a.p} when you clear all ${NIVELES} levels.`)
+          : L('Hoy ya has sumado 5 veces al Marcador de Navidad con este juego: puedes seguir jugando por diversión o salir.', 'Avui ja has sumat 5 cops al Marcador de Nadal amb aquest joc: pots continuar jugant per diversió o sortir.', 'You already scored 5 times today with this game: keep playing for fun or exit.'));
+      }).catch(() => info.remove());
     } else {
       btns.push(el('button', { type: 'button', class: 'btn btn-big no-delay', onclick: go(startLevel) }, '🔄 ' + L('Repetir el nivel', 'Repetir el nivell', 'Retry level')));
       card.append(el('div', { class: 'cc8-bigstar sad' }, '❄️'),

@@ -64,9 +64,11 @@ export function render(body, ctx) {
     <image href="guirnalda8.webp" x="165" y="-4" width="270" height="111" preserveAspectRatio="xMidYMid meet"/>
     <image class="t8-tree" href="arbol8.webp" x="95" y="140" width="410" height="471" preserveAspectRatio="xMidYMid meet"/>
     <g class="t8-lights">${lights}</g>
-    <g id="slots">${SLOTS.map(s => s.type === 'gift'
-      ? `<rect class="t8-slot" x="${s.x - 30}" y="${s.y - 26}" width="60" height="52" rx="8"/>`
-      : `<circle class="t8-slot" cx="${s.x}" cy="${s.y}" r="${s.type === 'star' ? 28 : s.type === 'bulb' ? 10 : 16}"/>`).join('')}</g>
+    <g id="slots">${SLOTS.map((s, k) => { const rep = items.find(x => x.type === s.type); // (V26.3) la sombra de lo que va en cada sitio
+      return `<g class="t8-spot t8-st-${s.type}" data-k="${k}">` + (s.type === 'gift'
+      ? `<rect class="t8-slot" x="${s.x - 32}" y="${s.y - 28}" width="64" height="56" rx="10"/>`
+      : `<circle class="t8-slot" cx="${s.x}" cy="${s.y}" r="${s.type === 'star' ? 30 : s.type === 'bulb' ? 12 : 19}"/>`)
+        + (rep ? `<g class="t8-ghost" transform="translate(${s.x} ${s.y}) scale(${s.type === 'gift' ? .82 : 1})">${itemSvg(rep.kind, rep.i)}</g>` : '') + '</g>'; }).join('')}</g>
     <rect x="8" y="762" width="584" height="78" rx="22" class="t8-tray"/>
     <g id="items"></g>
     <g id="fx"></g>`;
@@ -98,6 +100,7 @@ export function render(body, ctx) {
   }
   const place = (it, s, quiet) => {
     s.used = true; it.placed = true; it.drag = false; it.slot = s; it.g.classList.add('placed'); setPos(it, s.x, s.y);
+    svg.querySelector(`.t8-spot[data-k="${SLOTS.indexOf(s)}"]`)?.classList.add('used');
     placed++; counter.textContent = t('d8count', placed);
     if (!quiet) { snapSound(); clickSound(); sparkle(s.x, s.y - (it.type === 'gift' ? 20 : 0)); }
   };
@@ -106,12 +109,13 @@ export function render(body, ctx) {
     layer.append(it.g); setPos(it, it.x0, it.y0);
     it.g.addEventListener('pointerdown', e => {
       if (it.placed || finished) return; e.preventDefault(); unlockAudio(); layer.append(it.g); it.drag = true; pop();
+      svg.classList.add('t8-dragging'); svg.dataset.drag = it.type; svg.querySelectorAll('.t8-st-' + it.type).forEach(x => x.classList.add('on')); // (V26.3) se encienden los sitios donde puede ir
       const p0 = pt(e), ox = it.x - p0.x, oy = it.y - p0.y;
       setPos(it, it.x, it.y);
       const move = ev => { const p = pt(ev); setPos(it, p.x + ox, p.y + oy); };
       const up = () => {
         window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
-        it.drag = false;
+        it.drag = false; svg.classList.remove('t8-dragging'); delete svg.dataset.drag; svg.querySelectorAll('.t8-spot.on').forEach(x => x.classList.remove('on'));
         const s = SLOTS.filter(s => !s.used && s.type === it.type).map(s => ({ s, d: Math.hypot(s.x - it.x, s.y - it.y) })).sort((a, b) => a.d - b.d)[0];
         if (s && s.d < (it.type === 'gift' ? 95 : it.type === 'star' ? 110 : 75)) { place(it, s.s); if (placed === items.length) setTimeout(win, 500); }
         else { it.g.animate([{ opacity: .6 }, { opacity: 1 }], { duration: 300 }); setPos(it, it.x0, it.y0); }

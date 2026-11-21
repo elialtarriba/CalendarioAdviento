@@ -38,7 +38,7 @@ export function pawnSvg(c) {
 export function dragToken(o) {
   return new Promise(resolve => {
     const { tok, layer, path } = o; const target = path[path.length - 1];
-    let lit = new Set(), dragging = false, ox = 0, oy = 0, done = false;
+    let lit = new Set(), dragging = false, ox = 0, oy = 0, done = false, dx0 = 0, dy0 = 0, dt0 = 0;
     tok.classList.add('tk-can');
     const tgt = o.cellEl(target); if (!o.targetOnLift) tgt?.classList.add('tk-target');
     const light = upTo => { // ilumina el camino hasta la casilla upTo (incluida)
@@ -50,7 +50,7 @@ export function dragToken(o) {
     const pos = (x, y) => { tok.style.transform = `translate(${x}px, ${y}px) translate(-50%, -62%)`; };
     const down = e => {
       if (done) return; e.preventDefault(); unlockAudio();
-      dragging = true; tok.setPointerCapture?.(e.pointerId);
+      dragging = true; tok.setPointerCapture?.(e.pointerId); dx0 = e.clientX; dy0 = e.clientY; dt0 = Date.now();
       const lr = layer.getBoundingClientRect(), h = o.home();
       ox = e.clientX - lr.left - h.x; oy = e.clientY - lr.top - h.y;
       tok.classList.add('tk-lift'); tok.style.transition = 'none'; if (o.targetOnLift) tgt?.classList.add('tk-target');
@@ -66,6 +66,18 @@ export function dragToken(o) {
     };
     const up = e => {
       if (!dragging) return; dragging = false;
+      // (V26.3) un toque (sin arrastrar) también vale: la ficha va sola a su casilla
+      if (Math.hypot(e.clientX - dx0, e.clientY - dy0) < 12 && Date.now() - dt0 < 600) {
+        done = true; tok.classList.remove('tk-lift', 'tk-can'); tok.style.transition = '';
+        cleanup();
+        (async () => {
+          for (const k of path) { const c = o.center(k); pos(c.x, c.y); light(k); await new Promise(r => setTimeout(r, 120)); }
+          tok.classList.add('tk-snap'); try { snapSound(); } catch {}
+          setTimeout(() => { tok.classList.remove('tk-snap'); clear(); }, 450);
+          resolve(true);
+        })();
+        return;
+      }
       const lr = layer.getBoundingClientRect(), x = e.clientX - lr.left - ox, y = e.clientY - lr.top - oy;
       const c = o.center(target), dist = Math.hypot(x - c.x, y - c.y);
       const k = o.cellAt(e.clientX, e.clientY - o.size * .25);

@@ -63,7 +63,11 @@ export function moveOf(G, c, i, s, bonus = false) {
   const path = [];
   for (let q = p + 1; q <= to; q++) {
     const k = keyOf(c, q); path.push(k);
-    if (q <= 63 && occ(G, k).length >= 2) return null; // barrera
+    if (q <= 63) {
+      const o = occ(G, k).filter(x => !(x.c === c && x.i === i));
+      if (o.length >= 2 && o[0].c === o[1].c) return null; // barrera: 2 fichas del MISMO color (V26.3: dos colores distintos en un seguro no cierran el paso)
+      if (q === to && o.length >= 2) return null;          // en una casilla caben 2 fichas como mucho
+    }
   }
   let cap = null;
   if (to <= 63) {
@@ -123,6 +127,7 @@ export function applyMove(G, mv) {
   if (done4(G, c) && !G.fin.includes(c)) { G.fin.push(c); fx = 'done'; checkEnd(G); if (G.status === 'end') return fx; nextTurn(G); return fx; }
   const b = mv.cap ? 20 : mv.to === 71 ? 10 : 0;
   if (b && legal(G, c, b, true).length) { G.ph = 'bonus'; G.bonus = b; G.steps = b; return fx; }
+  if (b) fx += 'x'; // (V26.3) toca contar 20 o 10 pero no se puede mover ninguna ficha
   if (G.dice === 6) { G.ph = 'roll'; G.steps = 0; G.bonus = 0; return fx; } // con un 6 se vuelve a tirar
   nextTurn(G); return fx;
 }
@@ -163,7 +168,7 @@ export function showRules() {
     R('5️⃣', L('Salir de casa', 'Sortir de casa', 'Leaving home'), L('Solo se sale con un 5. Si sacas un 5 y puedes sacar ficha, es obligatorio.', 'Només se surt amb un 5. Si treus un 5 i pots treure fitxa, és obligatori.', 'You only leave home with a 5. If you roll a 5 and can bring a token out, you must.')),
     R('6️⃣', L('El 6', 'El 6', 'The 6'), L('Con un 6 vuelves a tirar. Si ya no te queda ninguna ficha en casa, el 6 vale 7. ¡El tercer 6 seguido manda a casa la última ficha que has movido!', 'Amb un 6 tornes a tirar. Si ja no et queda cap fitxa a casa, el 6 val 7. El tercer 6 seguit envia a casa l’última fitxa que has mogut!', 'A 6 lets you roll again. If none of your tokens are at home, a 6 counts as 7. A third 6 in a row sends your last moved token home!')),
     R('🍪', L('Comer', 'Menjar', 'Capture'), L('Si caes donde hay una ficha de otro color, te la comes (vuelve a su casa) y cuentas 20 con la ficha que quieras. En las casillas seguras ❄️ no se come.', 'Si caus on hi ha una fitxa d’un altre color, te la menges (torna a casa seva) i en comptes 20 amb la fitxa que vulguis. A les caselles segures ❄️ no es menja.', 'Land on another colour’s token to capture it (it goes home) and move 20 with any token. No captures on the safe ❄️ squares.')),
-    R('🧱', L('Barrera', 'Barrera', 'Blockade'), L('Dos fichas en la misma casilla hacen barrera: nadie puede pasar.', 'Dues fitxes a la mateixa casella fan barrera: ningú no pot passar.', 'Two tokens on one square make a blockade: nobody can pass.')),
+    R('🧱', L('Barrera', 'Barrera', 'Blockade'), L('Dos fichas del mismo color en la misma casilla hacen barrera: nadie puede pasar. En una casilla caben 2 fichas como mucho.', 'Dues fitxes del mateix color a la mateixa casella fan barrera: ningú no pot passar. A una casella hi caben 2 fitxes com a màxim.', 'Two tokens of the same colour on one square make a blockade: nobody can pass. A square holds 2 tokens at most.')),
     R('🏠', L('Llegar a casa', 'Arribar a casa', 'Getting home'), L('Al final das la vuelta por tu pasillo de color hasta el árbol del centro. Hay que llegar justo. Cada ficha que llega: cuentas 10.', 'Al final fas el teu passadís de color fins a l’arbre del centre. Cal arribar-hi just. Cada fitxa que arriba: en comptes 10.', 'At the end, go up your coloured lane to the tree in the middle. You must land exactly. Each token home: move 10.')),
     R('⏱', L('Tiempo', 'Temps', 'Time'), L('En línea: si alguien no tira en 2 minutos, su ficha se mueve sola. Si no vuelve en 5 minutos, queda fuera de la partida.', 'En línia: si algú no tira en 2 minuts, la seva fitxa es mou sola. Si no torna en 5 minuts, queda fora de la partida.', 'Online: if someone doesn’t play within 2 minutes, their token moves by itself. After 5 minutes away, they’re out.')),
     el('div', { class: 'oca-pts' }, el('b', {}, '⭐ ' + L('Puntos (en línea)', 'Punts (en línia)', 'Points (online)')),
@@ -244,6 +249,13 @@ function buildShell(ctx) {
 }
 const fmt = s => { s = Math.max(0, Math.floor(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
 
+// ---- lo que se dice al comer o llegar (V26.3: y si no se puede contar, también se dice)
+async function sayFx(W, fx, talk) {
+  if (!fx) return;
+  if (fx.startsWith('cap')) { chime(); await W.say(L('¡Te como, y cuento veinte!', 'Et menjo, i en compto vint!', 'Got you! I count twenty!'), 'goose', talk ? 'pcap' : ''); }
+  else if (fx.startsWith('meta') || fx === 'done') { chime(); await W.say(L('¡Llego a casa, y cuento diez!', 'Arribo a casa, i en compto deu!', 'Home safe! I count ten!'), 'goose', talk ? 'pmeta' : ''); }
+  if (fx.endsWith('x')) await W.say('🚫 ' + L('…pero no puedo avanzar con ninguna ficha', '…però no puc avançar amb cap fitxa', '…but I can’t move any token'), 'warn', talk ? 'pnomove' : '');
+}
 // ---- dibujar el tablero (cuadrícula 19×19)
 function drawBoard(W) {
   const { board, cells } = W;
@@ -411,8 +423,7 @@ async function soloPlay(W, myC, nCpu) {
     const fx = applyMove(G, mv);
     if (mv.cap) await flyHome(W, mv.cap.c, mv.cap.i);
     placeAll(W);
-    if (fx === 'cap') { chime(); await W.say(L('¡Te como, y cuento veinte!', 'Et menjo, i en compto vint!', 'Got you! I count twenty!'), 'goose', 'pcap'); }
-    else if (fx === 'meta' || fx === 'done') { chime(); await W.say(L('¡Llego a casa, y cuento diez!', 'Arribo a casa, i en compto deu!', 'Home safe! I count ten!'), 'goose', 'pmeta'); }
+    await sayFx(W, fx, true);
     await sleep(cpu ? 300 : 150);
   }
   if (!W.alive) return;
@@ -636,8 +647,7 @@ async function onlineLobby(W, join) {
     // lo que ha pasado (para los que miran)
     if (ev.k === 'roll' && ev.by !== me) { W.spin(); await sleep(700); W.land(ev.n); if (ev.r === 'three6') { W.say('6️⃣6️⃣6️⃣ ' + L('¡Tres seises!', 'Tres sisos!', 'Three sixes!'), 'bad'); } else if (ev.r === 'none' || ev.r === 'none6') W.say(`${info[ev.c]?.name || ''}: ${L('no puede mover', 'no pot moure', 'can’t move')}`, 'warn'); }
     if (ev.k === 'move' && ev.by !== me) { const pG = prev?.G; if (pG) { W.G = pG; placeAll(W, { c: ev.c, i: ev.i }); W.G = d.G; } await walkTok(W, ev.c, ev.i, ev.path || []); if (ev.cap) await flyHome(W, ev.cap.c, ev.cap.i); }
-    if (ev.k === 'move' && (ev.fx === 'cap')) { chime(); await W.say(L('¡Te como, y cuento veinte!', 'Et menjo, i en compto vint!', 'Got you! I count twenty!'), 'goose', ev.by === me ? 'pcap' : ''); }
-    if (ev.k === 'move' && (ev.fx === 'meta' || ev.fx === 'done')) { chime(); await W.say(L('¡Llego a casa, y cuento diez!', 'Arribo a casa, i en compto deu!', 'Home safe! I count ten!'), 'goose', ev.by === me ? 'pmeta' : ''); }
+    if (ev.k === 'move') await sayFx(W, ev.fx, ev.by === me);
     if (ev.k === 'left') W.say('🚪 ' + (info[ev.c]?.name || '') + ' ' + L('ha salido de la partida', 'ha sortit de la partida', 'left the game'), 'warn');
     if (ev.auto && ev.c) W.say('⏳ ' + (info[ev.c]?.name || '') + ': ' + L('se ha movido sola', 's’ha mogut sola', 'moved by itself'), 'warn');
     placeAll(W);

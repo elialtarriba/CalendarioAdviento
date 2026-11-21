@@ -84,6 +84,14 @@ export async function awardGame(id) {
   paintPtsBars();
   return p;
 }
+// (V26.3) cuántos puntos daría ahora acabar este juego (para explicarlo en pantalla): { on, p, left }
+export async function nextAward(id) {
+  if (!S.user || !pgOn(id) || ptsClosed()) return { on: false, p: 0, left: 0 };
+  const d = await loadMine(); const g = { n: 0, d: '', dn: 0, ...(d?.games?.[id] || {}) };
+  if (!g.n) return { on: true, p: FIRST, left: MAX_DAY };
+  const used = g.d === madridDay() ? g.dn : 0;
+  return { on: true, p: used >= MAX_DAY ? 0 : AGAIN, left: Math.max(0, MAX_DAY - used) };
+}
 // (V25.3) perder (la oca contra la máquina): −1, como mucho una vez al día por juego; nunca por debajo de 0
 export async function penaltyGame(id) {
   if (!S.user || !pgOn(id) || ptsClosed()) return 0;

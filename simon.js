@@ -1,7 +1,7 @@
 // Día 9: «Papá Noel dice» (Simón dice). Cuatro botones navideños se iluminan y suenan siguiendo una
 // secuencia; hay que repetirla. Cada ronda se añade uno más y va más rápido. Se juega hasta que se
 // acaba el tiempo (4 minutos por defecto; se puede elegir). Al acabar: «¡Tiempo!».
-import { el, sleep, confetti } from './fx.js';
+import { el, sleep, confetti, popup } from './fx.js';
 import { getLang } from './i18n.js';
 import { unlockAudio, oops, fanfare, chime } from './sound.js';
 import { minutesPopup, fullBtn, exitFull, howStrip, minTxt } from './gameui.js';
@@ -86,6 +86,23 @@ export function render(body, ctx) {
     for (const i of seq) { if (!alive || timeUp) return; await flash(i, on); await sleep(gap); }
     playing = false; listening = true; pos = 0; ring.classList.remove('watch');
     setStatus('👆 ' + L('¡Tu turno!', 'El teu torn!', 'Your turn!'));
+    armIdle();
+  }
+  // (V26.4) si no tocas ningún color en 20 segundos, el juego se para (y el tiempo también) y pregunta si sigues
+  let idleT = 0, paused = false;
+  const armIdle = () => { clearTimeout(idleT); idleT = setTimeout(askContinue, 20000); };
+  async function askContinue() {
+    if (!listening || timeUp || !alive || paused) return;
+    paused = true; listening = false;
+    const left = Math.max(0, endAt - Date.now()); clearInterval(tick);
+    setStatus('⏸️ ' + L('Juego parado', 'Joc aturat', 'Game paused'));
+    const go = await popup(`<h2>🎅 ${L('¿Sigues ahí?', 'Encara hi ets?', 'Still there?')}</h2><p style="font-size:18px">${L('Hace 20 segundos que no tocas ningún color. El juego y el tiempo se han parado.', 'Fa 20 segons que no toques cap color. El joc i el temps s’han aturat.', 'You haven’t tapped a colour for 20 seconds. The game and the clock are paused.')}</p>`,
+      { buttons: [{ label: '▶️ ' + L('¡Sigo jugando!', 'Continuo jugant!', 'Keep playing!'), value: true }, { label: '🚪 ' + L('Salir', 'Sortir', 'Exit'), value: false, cls: 'btn-ghost' }] });
+    paused = false;
+    if (!alive || timeUp) return;
+    if (!go) { ctx.cleanup(); ctx.close ? ctx.close() : (document.querySelector('.note-layer .btn-cancel')?.click()); return; }
+    endAt = Date.now() + left; paintClock(); tick = setInterval(paintClock, 250);
+    await playSeq(); // se vuelve a enseñar la secuencia
   }
   async function nextRound() {
     seq.push(Math.floor(Math.random() * 4));
@@ -97,6 +114,7 @@ export function render(body, ctx) {
   ring.addEventListener('pointerdown', async e => {
     const p = e.target.closest('.sm-pad'); if (!p || !listening || timeUp) return;
     e.preventDefault(); unlockAudio(); try { ac().resume(); } catch {}
+    armIdle();
     const i = +p.dataset.i;
     p.classList.add('lit'); bell(PADS[i].f, .3); setTimeout(() => p.classList.remove('lit'), 260);
     if (i !== seq[pos]) {
@@ -121,11 +139,12 @@ export function render(body, ctx) {
     chime(); nextRound();
   }
   startBtn.onclick = start;
-  ctx.cleanup = () => { alive = false; clearInterval(tick); exitFull(wrap); };
+  ctx.cleanup = () => { alive = false; clearInterval(tick); clearTimeout(idleT); exitFull(wrap); };
 
   async function finish() {
-    timeUp = true; listening = false; clearInterval(tick); clock.replaceChildren('⏱️ ', el('b', {}, '0:00')); exitFull(wrap);
-    ctx.won?.(); if (!ctx.prev && !finish.sent) { finish.sent = true; ctx.submit({ answer: '🎅 ' + L(`Récord: ronda ${record}`, `Rècord: ronda ${record}`, `Best: round ${record}`), status: 'correct' }); }
+    timeUp = true; listening = false; clearInterval(tick); clearTimeout(idleT); clock.replaceChildren('⏱️ ', el('b', {}, '0:00')); exitFull(wrap);
+    if (record >= 1) ctx.won?.(); // (V26.4) solo cuenta si de verdad has jugado (al menos una ronda bien)
+    if (record >= 1 && !ctx.prev && !finish.sent) { finish.sent = true; ctx.submit({ answer: '🎅 ' + L(`Récord: ronda ${record}`, `Rècord: ronda ${record}`, `Best: round ${record}`), status: 'correct' }); }
     const fx = el('div', { class: 'sm-timeup' },
       el('div', { class: 'sm-tu-flakes' }, ...Array.from({ length: 34 }, () => el('i', { style: `left:${Math.random() * 100}%;--d:${4 + Math.random() * 5}s;--dl:${-Math.random() * 6}s;--s:${10 + Math.random() * 16}px;--x:${(Math.random() - .5) * 80}px` }, '❄'))),
       el('img', { class: 'sm-tu-clock', src: 'estrella8.webp', alt: '' }),

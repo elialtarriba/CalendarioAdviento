@@ -643,7 +643,10 @@ async function revealPrize(g) {
   const close = () => { try { music?.stop(2); } catch {} stopFx(); back.classList.add('out'); setTimeout(() => back.remove(), 300); };
   const thanks = async () => {
     if (!photo) return close();
-    // imprimir, guardar o salir
+    // imprimir, guardar o salir (V26.3: el archivo se prepara antes, para que el iPhone deje imprimir/guardar al tocar)
+    const sm = await import('./share.js');
+    const fname = (named ? 'certificado-' + S.profile.name : 'regalo-' + g).replace(/[^\p{L}\d-]+/gu, '_') + '.jpg';
+    const ready = await sm.imageFile(photo, fname).catch(() => null);
     const r = await popup(el('div', { class: 'pzr-choice' },
       el('h2', {}, '🎄 ' + L3('¿Qué quieres hacer con tu regalo?', 'Què vols fer amb el teu regal?', 'What would you like to do with your present?')),
       el('img', { class: 'pzr-cert', src: photo, alt: '' })),
@@ -652,8 +655,7 @@ async function revealPrize(g) {
         { label: '💾 ' + L3('Guardar', 'Guardar', 'Save'), value: 'save' },
         { label: '🚪 ' + L3('Salir', 'Sortir', 'Exit'), value: 'exit', cls: 'btn-ghost' }] });
     if (r === 'print' || r === 'save') {
-      const m = await import('./share.js');
-      if (r === 'print') m.printImage(photo); else await m.saveImage(photo, (named ? 'certificado-' + S.profile.name : 'regalo-' + g).replace(/[^\p{L}\d-]+/gu, '_') + '.jpg');
+      if (r === 'print') await sm.printImage(photo, fname, ready); else await sm.saveImage(photo, fname, ready);
       return;   // la caja del regalo sigue abierta: puede volver a pulsar «Gracias»
     }
     close();

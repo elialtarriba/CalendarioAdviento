@@ -3507,3 +3507,28 @@ body:has(.oca-wrap) .toast { z-index: 3001; }
 .pch-im-reply { display: flex; flex-direction: column; gap: 6px; }
 .pch-im .pch-msg-in { margin-top: 4px; }
 body:has(.pch-wrap) .pch-fab { display: none; }
+/* (V26.3) el tablero no se mueve: el texto de ayuda siempre ocupa el mismo sitio; las fichas se cogen más fácil */
+.oca-wrap .oca-diehint { min-height: 2.9em; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.25; }
+.pch-players { min-height: 40px; align-content: center; }
+.tk3.tk-can::after { content: ''; position: absolute; inset: -45% -40%; border-radius: 50%; }
+.pch-pl { position: relative; }
+.pch-pl .pch-clock { position: absolute; top: -9px; right: -6px; padding: 1px 6px; border-radius: 9px; background: #fffaf0; font-size: 11px; box-shadow: 0 1px 3px #0005; }
+/* (V26.3) día 8: el árbol cabe entero en la pantalla (también la bandeja de abajo), y a los lados se puede deslizar */
+.t8-game svg.t8-svg { width: min(100%, 560px, calc((100dvh - 450px) * 600 / 845)); min-width: 240px; }
+.cc8-ptinfo { font-size: 14px; line-height: 1.35; background: #fff6d6; border: 2px dashed #e0a800; border-radius: 12px; padding: 8px 10px; margin: 8px 0; color: #6b3a10; }
+/* (V26.3) día 8: se ve qué va en cada sitio (una sombra del adorno) y, al arrastrar, se encienden los sitios donde puede ir */
+.t8-ghost { opacity: .34; filter: grayscale(.35) drop-shadow(0 0 2px #fff); pointer-events: none; }
+.t8-spot .t8-slot { fill: #ffffff55; stroke: #d4a017; stroke-width: 3; stroke-dasharray: 5 4; opacity: 1; }
+.t8-spot.used .t8-ghost, .t8-spot.used .t8-slot { display: none; }
+.t8-svg.t8-dragging .t8-spot:not(.used) .t8-slot { opacity: .35; }
+.t8-svg[data-drag="ball"] .t8-st-ball:not(.used) .t8-slot, .t8-svg[data-drag="bulb"] .t8-st-bulb:not(.used) .t8-slot,
+.t8-svg[data-drag="gift"] .t8-st-gift:not(.used) .t8-slot, .t8-svg[data-drag="star"] .t8-st-star:not(.used) .t8-slot,
+.t8-svg[data-drag] .t8-spot.on:not(.used) .t8-slot { opacity: 1; stroke: #1f9a4a; stroke-width: 4; stroke-dasharray: none; fill: #b8f5c899; filter: drop-shadow(0 0 6px #4ade80); animation: t8slot 1s ease-in-out infinite; }
+.t8-svg[data-drag="ball"] .t8-st-ball:not(.used) .t8-ghost, .t8-svg[data-drag="bulb"] .t8-st-bulb:not(.used) .t8-ghost,
+.t8-svg[data-drag="gift"] .t8-st-gift:not(.used) .t8-ghost, .t8-svg[data-drag="star"] .t8-st-star:not(.used) .t8-ghost { opacity: .6; }
+.t8-svg[data-drag] .t8-spot.on:not(.used) .t8-ghost { opacity: .62; }
+.t8-spot .t8-slot { fill: #ffffffb0; stroke: #f2b705; stroke-width: 3.5; stroke-dasharray: 6 4; filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 3px #ffcf33); }
+.t8-ghost { opacity: .45; }
+/* (V26.4) día 9: los cuatro botones más separados */
+.sm-ring { gap: 22px; padding: 16px; }
+.sm-center { width: 30%; }
