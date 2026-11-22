@@ -113,7 +113,9 @@ export function render(body, ctx, levelId = null) {
   stage.append(sleighEl, ...giftEls, santa);
 
   // gnomos, primera partida: al llegar al primer regalo se destapan los premios (el suyo y lo que «podría» haber ganado)
-  const isGnome = ctx.settings?.figure === 'gnomo', counts0 = !ctx.prev && !ctx._mzFirst;
+  // (V28.2) antes de diciembre (pruebas) los gnomos ven los premios en TODAS las partidas, aunque ya hayan jugado;
+  // desde el 1 de diciembre, solo en su primera partida (la que cuenta)
+  const isGnome = ctx.settings?.figure === 'gnomo', counts0 = !ctx.prev && !ctx._mzFirst || !decStarted(ctx.config);
   // los 3 premios (Configuración → «Casilla 11 · Gnomos»), por orden de llegada: 1.º regalo, 2.º y 3.º
   const prizes = mazePrizes(ctx.config);
   const giftPrize = []; // índice del regalo → premio que le ha tocado
@@ -334,6 +336,12 @@ export function render(body, ctx, levelId = null) {
 }
 
 const euro = n => `${n} €`;
+// (V28.2) ¿ya ha empezado diciembre (hora de Madrid) del año del calendario?
+function decStarted(cfg) {
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
+  const y = +p.find(x => x.type === 'year').value, m = +p.find(x => x.type === 'month').value, Y = +cfg?.year || y;
+  return y > Y || (y === Y && m === 12);
+}
 // premios: si todo son números se suman; si hay texto, se dice que pasen a ver a Mamá Noel
 export const mazePrizes = cfg => { const p = cfg?.mazePrizes; if (Array.isArray(p)) return [0, 1, 2].map(i => String(p[i] ?? '').trim());
   const w = cfg?.mazeMoney?.win ?? 5; return [String(w), String(w), String(w)]; };
