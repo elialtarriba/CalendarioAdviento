@@ -925,18 +925,16 @@ export function renderHome() {
   if (!fullView && S.answers?.[25]) bars.push(el('button', { class: 'sum-bar', onclick: () => day25Menu() }, '📜 ' + L3('Ver el resumen de mi Navidad', 'Veure el resum del meu Nadal', 'See my Christmas summary')));
   // (V24.2) ⭐ Marcador de Navidad: botón dorado con el nombre de cada uno (para todos)
   if (S.user) { const slot = el('div', { class: 'pt-bar-slot' }); bars.push(slot); import('./points.js').then(m => slot.replaceWith(m.ptsBar())).catch(e => console.warn(e)); }
+  // (V29.1) 🍄 el juego de los gnomos: botón grande con tus puntos (solo gnomos); al tocarlo, los puntos de todos y el historial
+  if (S.user && fig === 'gnomo') { const slot = el('div', { class: 'gn-bar-slot' }); bars.push(slot); import('./gnomes.js').then(m => slot.replaceWith(m.gnomeBar())).catch(e => console.warn(e)); }
   if (!fullView) bars.push(el('button', { class: 'zoom-bar no-delay', onclick: () => { fullView = true; renderHome(); } }, '🔍 ' + t('zoomBar')));
   const exitBtn = fullView ? el('button', { class: 'exit-full', onclick: () => { fullView = false; renderHome(); } }, '✕ ' + t('exitFull')) : null;
   document.body.classList.toggle('full-view', fullView);
   // botoncito discreto para volver a ver la cuenta atrás (hasta el 1 de diciembre)
   const cdFab = decStarted() ? null : el('button', { type: 'button', class: 'cd-fab no-delay', title: L3('Cuenta atrás', 'Compte enrere', 'Countdown'), onclick: () => countdownPopup() },
     '⏳', el('b', {}, String(Math.max(0, Math.floor((decStart() - Date.now()) / 864e5)))));
-  // (V24) botón 🍄 del juego de los gnomos (solo gnomos): puntos, pregunta en juego y marcador
-  let gnFab = null;
-  if (fig === 'gnomo') {
-    gnFab = el('button', { type: 'button', class: 'gn-fab no-delay', title: L3('Juego de los gnomos', 'Joc dels gnoms', 'Gnome game'), onclick: () => import('./gnomes.js').then(m => m.openBoard()) }, '🍄');
-    import('./gnomes.js').then(m => m.decorateFab(gnFab)).catch(e => console.warn(e));
-  }
+  // (V29.1) el botoncito redondo 🍄 se ha cambiado por el botón grande de arriba (gnomeBar)
+  const gnFab = null;
   app.replaceChildren(header, ...bars, ...(strip && !fullView ? [strip] : []), ...(marquee ? [marquee] : []), board, ...(strip && fullView ? [strip] : []), ...(exitBtn ? [exitBtn] : []), ...(cdFab ? [cdFab] : []), ...(gnFab ? [gnFab] : []));
 
   fitTitle(); document.fonts?.ready?.then(fitTitle);

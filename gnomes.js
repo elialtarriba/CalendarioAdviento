@@ -29,7 +29,7 @@ import { sha256Hex } from './version.js';
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
 const FAR = Date.UTC(2100, 0, 1);
 const KEYS = ['m0', 'm1', 'm2', 'm3', 'm4'];
-const when = t => new Date(t).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const when = t => new Date(t).toLocaleString(({ ca: 'ca-ES', en: 'en-GB' })[getLang()] || 'es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const gap = ms => ms < 60000 ? Math.round(ms / 1000) + ' s' : ms < 3600000 ? Math.round(ms / 60000) + ' min' : (ms / 3600000).toFixed(1).replace('.', ',') + ' h';
 const hm = t => new Date(t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 const toLocalInput = t => new Date(t - new Date(t).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -305,8 +305,26 @@ function refreshFab(st = LAST) {
   const mine = st.rank.findIndex(r => r.uid === me());
   fabs.forEach(b => {
     b.classList.toggle('pending', !!pend);
+    if (b.classList.contains('gn-bar')) return paintBar(b, st, pend, mine);
     b.replaceChildren(...[el('span', { class: 'gn-fab-ico' }, pend ? '❓' : '🍄'), el('b', {}, mine >= 0 ? (st.score[me()] ?? 0) + ' pt' : L('Gnomos', 'Gnoms', 'Gnomes')), mine === 0 && st.rank.length > 1 && st.rank[0].score > st.rank[1].score ? el('span', { class: 'gn-fab-crown' }, '👑') : null].filter(Boolean));
   });
+}
+
+// (V29.1) botón grande del juego de los gnomos en la pantalla principal (solo gnomos): tus puntos, tu puesto y, al tocarlo, el marcador
+export function gnomeBar() {
+  const b = el('button', { type: 'button', class: 'gn-bar no-delay', onclick: () => openBoard() });
+  paintBar(b, null, false, -1);
+  setTimeout(() => decorateFab(b), 0); // cuando ya está en la pantalla (si no, se descartaría por «no conectado»)
+  return b;
+}
+function paintBar(b, st, pend, mine) {
+  const pos = st && mine >= 0 ? st.rank.findIndex(x => x.score === st.rank[mine].score) + 1 : 0;
+  const sub = pend ? '❓ ' + L('¡Hay una pregunta en juego! Toca aquí', 'Hi ha una pregunta en joc! Toca aquí', 'A question is live! Tap here')
+    : pos ? `${['🥇', '🥈', '🥉'][pos - 1] || pos + 'º'} ${L('de', 'de', 'of')} ${st.rank.length} · ${L('ver los puntos de todos y el historial', 'veure els punts de tothom i l’historial', 'see everyone’s points and the history')}`
+    : L('Ver los puntos de todos y el historial', 'Veure els punts de tothom i l’historial', 'See everyone’s points and the history');
+  b.replaceChildren(el('span', { class: 'gn-bar-ico' }, pend ? '❓' : '🍄'),
+    el('span', { class: 'gn-bar-txt' }, el('small', {}, L('El juego de los gnomos', 'El joc dels gnoms', 'The gnome game')), el('b', {}, sub)),
+    el('span', { class: 'gn-bar-num' }, el('b', {}, st && mine >= 0 ? String(st.score[me()] ?? 0) : '…'), el('small', {}, L('puntos', 'punts', 'points'))));
 }
 
 // ================================================================ EL MARCADOR (para todos los gnomos y la administradora)
@@ -340,6 +358,7 @@ function drawBoard(body, st) {
   parts.push(grandTree(st));
   // tarjetas
   const lead = st.rank[0] && (st.rank.length === 1 || st.rank[0].score > st.rank[1].score) ? st.rank[0].uid : null;
+  parts.push(el('button', { class: 'gn-allhist-btn no-delay', onclick: () => allHistoryPopup(st) }, '📜 ' + L('Historial de todos los puntos', 'Historial de tots els punts', 'History of all points')));
   parts.push(el('div', { class: 'gn-cards' }, ...st.rank.map((r, i) => card(st, r, i, r.uid === lead, r.uid === u))));
   parts.push(el('button', { class: 'gn-rules-btn no-delay', onclick: rulesPopup }, '📜 ' + L('¿Cómo se ganan los puntos?', 'Com es guanyen els punts?', 'How do you score points?')));
   body.replaceChildren(...parts);
@@ -423,6 +442,19 @@ function historyPopup(st, r) {
     h.length ? el('div', { class: 'gn-hist' }, ...h.map(e => el('div', { class: 'gn-hrow ' + (e.pts > 0 ? 'plus' : 'minus') },
       el('b', {}, (e.pts > 0 ? '+' : '') + e.pts),
       el('span', {}, T[e.k] + (e.k === 'steal' ? ' ' + nameOf(st, e.by) : '') + (e.why ? ': ' + e.why : '')),
+      el('small', {}, when(e.at)))))
+      : el('p', { class: 'muted' }, L('Todavía no hay puntos.', 'Encara no hi ha punts.', 'No points yet.'))),
+  { cls: 'small', outside: true, buttons: [{ label: 'OK', value: true }] });
+}
+// (V29.1) el historial de todos los gnomos juntos, del más nuevo al más antiguo
+function allHistoryPopup(st) {
+  const T = KTXT();
+  const all = st.players.flatMap(p => (st.hist[p.uid] || []).map(e => ({ ...e, uid: p.uid }))).sort((a, b) => (b.at || 0) - (a.at || 0));
+  popup(el('div', { class: 'gn-histbox' }, el('h2', {}, '📜 ' + L('Historial de todos', 'Historial de tothom', 'Everyone’s history')),
+    el('div', { class: 'gn-histsum' }, ...st.rank.map(r => el('span', { class: r.uid === me() ? 'me' : '' }, el('b', { class: 'gn-name' }, r.name), ' ' + st.score[r.uid] + ' pt'))),
+    all.length ? el('div', { class: 'gn-hist' }, ...all.map(e => el('div', { class: 'gn-hrow ' + (e.pts > 0 ? 'plus' : 'minus') + (e.uid === me() ? ' me' : '') },
+      el('b', {}, (e.pts > 0 ? '+' : '') + e.pts),
+      el('span', {}, el('b', { class: 'gn-name' }, nameOf(st, e.uid)), ' · ' + (T[e.k] || e.k || '') + (e.k === 'steal' ? ' ' + nameOf(st, e.by) : '') + (e.why ? ': ' + e.why : '')),
       el('small', {}, when(e.at)))))
       : el('p', { class: 'muted' }, L('Todavía no hay puntos.', 'Encara no hi ha punts.', 'No points yet.'))),
   { cls: 'small', outside: true, buttons: [{ label: 'OK', value: true }] });
