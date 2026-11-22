@@ -65,9 +65,9 @@ export async function monthSummary(opts = {}) {
         el('h2', {}, '✨ ' + L('¿Qué quieres hacer ahora?', 'Què vols fer ara?', 'What would you like to do now?')),
         el('div', { class: 'sum-menu-btns' },
           el('button', { type: 'button', class: 'sum-opt no-delay', onclick: pick('play') }, el('img', { src: 'bola25.webp', alt: '' }),
-            el('b', {}, L('Volver a jugar', 'Tornar a jugar', 'Play again')), el('small', {}, L('El juego de parejas y la bola que cobra vida', 'El joc de parelles i la bola que cobra vida', 'The pairs game and the snow globe coming to life'))),
+            el('b', {}, L('Volver a jugar', 'Tornar a jugar', 'Play again')), el('small', {}, L('Los dos juegos de Navidad: Memory y la serpiente', 'Els dos jocs de Nadal: Memory i la serp', 'The two Christmas games: memory and the snake'))),
           el('button', { type: 'button', class: 'sum-opt no-delay', onclick: pick('fresh') }, el('img', { src: 'ilu-gl.webp', alt: '' }),
-            el('b', {}, L('Abrir la casilla 25 desde el principio', 'Obrir la casella 25 des del principi', 'Open door 25 from the start')), el('small', {}, opts.menu.act ? L('Como el primer día: juego, bola y tu actividad', 'Com el primer dia: joc, bola i la teva activitat', 'Like the first day: game, globe and your activity') : L('Como el primer día', 'Com el primer dia', 'Like the first day'))),
+            el('b', {}, L('Abrir la casilla 25 desde el principio', 'Obrir la casella 25 des del principi', 'Open door 25 from the start')), el('small', {}, L('Como el primer día: los dos juegos y la fiesta', 'Com el primer dia: els dos jocs i la festa', 'Like the first day: both games and the party'))),
           opts.menu.act ? el('button', { type: 'button', class: 'sum-opt no-delay', onclick: pick('act') }, el('img', { src: FIGA[fig] || 'galleta.png', alt: '' }),
             el('b', {}, L('Hacer mi actividad', 'Fer la meva activitat', 'Do my activity')), el('small', {}, fig === 'arbol' ? t('activity1') : t('activity2'))) : null));
     }

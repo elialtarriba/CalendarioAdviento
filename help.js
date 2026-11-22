@@ -154,7 +154,7 @@ const SECTIONS = [
       [18, '🧩', 'Puzle de Papá Noel', '15 piezas. Al acabar, cobra vida con su vídeo (puzle18.jpg y puzle18.mp4).'],
       [20, '🎡', 'Ruleta del disparate', 'Tú escribes las misiones de cada casilla y la frase de debajo.'],
       [24, '💃', 'El baile secreto', 'Sale siempre el vídeo baile.mp4 (súbelo a GitHub con los demás archivos). La grabación se comparte por WhatsApp.'],
-      [25, '🎴', 'Memory navideño', '14 parejas de cartas. Al acabar, la bola de nieve crece y cobra vida (bola25.mp4). Después, la actividad (árbol o gnomo) y el resumen del mes.'],
+      [25, '🎄', '¡Es Navidad! Dos juegos', 'Al entrar salen dos botones y hay que hacer los dos: 🎴 Memory de Navidad (14 parejas; al acabar la bola de nieve cobra vida) y 🐍 La serpiente de Navidad (come galletas y crece; niveles facilísimo, intermedio y difícil). Cuando están los dos: fuegos artificiales, «Ho, ho, ho», Merry Christmas y confeti, y después el resumen del mes con todas las casillas. El día 25 no tiene actividad 1 ni 2.'],
     ].map(([n, e, t, d]) => el('div', { class: 'hg-day' }, el('span', { class: 'hg-day-n' }, n), el('span', { class: 'hg-day-e' }, e), el('div', {}, B(t), d ? el('small', {}, d) : null)))),
   ] },
   { id: 'points', ico: '⭐', title: 'Marcador de Navidad (para todos)', color: '#c99a2e', body: () => [

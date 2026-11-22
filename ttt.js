@@ -19,7 +19,8 @@ export function render(body, ctx) {
       'Juga al tres en ratlla amb qui vulguis (o contra l’app). Quan algú fa tres en ratlla, l’app diu qui ha guanyat. 📲 El resultat de la PRIMERA partida s’envia per WhatsApp al grup de la família.',
       'Play with whoever you like (or against the app). When someone gets three in a row, the app says who won. 📲 Send the result of the FIRST game on WhatsApp to the family group.')));
   let firstRes = ctx.prev?.extra?.ttt || null; // la primera partida (la que se envía)
-  if (firstRes) body.append(el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay ttt-sharefirst', onclick: () => shareTtt(firstRes, ctx) }, '📲 ' + L('Enviar mi primera partida', 'Enviar la meva primera partida', 'Send my first game')));
+  // (V29) al volver a entrar, el botón de enviar la primera partida va debajo del juego (antes empujaba el tablero y las fichas fuera de la pantalla)
+  const shareFirstBtn = firstRes ? el('button', { type: 'button', class: 'btn btn-ghost small-btn no-delay ttt-sharefirst', onclick: () => shareTtt(firstRes, ctx) }, '📲 ' + L('Enviar mi primera partida', 'Enviar la meva primera partida', 'Send my first game')) : null;
   const stage = el('div', { class: 'ttt-stage' });
   body.style.webkitUserSelect = body.style.userSelect = 'none';
   const trayR = el('div', { class: 'ttt-tray red' }), trayG = el('div', { class: 'ttt-tray green' });
@@ -74,7 +75,7 @@ export function render(body, ctx) {
   modeBtn.onclick = () => { unlockAudio(); ai = !ai; paintMode(); resetBoard();
     toast(ai ? '🤖 ' + L('Tú eres la Galleta y empiezas. El Perrito lo mueve la app.', 'Tu ets la Galeta i comences. El Gosset el mou l’app.', 'You are the Gingerbread and you start. The app moves the Puppy.') : '👫 ' + L('Ahora jugáis dos personas.', 'Ara jugueu dues persones.', 'Two players now.'), 3500); };
   { const ib = body.querySelector('.ttt-infobtn'); const row = el('div', { class: 'ttt-row' }); if (ib) { ib.replaceWith(row); row.append(modeBtn, ib); } else body.append(row.appendChild(modeBtn) && row); }
-  body.append(turnTxt, stage, ask, res);
+  body.append(turnTxt, stage, ask, res); if (shareFirstBtn) body.append(shareFirstBtn);
   paintMode();
 
   // ---- fichas

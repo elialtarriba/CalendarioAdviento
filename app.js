@@ -1047,9 +1047,7 @@ async function openDoorInner(n, door, mode = null) {
   const body = el('div', { class: 'note-body' });
   const finishBtn = el('button', { class: 'btn btn-finish' }, t('finish'));
   const cancelBtn = el('button', { class: 'btn btn-cancel' }, t('cancelLater'));
-  note.append(el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, t('dayN', n)),
-    // (V28) solo la administradora: probar la actividad 1 y después la 2 de este día (no se guarda nada)
-    S.ownerAcct ? el('button', { type: 'button', class: 'act-test-btn no-delay', onclick: e => { e.stopPropagation(); testActivities(n); } }, '🧪 ' + L3('Probar actividades 1 y 2', 'Provar activitats 1 i 2', 'Try activities 1 & 2')) : null),
+  note.append(el('div', { class: 'note-head' }, el('span', { class: 'note-day' }, t('dayN', n))), // (V29) quitado el botón «Probar actividades 1 y 2»
     body, el('div', { class: 'note-foot' }, cancelBtn, finishBtn)); // «lo haré luego» siempre, en todas las casillas
   layer.append(note);
   document.body.append(layer);
@@ -1066,7 +1064,7 @@ async function openDoorInner(n, door, mode = null) {
 
   let closed = false;
   const ctx = {
-    day: n, content, lang: getLang(), prev: mode && mode !== 'replay' ? null : (S.answers[n] || null), note, body, finishBtn,
+    day: n, mode, content, lang: getLang(), prev: mode && mode !== 'replay' ? null : (S.answers[n] || null), note, body, finishBtn,
     profile: S.profile, settings: S.settings, user: S.user, config: S.config,
     submit: async data => {
       if (S.answers[n]) return;
@@ -1101,7 +1099,7 @@ async function openDoorInner(n, door, mode = null) {
   try {
     // juegos que se pueden repetir: se juegan de nuevo, pero la respuesta guardada (y los premios) no cambian
     if (ctx.prev && ['hats', 'reindeer', 'differences', 'memory', 'goodcheck'].includes(content.type)) { ctx.replay = true; ctx.prev = null; }
-    if (ctx.prev && !['diploma', 'dance', 'pairs', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze', 'colors', 'mastermind', 'oca', 'parchis', 'pacman'].includes(content.type)) renderSummary(body, ctx);
+    if (ctx.prev && !['diploma', 'dance', 'pairs', 'xmas25', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze', 'colors', 'mastermind', 'oca', 'parchis', 'pacman'].includes(content.type)) renderSummary(body, ctx);
     else (await import(`./${content.type}.js`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
   // casilla 25: el regalo sorpresa abajo del todo (si el juego se vuelve a pintar, se vuelve a poner)
@@ -1171,24 +1169,6 @@ async function runActivity(n, layer) {
   }
 }
 
-// (V28) la administradora prueba las dos actividades del día, una detrás de otra, sin que cuente
-let testingActs = false;
-async function testActivities(n) {
-  if (testingActs) return; testingActs = true;
-  const layer = el('div', { class: 'note-layer act-test-layer' }); document.body.append(layer);
-  try {
-    DAYC.delete(n); MEDIAP.delete(n);
-    for (const key of ['act1', 'act2']) {
-      toast('🧪 ' + (key === 'act1' ? L3('Actividad 1 (árbol)', 'Activitat 1 (arbre)', 'Activity 1 (tree)') : L3('Actividad 2 (gnomo)', 'Activitat 2 (gnom)', 'Activity 2 (gnome)')), 2500);
-      layer.querySelectorAll('.note').forEach(x => x.remove());
-      let r = null;
-      try { r = await showActivity(n, layer, false, { key, test: true }); }
-      catch (e) { console.error(e); clearCrumples(); layer.querySelectorAll('.note').forEach(x => x.remove()); r = await showActivity(n, layer, true, { key, test: true }).catch(() => null); }
-      if (r === 'later') break;
-    }
-  } finally { clearCrumples(); layer.remove(); testingActs = false; }
-}
-
 // (V25.2) si algo falla al cerrar, la ventana se quita igual (si no, se quedaba invisible encima y no se podía abrir nada)
 async function closeDay(n, layer, note, door, later = false) {
   try { await closeDayInner(n, layer, note, door, later); }
@@ -1200,7 +1180,7 @@ async function closeDayInner(n, layer, note, door, later = false) {
   const done = !!S.answers[n];
   speechSynthesis?.cancel?.();
   const fresh = n === 25 && mode25 === 'fresh'; mode25 = null;
-  if (!later && fig !== 'galleta' && done && (actPending(n) || fresh)) {
+  if (!later && n !== 25 && fig !== 'galleta' && done && (actPending(n) || fresh)) { // (V29) el 25, sin actividad
     // la actividad sale siempre que esté pendiente (y solo una vez: la de tu figura)
     dayForActivity(n).catch(() => {}); prefetchAct(n); // (V26) se prepara mientras se arruga el papel
     await crumpleAway(note);
@@ -1222,7 +1202,7 @@ async function closeDayInner(n, layer, note, door, later = false) {
 // ---- día 25: menú del resumen del mes
 let mode25 = null;
 const allDone25 = () => Array.from({ length: 25 }, (_, i) => i + 1).every(d => S.answers[d] && !actPending(d));
-const menu25 = () => (S.answers[25] ? { act: figure() !== 'galleta' } : null);
+const menu25 = () => (S.answers[25] ? { act: false } : null); // (V29) el día 25 ya no tiene actividad
 async function day25Menu() {
   let r = null;
   try { r = await (await import('./summary.js')).monthSummary({ menu: menu25() }); } catch (e) { console.error(e); }
@@ -1516,6 +1496,7 @@ function actQuiz(box, qz, n, key, content = {}) {
   });
 }
 const actPending = n => {
+  if (n === 25) return false; // (V29) el día 25 no tiene actividad 1 ni 2: solo los dos juegos de Navidad
   if (figure() === 'galleta' || !S.answers[n]) return false;
   const v = S.profile?.actDone?.[n];
   return !(v === true || (v && v === S.answers[n].at));

@@ -50,7 +50,7 @@ export function render(body, ctx) {
     el('div', { class: 'c5-head' },
       el('div', { class: 'c5-ribbon mm19-ribbon' }, '🎁 ' + L('El código secreto de Papá Noel', 'El codi secret del Pare Noel', 'Santa’s secret code') + ' 🎁'),
       el('p', { class: 'c5-sub' }, L('¿Adivinarás qué bolas ha escondido?', 'Endevinaràs quines boles ha amagat?', 'Can you guess which baubles he hid?'))),
-    el('details', { class: 'c5-how', open: !first },
+    el('details', { class: 'c5-how' }, // (V29) cerradas al entrar: así se ve el juego (se abren tocando «Cómo se juega»)
       el('summary', {}, '📖 ' + L('Cómo se juega', 'Com es juga', 'How to play')),
       el('ol', {},
         el('li', {}, L('Papá Noel ha escondido unas bolas de Navidad en unos regalos (🎁 🎁 🎁). Tienes que adivinar qué colores son y en qué orden.', 'El Pare Noel ha amagat unes boles de Nadal en uns regals (🎁 🎁 🎁). Has d’endevinar quins colors són i en quin ordre.', 'Santa has hidden some Christmas baubles in presents (🎁 🎁 🎁). Guess the colours and their order.')),
