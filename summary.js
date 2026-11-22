@@ -10,6 +10,27 @@ import { defaultDay } from './defaults.js';
 const TK = { hats: 'hatsTitle', reindeer: 'd4title', differences: 'd6title', tree: 'd8title', memory: 'd12title', goodcheck: 'd13title', diploma: 'd15title', roulette: 'd20title', dance: 'd24title', pairs: 'd25title', puzzle: 'puzzleTitle' };
 const typeTitle = ty => ty === 'pacman' ? L('El duende de los regalos', 'El follet dels regals', 'The present elf') : ty === 'parchis' ? L('El parchís de Navidad', 'El parxís de Nadal', 'Christmas ludo') : ty === 'oca' ? L('La oca de Navidad', 'L’oca de Nadal', 'The Christmas goose game') : ty === 'mastermind' ? L('El código secreto de Papá Noel', 'El codi secret del Pare Noel', 'Santa’s secret code') : ty === 'colors' ? L('Desafío de colores', 'Desafiament de colors', 'Colour challenge') : ty === 'maze' ? L('Los regalos perdidos (laberinto)', 'Els regals perduts (laberint)', 'The lost presents (maze)') : ty === 'sudoku' ? L('Sudoku de Navidad', 'Sudoku de Nadal', 'Christmas sudoku') : ty === 'simon' ? L('Papá Noel dice', 'El Pare Noel diu', 'Santa says') : ty === 'catch' ? L('Atrapa los regalos', 'Atrapa els regals', 'Catch the presents') : ty === 'ballsort' ? L('Ordena las bolas de Navidad', 'Ordena les boles de Nadal', 'Sort the Christmas baubles') : ty === 'slidepuzzle' ? L('Puzle deslizante', 'Puzle lliscant', 'Sliding puzzle') : ty === 'wordsearch' ? L('Sopa de letras de animales', 'Sopa de lletres d’animals', 'Animal word search') : ty === 'crossword' ? L('Crucigrama de Navidad', 'Mots encreuats de Nadal', 'Christmas crossword') : ty === 'ttt' ? L('Tres en raya navideño', 'Tres en ratlla de Nadal', 'Christmas noughts and crosses') : ty === 'puzzle' ? L('Haz el puzle y descubre qué imagen esconde', 'Fes el puzle i descobreix quina imatge amaga', 'Do the puzzle') : (TK[ty] && t(TK[ty])) || '';
 const L = (es, ca, en) => ({ es, ca, en })[getLang()] ?? es;
+// (V29.3) los JUEGOS de cada casilla (los retos que no son juego —pregunta, diploma, baile, ruleta, superpoder— no salen)
+const GAME_TYPES = ['hats', 'pacman', 'sudoku', 'reindeer', 'colors', 'differences', 'puzzle', 'tree', 'simon', 'oca', 'maze', 'parchis', 'catch', 'ballsort', 'ttt', 'mastermind', 'slidepuzzle', 'wordsearch', 'crossword', 'memory', 'pairs'];
+function gamesOf(c, n) {
+  const ty = c?.type, out = [];
+  const puzzleName = n === 7 ? L('Puzle del tren', 'Puzle del tren', 'Train puzzle') : n === 18 ? L('Puzle de Papá Noel', 'Puzle del Pare Noel', 'Santa puzzle') : typeTitle('puzzle');
+  if (ty === 'xmas25') return ['🎴 ' + L('Memory de Navidad', 'Memory de Nadal', 'Christmas memory'), '🐍 ' + L('La serpiente de Navidad', 'La serp de Nadal', 'The Christmas snake')];
+  if (GAME_TYPES.includes(ty)) out.push('🎮 ' + (ty === 'puzzle' ? puzzleName : typeTitle(ty)));
+  if (ty === 'hats') out.push('🔴 ' + L('4 en raya', '4 en ratlla', 'Connect 4'));
+  if (ty === 'tree') out.push('🍬 ' + L('Dulce Navidad', 'Dolç Nadal', 'Sweet Christmas'));
+  if (ty === 'goodcheck') out.push('🃏 ' + L('Solitario de Navidad', 'Solitari de Nadal', 'Christmas solitaire'));
+  if (ty === 'diploma') out.push('👽 ' + L('Los marcianitos de Navidad', 'Els marcianets de Nadal', 'Christmas space invaders'));
+  return out;
+}
+// la respuesta solo se enseña si es de verdad un resultado (pregunta contestada, o puntos/tiempo de un juego)
+const showAnswer = (c, ans) => {
+  if (ans === undefined || ans === null || ans === '' || typeof ans === 'object') return false;
+  const s = String(ans).trim();
+  if (c?.type === 'quiz') return true;
+  if (!GAME_TYPES.includes(c?.type)) return false;
+  return /\d/.test(s) && !/^[\p{Extended_Pictographic}\s\uFE0F]+$/u.test(s);
+};
 const PIC = { 25: 'bola25.webp', 1: 'ilu-gorro.webp', 8: 'ilu-abeto.webp', 13: 'ilu-17.webp', 15: 'ilu-bola-roja.webp', 16: 'ilu-15.webp', 22: 'ilu-gl.webp', 24: 'ilu-gr.webp' };
 const pic = n => PIC[n] || `ilu-${n}.webp`;
 const FIG_IMG = { galleta: 'galleta.png', arbol: 'arbol.png', gnomo: 'gnomo.png' };
@@ -46,7 +67,8 @@ export async function monthSummary(opts = {}) {
         el('div', { class: 'sum-body' },
           el('div', { class: 'sum-day' }, t('dayN', n), el('span', { class: 'sum-badge' }, badge[0] + ' ' + badge[1])),
           el('h3', {}, title || ''),
-          answer !== undefined && answer !== '' && answer !== null && typeof answer !== 'object' ? el('p', { class: 'sum-ans' }, el('span', {}, L('Tu respuesta', 'La teva resposta', 'Your answer') + ': '), String(answer)) : null,
+          showAnswer(c, answer) ? el('p', { class: 'sum-ans' }, el('span', {}, (c.type === 'quiz' ? L('Tu respuesta', 'La teva resposta', 'Your answer') : L('Tu resultado', 'El teu resultat', 'Your result')) + ': '), String(answer)) : null,
+          ...(g => g.length ? [el('div', { class: 'sum-games' }, el('b', {}, L('Juegos de este día', 'Jocs d’aquest dia', 'Games of this day')), el('div', { class: 'sum-games-list' }, ...g.map(x => el('span', {}, x))))] : [])(gamesOf(c, n)),
           actTxt ? el('div', { class: 'sum-act' + (actDone ? ' done' : '') },
             el('div', { class: 'sum-act-h' }, (fig === 'arbol' ? '🎄 ' + t('activity1') : '🍄 ' + t('activity2')), el('span', {}, actDone ? '✅ ' + L('Hecha', 'Feta', 'Done') : '⏳ ' + L('Sin hacer', 'Sense fer', 'Not done'))),
             el('p', {}, actTxt)) : null,

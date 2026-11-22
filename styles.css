@@ -3792,3 +3792,11 @@ body:has(.pch-wrap) .pch-fab { display: none; }
 .gn-histsum span { padding: 3px 10px; border-radius: 999px; background: #e9f9ee; font: 600 13px 'Montserrat', sans-serif; }
 .gn-histsum span.me, .gn-hrow.me { outline: 2px solid #e8b64c; }
 .gn-hrow .gn-name, .gn-histsum .gn-name { color: #8a0d22; font-family: 'Montserrat', sans-serif; font-weight: 800; text-shadow: none; -webkit-text-fill-color: #8a0d22; background: none; }
+
+/* (V29.3) resumen: los juegos de cada día */
+.sum-games { margin: 6px 0 4px; }
+.sum-games > b { display: block; font-size: 13px; font-weight: 800; color: #7a1020; margin-bottom: 4px; }
+.sum-games-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.sum-games-list span { background: #fff6dc; border: 2px solid #e2b64f; border-radius: 999px; padding: 3px 10px; font-size: 14px; font-weight: 700; color: #3b2a1a; }
+/* (V29.3) al volver a una casilla hecha: su actividad, también */
+.note-body .day-act-done { margin: 16px auto 6px; max-width: 560px; text-align: left; }

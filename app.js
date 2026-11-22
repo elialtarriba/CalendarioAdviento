@@ -1138,6 +1138,19 @@ async function openDoorInner(n, door, mode = null) {
     if (ctx.prev && !['diploma', 'dance', 'pairs', 'xmas25', 'roulette', 'puzzle', 'ttt', 'crossword', 'wordsearch', 'slidepuzzle', 'tree', 'ballsort', 'catch', 'simon', 'sudoku', 'maze', 'colors', 'mastermind', 'oca', 'parchis', 'pacman'].includes(content.type)) renderSummary(body, ctx);
     else (await import(`./${content.type}.js`)).render(body, ctx);
   } catch (e) { console.error(e); body.append(el('p', {}, '⚠️ ' + e.message)); }
+  // (V29.3) casilla ya hecha del todo (también si se entra desde el resumen): abajo se ve también su actividad, hecha
+  if (S.answers[n] && !actPending(n) && n !== 25 && figure() !== 'galleta') {
+    try {
+      const k = figure() === 'arbol' ? 'act1' : 'act2', txt = plain(tx(content[k]));
+      if (txt) {
+        const ab = el('div', { class: 'sum-act done day-act-done' },
+          el('div', { class: 'sum-act-h' }, (figure() === 'arbol' ? '🎄 ' + t('activity1') : '🍄 ' + t('activity2')), el('span', {}, '✅ ' + L3('Hecha', 'Feta', 'Done'))),
+          el('p', {}, txt));
+        const keepA = () => { if (note.isConnected && body.lastElementChild !== ab && !body.querySelector('.gift-box25:last-child')) body.append(ab); };
+        keepA(); new MutationObserver(keepA).observe(body, { childList: true });
+      }
+    } catch (e) { console.warn(e); }
+  }
   // casilla 25: el regalo sorpresa abajo del todo (si el juego se vuelve a pintar, se vuelve a poner)
   // (V23.3) el regalo (Bingo) va abajo del todo del día 24, para todas las figuras; el 25 solo queda la máquina de los gnomos
   if (n === 24 || (n === 25 && figure() === 'gnomo')) {
