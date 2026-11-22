@@ -3,7 +3,7 @@
 //   2. 🐍 La serpiente de Navidad (snake.js, nuevo, con 3 niveles)
 // Al acabar los dos: fuegos artificiales, «Ho, ho, ho», Merry Christmas y mucho confeti; después, el calendario
 // del mes (el resumen de siempre, desde donde se puede ir a todas las casillas). El día 25 ya no tiene actividad 1 ni 2.
-import { el, sleep, confetti, toast } from './fx.js';
+import { el, sleep, confetti, toast, popup } from './fx.js';
 import { getLang } from './i18n.js';
 import { hohoho, fanfare, christmasSong, unlockAudio, pop } from './sound.js';
 import { fireworks } from './share.js';
@@ -67,20 +67,25 @@ export function render(body, ctx) {
       (await import('./pairs.js')).render(body, sub);
     } else {
       const { snakeGame } = await import('./snake.js');
-      current = snakeGame(body, { won: ctx.won, onWin: () => { try { current?.stop?.(); } catch {} current = null; complete('snake'); } }); // arriba ya está «← Los dos juegos»
+      current = snakeGame(body, { won: ctx.won, onDone: () => complete('snake', true), onWin: () => { try { current?.stop?.(); } catch {} current = null; complete('snake'); } }); // arriba ya está «← Los dos juegos»
     }
   }
 
-  async function complete(g) {
-    const wasBoth = GAMES.every(doneOf);
+  // stay = el juego acaba de ganarse y su pantalla de «¡Conseguido!» sigue (V29.2): se apunta ya como hecho
+  async function complete(g, stay = false) {
+    const wasBoth = GAMES.every(doneOf), first = !prog[g];
     prog[g] = prog[g] || { at: Date.now() }; saveProg(prog);
     const both = GAMES.every(doneOf);
-    if (both && (!wasBoth || fresh) && !partyShown) {
+    if (both && (!wasBoth || fresh || !recorded()) && !partyShown) {
+      partyShown = true;
       if (!recorded()) { try { await ctx.submit({ answer: L('Memory + Serpiente', 'Memory + Serp', 'Memory + Snake'), status: 'correct', extra: { d25: { pairs: prog.pairs, snake: prog.snake } } }); } catch (e) { console.error(e); } }
+      if (stay) await sleep(1800); // que se vea el «¡Conseguido!» un momento… y ¡fiesta!
+      try { current?.stop?.(); } catch {} current = null;
       menu(); return party();
     }
+    if (stay) { if (!both && first) toast('👏 ' + L('¡Muy bien! Ahora te falta el otro juego.', 'Molt bé! Ara et falta l’altre joc.', 'Well done! Now the other game.'), 3500); return; }
     menu();
-    if (!both) toast('👏 ' + L('¡Muy bien! Ahora te falta el otro juego.', 'Molt bé! Ara et falta l’altre joc.', 'Well done! Now the other game.'), 3500);
+    if (!both && first) toast('👏 ' + L('¡Muy bien! Ahora te falta el otro juego.', 'Molt bé! Ara et falta l’altre joc.', 'Well done! Now the other game.'), 3500);
   }
 
   // 🎆 la gran fiesta de Navidad
@@ -107,6 +112,24 @@ export function render(body, ctx) {
       setTimeout(() => { lay.remove(); try { ctx.finish(); } catch (e) { console.error(e); } }, 500); // y después: el calendario del mes (resumen)
     };
   }
+
+  // (V29.2) «Finalizar» en el día 25: nunca el aviso del «reto»; si faltan juegos, se dice cuál; si están los dos, ¡la fiesta!
+  ctx.onFinishTry = async () => {
+    if (document.querySelector('.x25-party')) return false;
+    const left = GAMES.filter(g => !doneOf(g));
+    if (left.length) {
+      const name = g => g === 'pairs' ? '🎴 ' + L('Memory de Navidad', 'Memory de Nadal', 'Christmas memory') : '🐍 ' + L('La serpiente de Navidad', 'La serp de Nadal', 'The Christmas snake');
+      const r = await popup(el('div', {}, el('h2', {}, '🎄'),
+        el('p', { style: 'font-size:18px' }, L('Por ser Navidad hay que hacer los dos juegos. Te falta:', 'Com que és Nadal, s’han de fer els dos jocs. Et falta:', 'Because it’s Christmas you play both games. Still to do:')),
+        ...left.map(g => el('p', { style: 'font-size:20px;font-weight:700' }, name(g)))),
+        { buttons: [{ label: L('Jugar', 'Jugar', 'Play'), value: 'play' }, { label: L('Salir (lo haré luego)', 'Sortir (ho faré després)', 'Leave (later)'), value: 'later', cls: 'btn-ghost' }] });
+      if (r === 'play') { ctx.cleanup(); open(left[0]); }
+      else if (r === 'later') { ctx.cleanup(); ctx.finish(true); }
+      return false;
+    }
+    if (!recorded() || (fresh && !partyShown)) { await complete(GAMES[0]); return false; } // los dos hechos: ¡fiesta! (y después el resumen)
+    ctx.cleanup(); return true; // ya estaba todo: al resumen del mes
+  };
 
   menu();
 }

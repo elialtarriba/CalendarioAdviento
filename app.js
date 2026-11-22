@@ -2,7 +2,7 @@ import { clearLocalGames } from './games25.js';
 import { initStore, store, DEMO, nameKey, isPlayerEmail, famKey } from './store.js';
 import { t, tx, setLang, getLang } from './i18n.js';
 import { defaultDay, DEFAULT_CONFIG, PAPERS, PORTADAS, DEFAULT_PORTADA, MARQUEE_DEFAULT, MISSED_DEFAULT, SPLASH_DEFAULT } from './defaults.js';
-import { creak, speak, sayVoice, preloadVoice, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState, toggleMuted } from './sound.js';
+import { stopVoice, creak, speak, sayVoice, preloadVoice, unlockAudio, crumple as crumpleSound, chime, doorSound, hohoho, fanfare, wrong, sadTrombone, clickSound, christmasSong, audioOn, onAudioState, toggleMuted } from './sound.js';
 import { typeRich, gallery, lightbox, plain } from './richact.js';
 import { $, el, sleep, esc, confetti, typewriter, popup, toast } from './fx.js';
 import { APP_VERSION, CONTACT_EMAIL, isOwnerEmail } from './version.js';
@@ -404,8 +404,8 @@ async function boot() {
     if (!profile && asPlayer && lastEnter?.name) store.claimName(nameKey(lastEnter.name), u.uid, lastEnter.name).catch(() => {});
     S.settings = settings || { figure: 'galleta', showProgress: true };
     S.answers = answers || {};
-    applyReset();
     S.config = { ...DEFAULT_CONFIG, ...(config || {}), prizes: { ...DEFAULT_CONFIG.prizes, ...(config?.prizes || {}) } };
+    applyReset(); // (V29.2) después de cargar la configuración (los regalos la necesitan)
     try { if (config?.splash) localStorage.setItem('adv_splash', JSON.stringify(config.splash)); } catch {}
     S.card = card;
     // si ha elegido el idioma en la pantalla de entrada, se queda ese (y se guarda en su perfil)
@@ -435,7 +435,8 @@ export function applyReset(force = false) {
   let seen = 0; try { seen = +(localStorage.getItem(k) || 0); } catch {}
   if (!force && !(at > seen)) return;
   clearLocalGames();
-  try { localStorage.setItem(k, String(Math.max(at, Date.now()))); localStorage.removeItem('adv_prizes_' + S.user.uid); } catch {}
+  try { localStorage.setItem(k, String(Math.max(at, Date.now()))); } catch {}
+  try { forgetLostPrizes(); } catch (e) { console.warn(e); } // (V29.2) solo se olvidan los regalos que ya no están conseguidos (antes se olvidaban todos y el 1.º volvía a salir)
   const pf = {};
   const ad = { ...(S.profile?.actDone || {}) }; let ch = false;
   Object.keys(ad).forEach(d => { if (!S.answers[d]) { delete ad[d]; ch = true; } });
@@ -458,6 +459,10 @@ async function resetPractice(uid) {
   if (S.profile.slot && (S.profile.slot.at || 0) < cut) { pf.slot = null; S.profile.slot = null; }
   { const o = await store.getOnce(uid, 'slot').catch(() => null); if (o && (o.at || 0) < cut) await store.delOnce(uid, 'slot').catch(e => console.warn(e)); }
   if (S.profile.giftOpened && S.profile.giftOpened < cut) { pf.giftOpened = null; S.profile.giftOpened = null; }
+  // (V29.2) los regalos abiertos o avisados en las pruebas de noviembre tampoco cuentan
+  for (const f of ['prizesSeen', 'prizesOpened']) if (S.profile[f] && Object.values(S.profile[f]).some(v => +v < cut)) {
+    const nx = {}; Object.entries(S.profile[f]).forEach(([g, v]) => { if (+v >= cut) nx[g] = v; }); pf[f] = nx; S.profile[f] = nx; }
+  if (Object.values(S.profile.prizesOpened || {}).length === 0) try { localStorage.removeItem('adv_prize_open_' + uid); } catch {}
   if (Object.keys(pf).length) await store.saveProfile(uid, pf).catch(e => console.warn(e));
   const old = Object.keys(S.answers).filter(d => (S.answers[d]?.at || 0) < cut);
   if (!old.length) return;
@@ -468,7 +473,7 @@ async function resetPractice(uid) {
   S.profile.actDone = ad; await store.setActDone(uid, ad).catch(e => console.warn(e));
   const aq = { ...(S.profile.actQuiz || {}) }; gone.forEach(d => delete aq[d]);
   S.profile.actQuiz = aq; await store.setActQuiz(uid, aq).catch(e => console.warn(e));
-  try { localStorage.removeItem('adv_prizes_' + uid); } catch {}
+  try { localStorage.removeItem('adv_prizes_' + uid); localStorage.removeItem('adv_prize_open_' + uid); } catch {}
   clearLocalGames();
   if (S.card) { await store.deleteCard(uid).catch(() => {}); S.card = null; }
 }
@@ -559,6 +564,33 @@ function prizeState(g) {
 }
 // regalos ya abiertos (se guardan en el perfil y en el aparato)
 const OPENED_KEY = () => 'adv_prize_open_' + (S.user?.uid || '');
+// (V29.2) avisos de regalo ya enseñados: en el aparato y en el perfil (así no se repiten en otro aparato ni tras reiniciar una casilla)
+const SEEN_KEY = () => 'adv_prizes_' + (S.user?.uid || '');
+function prizeSeenAll() {
+  let o = {}; try { o = JSON.parse(localStorage.getItem(SEEN_KEY())) || {}; } catch {}
+  return { ...(S.profile?.prizesSeen || {}), ...o };
+}
+function markPrizeSeen(g) {
+  try { const o = JSON.parse(localStorage.getItem(SEEN_KEY()) || '{}'); o[g] = 1; localStorage.setItem(SEEN_KEY(), JSON.stringify(o)); } catch {}
+  if (S.profile && S.user && !S.profile.prizesSeen?.[g]) {
+    S.profile.prizesSeen = { ...(S.profile.prizesSeen || {}), [g]: Date.now() };
+    store.saveProfile(S.user.uid, { prizesSeen: S.profile.prizesSeen }).catch(() => {});
+  }
+}
+// (V29.2) un regalo que ya NO está conseguido (casillas reiniciadas): se olvida el aviso y el «abierto», para que salga otra vez a su tiempo
+function forgetLostPrizes() {
+  if (!S.user || !S.profile) return;
+  const lost = GOALS.filter(g => prizeState(g).state !== 'won');
+  if (!lost.length) return;
+  const pf = {};
+  try { const o = JSON.parse(localStorage.getItem(SEEN_KEY()) || '{}'); lost.forEach(g => delete o[g]); localStorage.setItem(SEEN_KEY(), JSON.stringify(o)); } catch {}
+  try { const o = JSON.parse(localStorage.getItem(OPENED_KEY()) || '{}'); lost.forEach(g => delete o[g]); localStorage.setItem(OPENED_KEY(), JSON.stringify(o)); } catch {}
+  for (const f of ['prizesSeen', 'prizesOpened']) {
+    const cur = S.profile[f]; if (!cur || !lost.some(g => cur[g])) continue;
+    const nx = { ...cur }; lost.forEach(g => delete nx[g]); S.profile[f] = nx; pf[f] = nx;
+  }
+  if (Object.keys(pf).length) store.saveProfile(S.user.uid, pf).catch(() => {});
+}
 function prizeOpened(g) {
   if (S.profile?.prizesOpened?.[g]) return true;
   try { return !!JSON.parse(localStorage.getItem(OPENED_KEY()) || '{}')[g]; } catch { return false; }
@@ -1005,7 +1037,7 @@ function buildImage(theme, v) {
 }
 
 // ------------------------------------------------------------------ abrir puerta
-let busy = false, busyAt = 0;
+let busy = false, busyAt = 0, VOICE_TOK = 0;
 // (V25.2) nunca se queda bloqueado: si algo tarda o falla al abrir, a los pocos segundos se puede volver a tocar
 async function openDoor(n, door, mode = null) {
   if (busy && Date.now() - busyAt > 12000) busy = false; // algo se quedó a medias (p. ej. el iPhone volvió de otra app): se libera
@@ -1058,7 +1090,8 @@ async function openDoorInner(n, door, mode = null) {
     { transform: 'translate(0,0) scale(1) rotate(0)', opacity: 1 },
   ], { duration: 1500, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' });
   preloadVoice(getLang());
-  setTimeout(() => sayVoice('w' + n, getLang(), t('welcome', n)), 4800); // (V26) voz de hombre grabada, después del ho, ho, ho
+  const voiceTok = ++VOICE_TOK; // (V29.2) solo habla si sigue abierta ESTA casilla (antes a veces sonaba la bienvenida de otra)
+  setTimeout(() => { if (voiceTok === VOICE_TOK && layer.isConnected) sayVoice('w' + n, getLang(), '', () => voiceTok === VOICE_TOK && layer.isConnected); }, 4800); // (V26) voz de hombre grabada, después del ho, ho, ho
 
   let closed = false;
   const ctx = {
@@ -1069,7 +1102,7 @@ async function openDoorInner(n, door, mode = null) {
       const rec = { answer: data.answer ?? '', status: data.status || 'pending', extra: data.extra ?? null, at: Date.now() };
       S.answers[n] = { ...rec };
       try { await store.submitAnswer(S.user.uid, n, rec); } catch (e) { console.error(e); toast('⚠️ ' + e.message); }
-      if (rec.status === 'correct') { fanfare(); checkPrize(); }
+      if (rec.status === 'correct') { fanfare(); if (n !== 25) checkPrize(); } // (V29.2) el 25: el regalo sale después de la fiesta
       if (figure() === 'gnomo') import('./gnomes.js').then(m => m.syncDoorPts()).catch(e => console.warn(e)); // (V27.4) +1 per al joc dels gnoms
     },
     finish: (later = false) => { if (!closed) { closed = true; closeDay(n, layer, note, door, later); } },
@@ -1081,7 +1114,12 @@ async function openDoorInner(n, door, mode = null) {
   const openedAt = performance.now(); let wonAt = 0;
   // Finalizar sin haber hecho el reto: avisar (si no, no sale la actividad y parece que falla)
   finishBtn.onclick = async () => {
-    if (!S.answers[n] && figure() !== 'galleta' && !closed) {
+    if (closed) return;
+    // (V29.2) el día 25 decide él mismo (los dos juegos y la fiesta)
+    if (ctx.onFinishTry) { let ok = true; try { ok = await ctx.onFinishTry(); } catch (e) { console.error(e); } if (!ok) return; }
+    // (V29.2) día 24: no se puede saber si ha bailado o enviado el WhatsApp: al pulsar Finalizar se da por hecho
+    if (n === 24 && !S.answers[24]) await ctx.submit({ answer: '💃', status: 'correct' });
+    if (!S.answers[n] && figure() !== 'galleta' && n !== 24 && n !== 25 && !closed) {
       const go = await popup(`<h2>🎄</h2><p style="font-size:18px">${L3('Todavía no has hecho el reto de hoy. Cuando lo hagas, aparecerá tu actividad.', 'Encara no has fet el repte d’avui. Quan el facis, apareixerà la teva activitat.', 'You haven’t done today’s challenge yet. When you do, your activity will appear.')}</p>`,
         { buttons: [{ label: L3('Hacer el reto', 'Fer el repte', 'Do the challenge'), value: false }, { label: L3('Salir', 'Sortir', 'Leave'), value: true, cls: 'btn-ghost' }] });
       if (!go) { // «Hacer el reto»: se va al principio del reto y se ilumina, para que se vea qué hay que hacer
@@ -1129,22 +1167,29 @@ function renderSummary(body, ctx) {
     el('img', { class: 'summary-fig ' + (a.status === 'correct' ? '' : 'bw'), src: FIG_IMG[figure()], alt: '' })));
 }
 
-function checkPrize() {
-  let seen = {}; const key = 'adv_prizes_' + S.user.uid;
-  try { seen = JSON.parse(localStorage.getItem(key)) || {}; } catch {}
-  // (V26.4) si se han vuelto a cerrar casillas (pruebas, reinicio), el aviso del regalo podrá salir otra vez
-  let ch = false; GOALS.forEach(x => { if (seen[x] && prizeState(x).state !== 'won') { delete seen[x]; ch = true; } });
-  if (ch) try { localStorage.setItem(key, JSON.stringify(seen)); } catch {}
-  const g = GOALS.find(x => !seen[x] && prizeState(x).state === 'won');
-  if (!g) return;
-  seen[g] = 1; try { localStorage.setItem(key, JSON.stringify(seen)); } catch {}
-  setTimeout(async () => { confetti(250); chime();
-    const p = prizeState(g);
-    const go = await popup(el('div', {}, el('h2', {}, `🏆 ${t('prize')}!`), el('p', {}, t('dayRange', g)),
-      el('p', { class: 'prize-why' }, '🎉 ' + L3(`¡Has hecho ${p.ok} de ${g} casillas y tienes otro regalo!`, `Has fet ${p.ok} de ${g} caselles i tens un altre regal!`, `You've done ${p.ok} of ${g} doors and you have another present!`)),
-      tEl('p', 'prize-text', prizeText(g))),
-      { buttons: [{ label: '🎁 ' + L3('Pulsa para conseguir el regalo', 'Prem per aconseguir el regal', 'Tap to get your present'), value: true }, { label: t('close'), value: false, cls: 'btn-ghost' }] });
-    if (go) revealPrize(g); }, 1800);
+function checkPrize(delay = 1800) {
+  // (V29.2) cada regalo avisa UNA sola vez, cuando se consigue. Si ya se avisó o ya se abrió, no vuelve a salir.
+  const seen = prizeSeenAll();
+  const won = GOALS.filter(x => prizeState(x).state === 'won');
+  won.filter(x => !seen[x] && prizeOpened(x)).forEach(markPrizeSeen); // abierto desde la lista: ya cuenta como avisado
+  const fresh = won.filter(x => !seen[x] && !prizeOpened(x));
+  if (!fresh.length) return Promise.resolve();
+  fresh.forEach(markPrizeSeen);
+  const gone = sel => new Promise(r => { const k = setInterval(() => { if (!document.querySelector(sel)) { clearInterval(k); r(); } }, 400); });
+  return new Promise(done => setTimeout(async () => {
+    try {
+      for (const g of fresh) { // si se consiguen dos a la vez (p. ej. el 20 y el 25), salen uno detrás de otro
+        confetti(250); chime();
+        const p = prizeState(g);
+        const go = await popup(el('div', {}, el('h2', {}, `🏆 ${t('prize')}!`), el('p', {}, t('dayRange', g)),
+          el('p', { class: 'prize-why' }, '🎉 ' + L3(`¡Has hecho ${p.ok} de ${g} casillas y tienes otro regalo!`, `Has fet ${p.ok} de ${g} caselles i tens un altre regal!`, `You've done ${p.ok} of ${g} doors and you have another present!`)),
+          tEl('p', 'prize-text', prizeText(g))),
+          { buttons: [{ label: '🎁 ' + L3('Pulsa para conseguir el regalo', 'Prem per aconseguir el regal', 'Tap to get your present'), value: true }, { label: t('close'), value: false, cls: 'btn-ghost' }] });
+        if (go) { await revealPrize(g); await sleep(300); await gone('.pzr-back'); }
+      }
+    } catch (e) { console.warn(e); }
+    done();
+  }, delay));
 }
 
 // ------------------------------------------------------------------ cerrar el día
@@ -1174,6 +1219,7 @@ async function closeDay(n, layer, note, door, later = false) {
 }
 async function closeDayInner(n, layer, note, door, later = false) {
   fullView = true; // al salir de cualquier casilla: el calendario en grande (con la fila de figuras abajo)
+  VOICE_TOK++; stopVoice(); // (V29.2) que no siga hablando la casilla que se cierra
   const fig = figure();
   const done = !!S.answers[n];
   speechSynthesis?.cancel?.();
@@ -1188,7 +1234,7 @@ async function closeDayInner(n, layer, note, door, later = false) {
   // día 25 con la foto hecha: final del calendario con la bola de nieve que cobra vida
   // al acabar el día 25: el resumen de todo el mes
   let next = null;
-  if (!later && n === 25 && done) { try { next = await (await import('./summary.js')).monthSummary({ menu: menu25() }); fullView = true; } catch (e) { console.error(e); } }
+  if (!later && n === 25 && done) { try { await checkPrize(200); } catch {} try { next = await (await import('./summary.js')).monthSummary({ menu: menu25() }); fullView = true; } catch (e) { console.error(e); } }
   creak(false);
   layer.classList.add('fade-out');
   await sleep(700);

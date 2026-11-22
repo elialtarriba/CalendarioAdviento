@@ -24,7 +24,7 @@ const best = k => { try { return +(localStorage.getItem('adv_snake25_best_' + k)
 const setBest = (k, v) => { try { if (v > best(k)) localStorage.setItem('adv_snake25_best_' + k, String(v)); } catch {} };
 
 // host: dónde se pinta · onWin({ level, eaten, time }) al conseguirlo · onExit() para volver al menú de los dos juegos
-export function snakeGame(host, { onWin, onExit, won } = {}) {
+export function snakeGame(host, { onWin, onExit, won, onDone } = {}) {
   let timer = 0, alive = true;
   const stop = () => { clearTimeout(timer); timer = 0; };
   const wrap = el('div', { class: 'sn-wrap' });
@@ -164,6 +164,7 @@ export function snakeGame(host, { onWin, onExit, won } = {}) {
     }
     async function win() {
       over = true; stop(); setBest(k, eaten); fanfare(); confetti(200); try { won?.(); } catch {}
+      try { onDone?.({ level: k, eaten }); } catch (e) { console.error(e); } // (V29.2) ya cuenta como hecho, sin tener que pulsar «Continuar»
       const time = t0 ? Date.now() - t0 : 0;
       msg.replaceChildren(el('div', { class: 'sn-end win' }, el('b', {}, '🎉 ' + L('¡Conseguido!', 'Aconseguit!', 'You did it!')),
         el('span', {}, L(`La serpiente se ha comido las ${LV.goal} cosas.`, `La serp s’ha menjat les ${LV.goal} coses.`, `The snake ate all ${LV.goal} treats.`)),

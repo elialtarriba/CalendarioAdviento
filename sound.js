@@ -251,21 +251,25 @@ function vozLoad(lang) {
 }
 export const preloadVoice = (lang = 'es') => { if (VOZ[lang]) vozLoad(lang).catch(() => {}); };
 // dice la frase entera y espera a que acabe (devuelve una promesa)
-export async function sayVoice(key, lang = 'es', fallback = '') {
+let vozSrc = null;
+// (V29.2) para la voz que esté sonando (al cerrar una casilla)
+export function stopVoice() { try { vozSrc?.stop(); } catch {} vozSrc = null; }
+export async function sayVoice(key, lang = 'es', fallback = '', still = null) {
   if (muted) return;
   const L = VOZ[lang] ? lang : 'es', seg = VOZ[L][key];
   try {
     if (!seg) throw new Error('sin frase');
     const buf = await Promise.race([vozLoad(L), new Promise((_, r) => setTimeout(() => r(new Error('lento')), 6000))]);
     const c = ac(); if (c.state !== 'running') { try { await c.resume(); } catch {} }
+    if (still && !still()) return; // (V29.2) mientras se cargaba, se ha cerrado la casilla: no se dice nada
     try { speechSynthesis.cancel(); } catch {}
     await new Promise(res => {
-      const src = c.createBufferSource(); src.buffer = buf;
+      const src = c.createBufferSource(); src.buffer = buf; stopVoice(); vozSrc = src;
       const g = c.createGain(); g.gain.value = 1; src.connect(g); g.connect(c.destination);
       src.onended = res; src.start(0, seg[0], seg[1] + .05);
       setTimeout(res, (seg[1] + 1) * 1000);
     });
-  } catch (e) { if (fallback) await speak(fallback, lang); }
+  } catch (e) { if (fallback && (!still || still())) await speak(fallback, lang); }
 }
 
 // ---------------- Un sonido distinto para cada casilla
