@@ -1,7 +1,7 @@
 // Día 13 · (V27.3) «El solitari de Nadal» — el solitario de siempre (Klondike, se roba de 1 en 1) con cartas navideñas.
 // Se abre con el botón de debajo de la ruleta de superpoderes.
 // Fácil de jugar: TOCA una carta y se va sola al mejor sitio (o arrástrala). Botón «Desfer», partida nueva y normas.
-// Cartas: ♥ ♦ rojas y ♣ ♠ verdes (se alternan rojo/verde en las columnas).
+// Cartas: ♥ ♦ rojas y ♣ ♠ verdes. (V28.3) En las columnas se puede bajar con cualquier color, y si ya no se puede hacer nada, se avisa.
 //   A = estrella de galleta · J = el duende · Q = el reno · K = Papá Noel · 2–10 = perrito (♥), galleta (♦), búho (♣), muñeco de nieve (♠).
 import { getLang } from './i18n.js';
 import { el, sleep, confetti } from './fx.js';
@@ -28,7 +28,8 @@ function deal() {
 }
 const clone = G => JSON.parse(JSON.stringify(G));
 const canFound = (card, pile) => pile.length ? (pile[pile.length - 1].s === card.s && pile[pile.length - 1].r === card.r - 1) : card.r === 1;
-const canTab = (card, col) => { if (!col.length) return card.r === 13; const t = col[col.length - 1]; return t.up && RED(t.s) !== RED(card.s) && t.r === card.r + 1; };
+// (V28.3) más fácil: en las columnas las cartas bajan de una en una de CUALQUIER color (también del mismo color)
+const canTab = (card, col) => { if (!col.length) return card.r === 13; const t = col[col.length - 1]; return t.up && t.r === card.r + 1; };
 
 export function openSolitaire(ctx) {
   let G = deal(), hist = [], alive = true, secs = 0, won = false, tick = 0;
@@ -114,14 +115,14 @@ export function openSolitaire(ctx) {
 
   // ---- jugar
   const save = () => { hist.push(clone(G)); if (hist.length > 200) hist.shift(); };
-  function undo() { if (!hist.length) return; G = hist.pop(); clickSound(); draw(); }
-  function fresh() { G = deal(); hist = []; secs = 0; won = false; timeEl.textContent = '0:00'; snapSound(); nodes.clear(); draw(); }
+  function undo() { if (!hist.length) return; G = hist.pop(); stuckShown = false; clickSound(); draw(); }
+  function fresh() { G = deal(); hist = []; secs = 0; won = false; stuckShown = false; timeEl.textContent = '0:00'; snapSound(); nodes.clear(); draw(); }
   function drawStock() {
     save();
     if (G.stock.length) { const c = G.stock.pop(); c.up = true; G.waste.push(c); clickSound(); }
     else if (G.waste.length) { G.stock = G.waste.reverse().map(c => ({ ...c, up: false })); G.waste = []; snapSound(); }
     else { hist.pop(); return; }
-    G.moves++; draw();
+    G.moves++; draw(); checkStuck();
   }
   // las cartas que se mueven juntas desde ese sitio
   function pick(where) {
@@ -145,7 +146,7 @@ export function openSolitaire(ctx) {
     if (dest.to === 'found') G.found[dest.f].push(...cards); else G.tab[dest.c].push(...cards);
     G.moves++;
     if (dest.to === 'found') chime(); else pop();
-    draw(); checkWin();
+    draw(); checkWin(); checkStuck();
   }
   // tocar: al mejor sitio (primero a las de arriba; si no, a una columna con cartas; si no, a una vacía)
   function bestDest(cards, where) {
@@ -200,6 +201,47 @@ export function openSolitaire(ctx) {
   };
   board.addEventListener('pointerup', endDrag); board.addEventListener('pointercancel', () => { if (drag) { drag.els.forEach(n => n.classList.remove('drag')); drag = null; draw(); } });
 
+  // ---- (V28.3) ¿queda alguna jugada que sirva? Si no, se avisa: «Ya no puedes hacer nada más»
+  let stuckShown = false, stuckT = 0;
+  function hasMove() {
+    // cualquier carta del mazo o del descarte (se roba de 1 en 1, así que todas acaban saliendo)
+    for (const c of [...G.stock, ...G.waste]) {
+      if (canFound(c, G.found[c.s])) return true;
+      if (G.tab.some(col => canTab(c, col))) return true;
+    }
+    const kingWaiting = [...G.stock, ...G.waste].some(c => c.r === 13) || G.tab.some(col => col.findIndex(c => c.up && c.r === 13) > 0);
+    for (let ci = 0; ci < 7; ci++) {
+      const col = G.tab[ci];
+      for (let i = 0; i < col.length; i++) {
+        const c = col[i]; if (!c.up) continue;
+        if (i === col.length - 1 && canFound(c, G.found[c.s])) return true;
+        // mover un trozo de columna solo sirve si destapa una carta, deja la columna vacía para un rey o deja subir una carta arriba
+        const useful = i === 0 ? kingWaiting : (!col[i - 1].up || canFound(col[i - 1], G.found[col[i - 1].s]));
+        if (useful && G.tab.some((d, di) => di !== ci && canTab(c, d) && !(i === 0 && !d.length))) return true;
+      }
+    }
+    // bajar una carta de arriba a una columna para poder poner otra encima
+    for (let f = 0; f < 4; f++) { const p = G.found[f]; if (!p.length) continue; const c = p[p.length - 1];
+      for (let di = 0; di < 7; di++) if (G.tab[di].length && canTab(c, G.tab[di]) &&
+        [...G.stock, ...G.waste, ...G.tab.flatMap(col => col.filter(x => x.up))].some(x => x.r === c.r - 1 && x.id !== c.id)) return true; }
+    return false;
+  }
+  function checkStuck() {
+    clearTimeout(stuckT);
+    stuckT = setTimeout(() => {
+      if (!alive || won || stuckShown || G.found.every(p => p.length === 13) || hasMove()) return;
+      stuckShown = true; wrong();
+      const box = el('div', { class: 'cc8-end' }, el('div', { class: 'cc8-endcard inv-rulescard' },
+        el('h2', {}, '🎄 ' + L('¡Ya no puedes hacer nada más!', 'Ja no pots fer res més!', 'No more moves!')),
+        el('p', {}, L('Las cartas se han quedado atascadas. Puedes deshacer unas cuantas jugadas y probar otro camino, o empezar una partida nueva.', 'Les cartes s’han quedat encallades. Pots desfer unes quantes jugades i provar un altre camí, o començar una partida nova.', 'The cards are stuck. You can undo a few moves and try another way, or start a new game.')),
+        el('div', { class: 'cc8-endbtns' },
+          el('button', { type: 'button', class: 'btn btn-big no-delay', onclick: () => { box.remove(); fresh(); } }, '🔄 ' + L('Volver a jugar', 'Tornar a jugar', 'Play again')),
+          hist.length ? el('button', { type: 'button', class: 'btn no-delay', onclick: () => { box.remove(); undo(); } }, '↶ ' + L('Deshacer', 'Desfer', 'Undo')) : null,
+          el('button', { type: 'button', class: 'btn btn-ghost no-delay', onclick: () => { box.remove(); close(); } }, '🎄 ' + L('Salir', 'Sortir', 'Exit')))));
+      wrap.append(box);
+    }, 700);
+  }
+
   async function autoFinish() {
     autoBtn.style.display = 'none';
     while (alive && !won) {
@@ -246,7 +288,8 @@ export function openSolitaire(ctx) {
       el('ul', { class: 'inv-rl' },
         el('li', {}, '🎯 ' + L('Objetivo: subir todas las cartas arriba, cada palo en su sitio, del A a la K.', 'Objectiu: pujar totes les cartes a dalt, cada pal al seu lloc, de l’A a la K.', 'Goal: move all cards up top, each suit in its place, from A to K.')),
         el('li', {}, '👆 ' + L('Toca una carta y se va sola donde puede ir. También la puedes arrastrar.', 'Toca una carta i se’n va sola on pot anar. També la pots arrossegar.', 'Tap a card and it goes where it can. You can also drag it.')),
-        el('li', {}, '🔴🟢 ' + L('En las columnas, las cartas bajan de una en una (K, Q, J, 10…) alternando rojo y verde.', 'A les columnes, les cartes baixen d’una en una (K, Q, J, 10…) alternant vermell i verd.', 'In the columns, cards go down one by one (K, Q, J, 10…) alternating red and green.')),
+        el('li', {}, '🔴🟢 ' + L('En las columnas, las cartas bajan de una en una (K, Q, J, 10…) del color que quieras: también del mismo color.', 'A les columnes, les cartes baixen d’una en una (K, Q, J, 10…) del color que vulguis: també del mateix color.', 'In the columns, cards go down one by one (K, Q, J, 10…) in any colour, even the same colour.')),
+        el('li', {}, '🧊 ' + L('Si ya no se puede hacer nada más, te avisa y puedes volver a jugar.', 'Si ja no es pot fer res més, t’avisa i pots tornar a jugar.', 'If there are no moves left, you’ll be told and can play again.')),
         el('li', {}, '🎅 ' + L('En una columna vacía solo puede ir una K (Papá Noel).', 'En una columna buida només hi pot anar una K (el Pare Noel).', 'Only a K (Santa) can go in an empty column.')),
         el('li', {}, '🂠 ' + L('Toca el mazo de arriba a la izquierda para sacar cartas. Cuando se acaba, tócalo otra vez y vuelve a empezar.', 'Toca el munt de dalt a l’esquerra per treure cartes. Quan s’acaba, toca’l un altre cop i torna a començar.', 'Tap the pile top left to draw cards. When it runs out, tap it again to start over.')),
         el('li', {}, '↶ ' + L('Si te equivocas, pulsa «Deshacer».', 'Si t’equivoques, prem «Desfer».', 'If you make a mistake, tap «Undo».')),
