@@ -98,14 +98,40 @@ async function nameTaken(name, maybeMine) {
 const OWNER_MAIL_KEY = 'adv_owner_mail'; // este aparato recuerda el correo de la administradora (solo en su aparato)
 const savedOwnerMail = () => { try { return localStorage.getItem(OWNER_MAIL_KEY) || ''; } catch { return ''; } };
 // ---- palabra secreta de la familia: la pide la primera vez (si la administradora la ha puesto)
+// (V29.4) «No la sé»: popup que porta al correu de la Mare Noel, així ella sap qui vol entrar i li envia la paraula
+async function askKeyByMail() {
+  const who = (S._enterName || '').trim();
+  const subj = L3('Quiero entrar al Calendario de Adviento', 'Vull entrar al Calendari d’Advent', 'I want to join the Advent Calendar') + (who ? ' · ' + who : '');
+  const bodyTxt = L3(`Hola, Mamá Noel:\n\nSoy ${who || '…'} y quiero entrar al Calendario de Adviento. ¿Me puedes enviar la palabra secreta?\n\n¡Gracias!`,
+    `Hola, Mare Noel:\n\nSóc ${who || '…'} i vull entrar al Calendari d’Advent. Em pots enviar la paraula secreta?\n\nGràcies!`,
+    `Hi Mrs Claus,\n\nI’m ${who || '…'} and I’d like to join the Advent Calendar. Could you send me the secret word?\n\nThank you!`);
+  const href = 'mailto:' + CONTACT_EMAIL + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(bodyTxt);
+  const copy = el('button', { type: 'button', class: 'btn btn-ghost no-delay ow-copy', onclick: async () => {
+    try { await navigator.clipboard.writeText(CONTACT_EMAIL); toast('📋 ' + L3('Correo copiado', 'Correu copiat', 'Email copied'), 2500); } catch { toast(CONTACT_EMAIL, 4000); } } }, '📋 ' + L3('Copiar el correo', 'Copiar el correu', 'Copy the email'));
+  await popup(el('div', { class: 'ow-box ow-ask' }, el('div', { class: 'ow-key' }, '💌'),
+    el('h2', {}, L3('¿No sabes la palabra secreta?', 'No saps la paraula secreta?', 'Don’t know the secret word?')),
+    el('p', {}, L3('¡No pasa nada! Escribe un correo a Mamá Noel: así sabrá que quieres entrar y te enviará la palabra secreta.', 'Cap problema! Escriu un correu a la Mare Noel: així sabrà que vols entrar i t’enviarà la paraula secreta.', 'No problem! Send Mrs Claus an email: she’ll know you want to join and will send you the secret word.')),
+    el('a', { class: 'btn btn-big no-delay ow-mailbtn', href }, '✉️ ' + L3('Escribir a Mamá Noel', 'Escriure a la Mare Noel', 'Write to Mrs Claus')),
+    el('p', { class: 'ow-mail' }, CONTACT_EMAIL), copy,
+    el('p', { class: 'muted' }, L3('Cuando te llegue, vuelve aquí y escríbela.', 'Quan te l’enviï, torna aquí i escriu-la.', 'When you get it, come back here and type it.'))),
+    { cls: 'small', buttons: [{ label: '← ' + L3('Volver', 'Tornar', 'Back'), value: true, cls: 'btn-ghost' }] });
+}
 async function askFamily(wrong) {
+  for (;;) {
+    const r = await askFamilyOnce(wrong);
+    if (r !== 'ask') return r;
+    await askKeyByMail();
+  }
+}
+async function askFamilyOnce(wrong) {
   const inp = el('input', { type: 'text', class: 'ow-pw', autocomplete: 'off', autocapitalize: 'none', placeholder: L3('Palabra secreta', 'Paraula secreta', 'Secret word') });
   setTimeout(() => inp.focus(), 300);
   const ok = await popup(el('div', { class: 'ow-box' }, el('div', { class: 'ow-key' }, '🔑'),
     el('h2', {}, L3('Palabra secreta', 'Paraula secreta', 'Secret word')),
     el('p', {}, L3('Para entrar, escribe la palabra secreta (solo te la pedirá esta vez).', 'Per entrar, escriu la paraula secreta (només te la demanarà aquest cop).', 'To come in, type the secret word (you’ll only be asked once).')),
     inp, wrong ? el('p', { class: 'ow-err' }, '❄ ' + L3('Esa no es. Vuelve a probar.', 'No és aquesta. Torna-ho a provar.', 'That’s not it. Try again.')) : null),
-    { cls: 'small', buttons: [{ label: L3('Cancelar', 'Cancel·lar', 'Cancel'), value: false, cls: 'btn-ghost' }, { label: '🔓 ' + L3('Entrar', 'Entrar', 'Come in'), value: true }] });
+    { cls: 'small', buttons: [{ label: L3('Cancelar', 'Cancel·lar', 'Cancel'), value: false, cls: 'btn-ghost' }, { label: '💌 ' + L3('No la sé', 'No la sé', 'I don’t know it'), value: 'ask', cls: 'btn-ghost ow-dontknow' + (wrong ? ' pulse' : '') }, { label: '🔓 ' + L3('Entrar', 'Entrar', 'Come in'), value: true }] });
+  if (ok === 'ask') return 'ask';
   return ok && inp.value.trim() ? famKey(inp.value) : null;
 }
 // quien entró antes de que hubiera palabra secreta: se le pide una vez y se apunta en su ficha
@@ -362,13 +388,14 @@ async function boot() {
     }
     if (await store.authReady()) { try { (await import('./presence.js')).stopPresence(S); } catch {} await store.signOut(); }
     let r;
+    S._enterName = name; // (V29.4) per al correu «No la sé»
     try { r = await store.playerEnter(name, nameKey(name), pin, getLang(), askFamily); }
     catch (er) {
       const c = String(er.code || er.message || '');
       return '⚠️ ' + (c.includes('too-many') ? L('Demasiados intentos. Espera un par de minutos y vuelve a probar.', 'Massa intents. Espera un parell de minuts i torna-ho a provar.', 'Too many tries. Wait a couple of minutes and try again.')
         : c.includes('network') ? L('No hay conexión a internet.', 'No hi ha connexió a internet.', 'No internet connection.') : c);
     }
-    if (r === 'cancel') return '🔒 ' + L('Para entrar hace falta la palabra secreta. Pídesela a Mamá Noel.', 'Per entrar cal la paraula secreta. Demana-la a la Mare Noel.', 'You need the secret word to come in. Ask Mrs Claus.');
+    if (r === 'cancel') return '🔒 ' + L('Para entrar hace falta la palabra secreta. Pulsa «No la sé» para pedírsela a Mamá Noel por correo.', 'Per entrar cal la paraula secreta. Prem «No la sé» per demanar-la a la Mare Noel per correu.', 'You need the secret word to come in. Tap “I don’t know it” to ask Mrs Claus by email.');
     if (r === 'badpin' || r === 'taken') return nameTaken(name, r === 'badpin');
     if (r === 'badpin') return '❄ ' + L(`El nombre «${name}» ya está cogido, o ese PIN no es el suyo. Si eres tú, revisa tu PIN. Si eres otra persona, pon el nombre con un número, por ejemplo ${name}2.`, `El nom «${name}» ja està agafat, o aquest PIN no és el seu. Si ets tu, revisa el teu PIN. Si ets una altra persona, posa el nom amb un número, per exemple ${name}2.`, `The name “${name}” is already taken, or that PIN isn’t theirs. If it’s you, check your PIN. If you’re someone else, add a number to the name, for example ${name}2.`);
     if (r === 'taken') return '❄ ' + L(`El nombre «${name}» ya está cogido. Ponlo con un número, por ejemplo ${name}2.`, `El nom «${name}» ja està agafat. Posa’l amb un número, per exemple ${name}2.`, `The name “${name}” is already taken. Add a number, for example ${name}2.`);

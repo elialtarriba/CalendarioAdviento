@@ -3800,3 +3800,10 @@ body:has(.pch-wrap) .pch-fab { display: none; }
 .sum-games-list span { background: #fff6dc; border: 2px solid #e2b64f; border-radius: 999px; padding: 3px 10px; font-size: 14px; font-weight: 700; color: #3b2a1a; }
 /* (V29.3) al volver a una casilla hecha: su actividad, también */
 .note-body .day-act-done { margin: 16px auto 6px; max-width: 560px; text-align: left; }
+
+/* (V29.4) paraula secreta: «No la sé» → correu a la Mare Noel */
+.ow-ask .ow-mailbtn { display: inline-block; margin: 10px auto 6px; text-decoration: none; }
+.ow-ask .ow-mail { font-weight: 800; color: #7a1020; font-size: 17px; margin: 4px 0; word-break: break-all; }
+.ow-ask .ow-copy { margin: 4px auto 8px; }
+.ow-dontknow.pulse { animation: owPulse 1.2s ease-in-out infinite; }
+@keyframes owPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); box-shadow: 0 0 0 6px #e2b64f55; } }
